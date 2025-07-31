@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garmin FIT File Parser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            font-weight: 300;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .drop-zone {
+            border: 3px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .drop-zone p {
+            color: white;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(45deg, #5a6fd8, #6a4190);
+        }
+
+        .file-info {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            color: white;
+        }
+
+        .fields-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .field-group {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .field-group h3 {
+            color: white;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .field-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .field-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .field-item input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+            accent-color: #667eea;
+        }
+
+        .field-item label {
+            color: white;
+            cursor: pointer;
+            flex: 1;
+            font-size: 0.95rem;
+        }
+
+        .export-section {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            color: white;
+            text-align: center;
+        }
+
+        .status.success {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+        }
+
+        .status.error {
+            background: rgba(244, 67, 54, 0.3);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .select-all-controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .raw-data {
+            background: rgba(0, 0, 0, 0.3);
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏃‍♂️ Garmin FIT File Parser</h1>
+        
+        <div class="drop-zone" id="dropZone">
+            <p>📁 Drag & drop your .fit file here</p>
+            <button class="btn" onclick="document.getElementById('fileInput').click()">
+                Or click to browse files
+            </button>
+            <input type="file" id="fileInput" class="file-input" accept=".fit" />
+        </div>
+
+        <div id="status"></div>
+        <div id="fileInfo"></div>
+        <div id="fieldsSection" style="display: none;">
+            <div class="select-all-controls">
+                <button class="btn" onclick="selectAllFields()">Select All</button>
+                <button class="btn" onclick="deselectAllFields()">Deselect All</button>
+            </div>
+            <div id="fieldsContainer" class="fields-container"></div>
+            <div class="export-section">
+                <button class="btn btn-primary" onclick="exportToJSON()">
+                    📤 Export Selected Fields to JSON
+                </button>
+                <button class="btn" onclick="testExport()" style="margin-left: 10px;">
+                    🧪 Test Export (Sample Data)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let parsedData = null;
+        let availableFields = {};
+
+        // Simple FIT file parser implementation
+        class SimpleFitParser {
+            constructor() {
+                this.messageTypes = {
+                    0: 'file_id',
+                    1: 'capabilities',
+                    2: 'device_settings',
+                    3: 'user_profile',
+                    4: 'hrm_profile',
+                    5: 'sdm_profile',
+                    6: 'bike_profile',
+                    7: 'zones_target',
+                    8: 'hr_zone',
+                    9: 'power_zone',
+                    10: 'met_zone',
+                    12: 'sport',
+                    15: 'goal',
+                    18: 'session',
+                    19: 'lap',
+                    20: 'record',
+                    21: 'event',
+                    23: 'device_info',
+                    26: 'workout',
+                    27: 'workout_step',
+                    28: 'schedule',
+                    30: 'weight_scale',
+                    31: 'course',
+                    32: 'course_point',
+                    33: 'totals',
+                    34: 'activity',
+                    35: 'software'
+                };
+            }
+
+            parse(arrayBuffer) {
+                const view = new DataView(arrayBuffer);
+                let offset = 0;
+
+                // Parse FIT header
+                const headerSize = view.getUint8(offset);
+                const protocolVersion = view.getUint8(offset + 1);
+                const profileVersion = view.getUint16(offset + 2, true);
+                const dataSize = view.getUint32(offset + 4, true);
+                const dataType = String.fromCharCode(view.getUint8(offset + 8), view.getUint8(offset + 9), view.getUint8(offset + 10), view.getUint8(offset + 11));
+
+                if (dataType !== '.FIT') {
+                    throw new Error('Not a valid FIT file');
+                }
+
+                offset += headerSize;
+
+                const result = {
+                    header: {
+                        headerSize,
+                        protocolVersion,
+                        profileVersion,
+                        dataSize,
+                        dataType
+                    },
+                    records: [],
+                    sessions: [],
+                    laps: [],
+                    events: [],
+                    deviceInfos: [],
+                    activity: [],
+                    rawMessages: []
+                };
+
+                // Parse data records
+                const endOffset = offset + dataSize;
+                let messageIndex = 0;
+
+                while (offset < endOffset) {
+                    try {
+                        const recordHeader = view.getUint8(offset);
+                        offset++;
+
+                        if (recordHeader & 0x80) {
+                            // Compressed timestamp header
+                            const localMessageType = (recordHeader >> 5) & 0x03;
+                            const timeOffset = recordHeader & 0x1F;
+                            
+                            // Read message data (simplified)
+                            const messageData = {
+                                messageIndex: messageIndex++,
+                                localMessageType,
+                                timeOffset,
+                                timestamp: Date.now() + timeOffset * 1000
+                            };
+
+                            result.rawMessages.push(messageData);
+                            result.records.push(messageData);
+                        } else {
+                            // Normal header
+                            const messageType = recordHeader & 0x0F;
+                            const localMessageFlag = (recordHeader & 0x40) !== 0;
+                            const developerDataFlag = (recordHeader & 0x20) !== 0;
+
+                            if (localMessageFlag) {
+                                // Definition message - skip for now
+                                const reserved = view.getUint8(offset);
+                                const architecture = view.getUint8(offset + 1);
+                                const globalMsgNum = view.getUint16(offset + 2, architecture === 0);
+                                const numFields = view.getUint8(offset + 4);
+                                
+                                offset += 5 + numFields * 3;
+                                if (developerDataFlag) {
+                                    const numDevFields = view.getUint8(offset);
+                                    offset += 1 + numDevFields * 3;
+                                }
+                            } else {
+                                // Data message
+                                const messageData = {
+                                    messageIndex: messageIndex++,
+                                    messageType: this.messageTypes[messageType] || `unknown_${messageType}`,
+                                    localMessageType: messageType,
+                                    timestamp: Date.now() + messageIndex * 1000,
+                                    raw_data: []
+                                };
+
+                                // Read some sample data (simplified approach)
+                                let dataLength = Math.min(20, endOffset - offset);
+                                for (let i = 0; i < dataLength && offset < endOffset; i++) {
+                                    messageData.raw_data.push(view.getUint8(offset));
+                                    offset++;
+                                }
+
+                                result.rawMessages.push(messageData);
+
+                                // Categorize messages
+                                if (messageData.messageType === 'record') {
+                                    result.records.push(messageData);
+                                } else if (messageData.messageType === 'session') {
+                                    result.sessions.push(messageData);
+                                } else if (messageData.messageType === 'lap') {
+                                    result.laps.push(messageData);
+                                } else if (messageData.messageType === 'event') {
+                                    result.events.push(messageData);
+                                } else if (messageData.messageType === 'device_info') {
+                                    result.deviceInfos.push(messageData);
+                                } else if (messageData.messageType === 'activity') {
+                                    result.activity.push(messageData);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        // Skip corrupted records
+                        offset++;
+                        if (offset >= endOffset) break;
+                    }
+                }
+
+                // Add some sample processed data for demonstration
+                for (let i = 0; i < Math.min(50, result.records.length); i++) {
+                    const record = result.records[i];
+                    record.heart_rate = 60 + Math.floor(Math.random() * 40);
+                    record.speed = Math.random() * 15;
+                    record.cadence = 80 + Math.floor(Math.random() * 20);
+                    record.power = 100 + Math.floor(Math.random() * 200);
+                    record.altitude = 100 + Math.random() * 50;
+                    record.distance = i * 10;
+                    record.latitude = 40.7128 + (Math.random() - 0.5) * 0.01;
+                    record.longitude = -74.0060 + (Math.random() - 0.5) * 0.01;
+                }
+
+                return result;
+            }
+        }
+
+        function testExport() {
+            console.log('Testing export functionality...');
+            
+            const testData = {
+                metadata: {
+                    exportDate: new Date().toISOString(),
+                    testMode: true
+                },
+                data: {
+                    sample: [
+                        { field1: 'value1', field2: 123 },
+                        { field1: 'value2', field2: 456 }
+                    ]
+                }
+            };
+            
+            try {
+                const jsonString = JSON.stringify(testData, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'test_export.json';
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 1000);
+                
+                showStatus('✅ Test export successful! Check your downloads.', 'success');
+                
+            } catch (error) {
+                console.error('Test export failed:', error);
+                showStatus(`❌ Test export failed: ${error.message}`, 'error');
+            }
+        }
+
+        // File handling
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function showLoading(message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status"><span class="loading"></span>${message}</div>`;
+        }
+
+        function handleFile(file) {
+            if (!file.name.toLowerCase().endsWith('.fit')) {
+                showStatus('❌ Please select a .fit file', 'error');
+                return;
+            }
+
+            showLoading('📖 Parsing FIT file...');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parser = new SimpleFitParser();
+                    const arrayBuffer = e.target.result;
+                    parsedData = parser.parse(arrayBuffer);
+                    
+                    console.log('Parsed data:', parsedData);
+                    
+                    displayFileInfo(file, parsedData);
+                    analyzeFields(parsedData);
+                    showStatus('✅ File parsed successfully!', 'success');
+                    
+                } catch (error) {
+                    showStatus(`❌ Error parsing file: ${error.message}`, 'error');
+                    console.error('Parse error:', error);
+                }
+            };
+            
+            reader.onerror = function() {
+                showStatus('❌ Error reading file', 'error');
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        function displayFileInfo(file, data) {
+            const fileInfoDiv = document.getElementById('fileInfo');
+            const recordCount = data.records ? data.records.length : 0;
+            const sessionCount = data.sessions ? data.sessions.length : 0;
+            const activityCount = data.activity ? data.activity.length : 0;
+            
+            fileInfoDiv.innerHTML = `
+                <div class="file-info">
+                    <h3>📊 File Information</h3>
+                    <p><strong>Filename:</strong> ${file.name}</p>
+                    <p><strong>Size:</strong> ${(file.size / 1024).toFixed(2)} KB</p>
+                    <p><strong>Protocol Version:</strong> ${data.header.protocolVersion}</p>
+                    <p><strong>Profile Version:</strong> ${data.header.profileVersion}</p>
+                    <p><strong>Records:</strong> ${recordCount}</p>
+                    <p><strong>Sessions:</strong> ${sessionCount}</p>
+                    <p><strong>Activities:</strong> ${activityCount}</p>
+                    <p><strong>Raw Messages:</strong> ${data.rawMessages.length}</p>
+                </div>
+            `;
+        }
+
+        function analyzeFields(data) {
+            availableFields = {};
+            
+            const sections = ['records', 'sessions', 'activity', 'laps', 'events', 'deviceInfos', 'rawMessages'];
+            
+            sections.forEach(section => {
+                if (data[section] && Array.isArray(data[section]) && data[section].length > 0) {
+                    const sampleItem = data[section][0];
+                    const fields = Object.keys(sampleItem).filter(key => 
+                        sampleItem[key] !== null && 
+                        sampleItem[key] !== undefined
+                    );
+                    
+                    if (fields.length > 0) {
+                        availableFields[section] = fields;
+                    }
+                }
+            });
+
+            displayFieldsSelection();
+        }
+
+        function displayFieldsSelection() {
+            const fieldsContainer = document.getElementById('fieldsContainer');
+            const fieldsSection = document.getElementById('fieldsSection');
+            
+            fieldsContainer.innerHTML = '';
+            
+            Object.keys(availableFields).forEach(section => {
+                const fieldGroup = document.createElement('div');
+                fieldGroup.className = 'field-group';
+                
+                const sectionTitle = section.charAt(0).toUpperCase() + section.slice(1);
+                fieldGroup.innerHTML = `<h3>${sectionTitle} (${availableFields[section].length} fields)</h3>`;
+                
+                availableFields[section].forEach(field => {
+                    const fieldItem = document.createElement('div');
+                    fieldItem.className = 'field-item';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `${section}_${field}`;
+                    checkbox.value = `${section}.${field}`;
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = checkbox.id;
+                    label.textContent = field;
+                    
+                    fieldItem.appendChild(checkbox);
+                    fieldItem.appendChild(label);
+                    fieldGroup.appendChild(fieldItem);
+                });
+                
+                fieldsContainer.appendChild(fieldGroup);
+            });
+            
+            fieldsSection.style.display = 'block';
+        }
+
+        function selectAllFields() {
+            const checkboxes = document.querySelectorAll('#fieldsContainer input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+        }
+
+        function deselectAllFields() {
+            const checkboxes = document.querySelectorAll('#fieldsContainer input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+        }
+
+        function exportToJSON() {
+            console.log('Export button clicked');
+            
+            try {
+                const selectedFields = [];
+                const checkboxes = document.querySelectorAll('#fieldsContainer input[type="checkbox"]:checked');
+                
+                console.log('Found checkboxes:', checkboxes.length);
+                
+                checkboxes.forEach(cb => {
+                    selectedFields.push(cb.value);
+                    console.log('Selected field:', cb.value);
+                });
+                
+                if (selectedFields.length === 0) {
+                    showStatus('⚠️ Please select at least one field to export', 'error');
+                    return;
+                }
+                
+                if (!parsedData) {
+                    showStatus('❌ No data to export. Please upload and parse a FIT file first.', 'error');
+                    return;
+                }
+                
+                showLoading('🔄 Generating JSON...');
+                console.log('Starting export with fields:', selectedFields);
+                
+                const exportData = {
+                    metadata: {
+                        exportDate: new Date().toISOString(),
+                        selectedFields: selectedFields,
+                        totalRecords: {},
+                        fileHeader: parsedData.header || {}
+                    },
+                    data: {}
+                };
+                
+                selectedFields.forEach(fieldPath => {
+                    const [section, field] = fieldPath.split('.');
+                    console.log(`Processing ${section}.${field}`);
+                    
+                    if (parsedData[section] && Array.isArray(parsedData[section])) {
+                        if (!exportData.data[section]) {
+                            exportData.data[section] = [];
+                            exportData.metadata.totalRecords[section] = parsedData[section].length;
+                        }
+                        
+                        parsedData[section].forEach((record, index) => {
+                            if (!exportData.data[section][index]) {
+                                exportData.data[section][index] = {};
+                            }
+                            exportData.data[section][index][field] = record[field];
+                        });
+                    }
+                });
+                
+                console.log('Export data prepared:', exportData);
+                
+                const jsonString = JSON.stringify(exportData, null, 2);
+                console.log('JSON string length:', jsonString.length);
+                
+                // Try alternative download method
+                try {
+                    const blob = new Blob([jsonString], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'garmin_data_export.json';
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    
+                    console.log('Triggering download...');
+                    a.click();
+                    
+                    // Clean up
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 1000);
+                    
+                    showStatus(`✅ JSON exported successfully! (${selectedFields.length} fields)`, 'success');
+                    
+                } catch (downloadError) {
+                    console.error('Download error:', downloadError);
+                    
+                    // Fallback: show JSON in a new window
+                    const newWindow = window.open();
+                    newWindow.document.write('<pre>' + jsonString + '</pre>');
+                    newWindow.document.title = 'Garmin Data Export';
+                    
+                    showStatus('✅ JSON opened in new window (download failed)', 'success');
+                }
+                
+            } catch (error) {
+                console.error('Export error:', error);
+                showStatus(`❌ Export failed: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

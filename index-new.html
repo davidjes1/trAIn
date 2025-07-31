@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Hub - Plan, Track, Analyze</title>
+</head>
+<body>
+    <div class="container">
+        <!-- Training Hub Header -->
+        <div class="training-hub-header">
+            <div class="hub-title">
+                <h1>🏃‍♂️ Training Hub</h1>
+                <p class="hub-subtitle">Plan, track, and analyze your training</p>
+            </div>
+            <div class="hub-metrics">
+                <div class="metric-item" id="readiness-metric">
+                    <div class="metric-value">--</div>
+                    <div class="metric-label">Readiness</div>
+                </div>
+                <div class="metric-item" id="weekly-load-metric">
+                    <div class="metric-value">--</div>
+                    <div class="metric-label">Weekly Load</div>
+                </div>
+                <div class="metric-item" id="streak-metric">
+                    <div class="metric-value">--</div>
+                    <div class="metric-label">Streak</div>
+                </div>
+            </div>
+            <div class="hub-controls">
+                <button class="btn btn-secondary" id="import-data-btn" type="button">📁 Import Data</button>
+                <button class="btn btn-primary" id="sync-data-btn" type="button">🔄 Sync</button>
+            </div>
+        </div>
+        
+        <!-- Main Training Hub Content -->
+        <div class="training-hub-main">
+            <!-- Training Calendar Section -->
+            <div class="training-calendar-section">
+                <div class="section-header">
+                    <h2>Training Calendar</h2>
+                    <div class="calendar-controls">
+                        <button class="btn btn-ghost" id="prev-week-btn">‹</button>
+                        <span class="current-period" id="current-period">This Week</span>
+                        <button class="btn btn-ghost" id="next-week-btn">›</button>
+                        <button class="btn btn-secondary" id="generate-plan-btn">🎯 Generate Plan</button>
+                    </div>
+                </div>
+                
+                <div class="workout-calendar" id="workout-calendar">
+                    <!-- Calendar will be populated by JavaScript -->
+                    <div class="calendar-loading">
+                        <p>Loading training calendar...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Workout Detail Panel -->
+            <div class="workout-detail-panel" id="workout-detail-panel" style="display: none;">
+                <div class="panel-header">
+                    <h3 id="workout-detail-title">Workout Details</h3>
+                    <button class="btn btn-ghost close-panel-btn" id="close-detail-panel">×</button>
+                </div>
+                <div class="panel-content" id="workout-detail-content">
+                    <!-- Workout comparison content will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Analytics Dashboard -->
+            <div class="analytics-section">
+                <div class="section-header">
+                    <h2>Training Analytics</h2>
+                    <div class="analytics-controls">
+                        <select id="analytics-timeframe" class="form-control">
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="quarter">Last 3 Months</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="analytics-grid">
+                    <!-- Adherence Overview -->
+                    <div class="analytics-card">
+                        <h3>Plan Adherence</h3>
+                        <div class="adherence-overview" id="adherence-overview">
+                            <div class="adherence-metric">
+                                <div class="metric-circle" id="completion-rate-circle">
+                                    <div class="metric-value">--</div>
+                                    <div class="metric-label">Completion</div>
+                                </div>
+                            </div>
+                            <div class="adherence-details" id="adherence-details">
+                                <div class="adherence-item">
+                                    <span class="label">Planned:</span>
+                                    <span class="value" id="planned-workouts">--</span>
+                                </div>
+                                <div class="adherence-item">
+                                    <span class="label">Completed:</span>
+                                    <span class="value" id="completed-workouts">--</span>
+                                </div>
+                                <div class="adherence-item">
+                                    <span class="label">Load Variance:</span>
+                                    <span class="value" id="load-variance">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HR Zone Distribution -->
+                    <div class="analytics-card">
+                        <h3>Heart Rate Zones</h3>
+                        <div class="zone-chart-container">
+                            <canvas id="hr-zones-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Training Load Trends -->
+                    <div class="analytics-card">
+                        <h3>Training Load</h3>
+                        <div class="load-chart-container">
+                            <canvas id="training-load-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Performance Trends -->
+                    <div class="analytics-card">
+                        <h3>Performance Trends</h3>
+                        <div class="performance-metrics" id="performance-metrics">
+                            <div class="performance-item">
+                                <span class="metric-label">Avg Duration Variance</span>
+                                <span class="metric-value" id="avg-duration-variance">--</span>
+                            </div>
+                            <div class="performance-item">
+                                <span class="metric-label">Zone Compliance</span>
+                                <span class="metric-value" id="zone-compliance">--</span>
+                            </div>
+                            <div class="performance-item">
+                                <span class="metric-label">Consistency Score</span>
+                                <span class="metric-value" id="consistency-score">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Import Drawer (Hidden by default) -->
+        <div class="data-import-drawer" id="data-import-drawer" style="display: none;">
+            <div class="drawer-header">
+                <h3>Import Training Data</h3>
+                <button class="btn btn-ghost close-drawer-btn" id="close-import-drawer">×</button>
+            </div>
+            <div class="drawer-content">
+                <!-- Single File Import -->
+                <div class="import-section">
+                    <h4>Single Activity</h4>
+                    <div class="drop-zone" id="dropZone">
+                        <p>📁 Drag & drop your .fit file here</p>
+                        <button class="btn" type="button">
+                            Or click to browse files
+                        </button>
+                        <input type="file" id="fileInput" class="file-input" accept=".fit" />
+                    </div>
+                </div>
+
+                <!-- Bulk Import -->
+                <div class="import-section">
+                    <h4>Bulk Import</h4>
+                    <div class="bulk-drop-zone" id="bulkDropZone">
+                        <p>📁 Drag & drop multiple .fit files here</p>
+                        <button class="btn" type="button">
+                            Or click to browse FIT files
+                        </button>
+                        <input type="file" id="bulkFileInput" class="file-input" accept=".fit" multiple />
+                    </div>
+                    <div id="selectedFiles" class="selected-files"></div>
+                    <div class="bulk-actions" id="bulkActions" style="display: none;">
+                        <button class="btn btn-primary" type="button" data-action="analyze-activities">
+                            🔍 Process Files
+                        </button>
+                        <button class="btn btn-primary" type="button" data-action="upload-to-sheets">
+                            📊 Upload to Sheets
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Import Status -->
+                <div id="import-status" class="import-status"></div>
+            </div>
+        </div>
+
+        <!-- Plan Generation Modal -->
+        <div class="plan-generation-modal" id="plan-generation-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Generate Training Plan</h3>
+                    <button class="btn btn-ghost close-modal-btn" id="close-plan-modal">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="config-grid">
+                        <!-- User Profile -->
+                        <div class="config-group">
+                            <h4>Athlete Profile</h4>
+                            <div class="form-group">
+                                <label for="athlete-age">Age:</label>
+                                <input type="number" id="athlete-age" min="16" max="80" value="30" />
+                            </div>
+                            <div class="form-group">
+                                <label for="fitness-level">Fitness Level:</label>
+                                <select id="fitness-level">
+                                    <option value="beginner">Beginner</option>
+                                    <option value="intermediate" selected>Intermediate</option>
+                                    <option value="advanced">Advanced</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Training Goals -->
+                        <div class="config-group">
+                            <h4>Training Goals</h4>
+                            <div class="form-group">
+                                <label for="event-date">Target Event Date:</label>
+                                <input type="date" id="event-date" />
+                            </div>
+                            <div class="form-group">
+                                <label for="plan-duration">Plan Duration (days):</label>
+                                <input type="number" id="plan-duration" min="7" max="14" value="10" />
+                            </div>
+                        </div>
+
+                        <!-- Recovery Status -->
+                        <div class="config-group">
+                            <h4>Current Status</h4>
+                            <div class="form-group">
+                                <label for="body-battery">Body Battery (0-100):</label>
+                                <input type="number" id="body-battery" min="0" max="100" placeholder="Optional" />
+                            </div>
+                            <div class="form-group">
+                                <label for="sleep-score">Sleep Score (0-100):</label>
+                                <input type="number" id="sleep-score" min="0" max="100" placeholder="Optional" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancel-plan-generation">Cancel</button>
+                    <button class="btn btn-primary" id="confirm-plan-generation">Generate Plan</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status and Notifications -->
+        <div id="status" class="status-container"></div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

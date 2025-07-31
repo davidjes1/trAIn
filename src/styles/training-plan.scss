@@ -1,0 +1,757 @@
+// Training Plan Section Styles
+@use 'variables' as *;
+
+.training-plan-section {
+  padding: 2rem 0;
+  min-height: calc(100vh - 140px);
+
+  .training-plan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+
+    h2 {
+      margin: 0;
+      color: $primary-color;
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .plan-controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+  }
+
+  // Plan Configuration
+  .plan-config-section {
+    background: $glass-opacity-1;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: $border-radius-large;
+    padding: 2rem;
+    margin-bottom: 2rem;
+
+    h3 {
+      margin: 0 0 1.5rem 0;
+      color: $primary-color;
+      font-size: 1.5rem;
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+    }
+
+    .config-group {
+      h4 {
+        margin: 0 0 1rem 0;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 0.5rem;
+      }
+
+      .form-group {
+        margin-bottom: 1rem;
+
+        label {
+          display: block;
+          margin-bottom: 0.5rem;
+          color: rgba(255, 255, 255, 0.8);
+          font-size: 0.9rem;
+          font-weight: 500;
+        }
+
+        input, select {
+          width: 100%;
+          padding: 0.75rem;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          color: white;
+          font-size: 0.95rem;
+          transition: all 0.3s ease;
+
+          &:focus {
+            outline: none;
+            border-color: $accent-color;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 3px rgba($accent-color, 0.1);
+          }
+
+          &::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+          }
+        }
+
+        select {
+          cursor: pointer;
+        }
+      }
+
+      .template-description {
+        margin-top: 0.5rem;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.7);
+        line-height: 1.4;
+      }
+    }
+  }
+
+  // Generated Plan Display
+  .generated-plan-section {
+    .plan-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+
+      h3 {
+        margin: 0;
+        color: $primary-color;
+        font-size: 1.8rem;
+      }
+
+      .plan-meta {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.9rem;
+      }
+    }
+
+    // Readiness Summary
+    .readiness-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+
+      .readiness-card, .recommendations-card, .warnings-card {
+        background: $glass-opacity-1;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: $border-radius-medium;
+        padding: 1.5rem;
+
+        h4 {
+          margin: 0 0 1rem 0;
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 1.1rem;
+        }
+      }
+
+      .readiness-card {
+        text-align: center;
+
+        .readiness-score-large {
+          font-size: 3rem;
+          font-weight: bold;
+          color: $success-color;
+          margin-bottom: 1rem;
+        }
+
+        .readiness-indicators {
+          display: flex;
+          justify-content: center;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+
+          .indicator {
+            padding: 0.25rem 0.75rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.8);
+          }
+        }
+      }
+
+      .recommendations-list, .warnings-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+
+        li {
+          padding: 0.5rem 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.8);
+          font-size: 0.9rem;
+          line-height: 1.4;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          &::before {
+            content: '•';
+            color: $accent-color;
+            margin-right: 0.5rem;
+          }
+        }
+      }
+
+      .warnings-card {
+        border-color: rgba(255, 193, 7, 0.3);
+
+        .warnings-list li::before {
+          content: '⚠️';
+          margin-right: 0.5rem;
+        }
+      }
+    }
+
+    // Plan Calendar
+    .plan-calendar {
+      background: $glass-opacity-1;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: $border-radius-large;
+      padding: 2rem;
+      margin-bottom: 2rem;
+
+      .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+
+        h4 {
+          margin: 0;
+          color: $primary-color;
+          font-size: 1.3rem;
+        }
+
+        .calendar-legend {
+          display: flex;
+          gap: 1rem;
+          flex-wrap: wrap;
+
+          .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+
+            .fatigue-indicator {
+              width: 12px;
+              height: 12px;
+              border-radius: 2px;
+
+              &.low { background: $success-color; }
+              &.moderate { background: #ffc107; }
+              &.hard { background: #ff9800; }
+              &.extreme { background: $error-color; }
+            }
+          }
+        }
+      }
+
+      .workout-cards {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+
+        @media (max-width: 768px) {
+          grid-template-columns: 1fr;
+        }
+      }
+    }
+
+    // Plan Actions
+    .plan-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+  }
+
+  // Workout Cards
+  .workout-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: $border-radius-medium;
+    padding: 1.5rem;
+    transition: all $transition-normal;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .workout-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.5rem;
+
+      .workout-date {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+        font-weight: 500;
+      }
+
+      .modify-workout-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all $transition-fast;
+        opacity: 0.7;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+          opacity: 1;
+          transform: scale(1.1);
+        }
+
+        span {
+          font-size: 0.7rem;
+        }
+      }
+    }
+
+    .workout-type {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: $primary-color;
+      margin-bottom: 0.5rem;
+      text-transform: capitalize;
+    }
+
+    .workout-description {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 0.9rem;
+      line-height: 1.4;
+      margin-bottom: 1rem;
+    }
+
+    .workout-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+
+      .workout-duration {
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .workout-fatigue {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        .fatigue-bar {
+          width: 40px;
+          height: 4px;
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 2px;
+          position: relative;
+
+          .fatigue-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width $transition-normal;
+
+            &.low { background: $success-color; }
+            &.moderate { background: #ffc107; }
+            &.hard { background: #ff9800; }
+            &.extreme { background: $error-color; }
+          }
+        }
+
+        .fatigue-value {
+          color: rgba(255, 255, 255, 0.7);
+          font-weight: 500;
+        }
+      }
+    }
+
+    // Fatigue severity border indicator
+    &.workout-low { border-left: 4px solid $success-color; }
+    &.workout-moderate { border-left: 4px solid #ffc107; }
+    &.workout-hard { border-left: 4px solid #ff9800; }
+    &.workout-extreme { border-left: 4px solid $error-color; }
+
+    // Modification indicator
+    .modification-indicator {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+  }
+
+  // Export Status
+  .export-status {
+    background: $glass-opacity-1;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: $border-radius-medium;
+    padding: 1rem;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+
+    &.success {
+      border-color: rgba($success-color, 0.5);
+      background: rgba($success-color, 0.1);
+    }
+
+    &.error {
+      border-color: rgba($error-color, 0.5);
+      background: rgba($error-color, 0.1);
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    padding: 1rem 0;
+
+    .training-plan-header {
+      flex-direction: column;
+      gap: 1rem;
+      text-align: center;
+
+      .plan-controls {
+        justify-content: center;
+      }
+    }
+
+    .plan-config-section {
+      padding: 1.5rem;
+    }
+
+    .readiness-summary {
+      grid-template-columns: 1fr;
+    }
+
+    .plan-calendar .calendar-header {
+      flex-direction: column;
+      text-align: center;
+    }
+  }
+
+  // Workout Modification Modal
+  .modification-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+
+    .modal-content {
+      background: $glass-opacity-1;
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: $border-radius-large;
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+        h3 {
+          margin: 0;
+          color: $primary-color;
+          font-size: 1.4rem;
+        }
+
+        .close-modal-btn {
+          background: none;
+          border: none;
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 1.5rem;
+          cursor: pointer;
+          transition: color $transition-fast;
+
+          &:hover {
+            color: $white;
+          }
+        }
+      }
+
+      .modal-body {
+        padding: 1.5rem;
+
+        .current-workout {
+          margin-bottom: 2rem;
+          padding-bottom: 1rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+          h4 {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+          }
+
+          .workout-summary {
+            display: grid;
+            gap: 0.5rem;
+
+            div {
+              color: rgba(255, 255, 255, 0.8);
+              font-size: 0.9rem;
+
+              strong {
+                color: $white;
+                margin-right: 0.5rem;
+              }
+            }
+          }
+        }
+
+        .modification-options {
+          h4 {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+          }
+
+          .quick-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+
+            .action-btn {
+              flex: 1;
+              padding: 0.75rem 1rem;
+              background: rgba(255, 255, 255, 0.1);
+              border: 1px solid rgba(255, 255, 255, 0.2);
+              border-radius: $border-radius-small;
+              color: $white;
+              cursor: pointer;
+              transition: all $transition-fast;
+              font-size: 0.9rem;
+
+              &:hover {
+                background: rgba(255, 255, 255, 0.15);
+                transform: translateY(-1px);
+              }
+
+              &.rest-btn:hover {
+                background: rgba($success-color, 0.2);
+                border-color: $success-color;
+              }
+
+              &.substitute-btn:hover {
+                background: rgba($accent-color, 0.2);
+                border-color: $accent-color;
+              }
+            }
+          }
+
+          .custom-adjustments {
+            .adjustment-group {
+              margin-bottom: 1rem;
+
+              label {
+                display: block;
+                color: rgba(255, 255, 255, 0.8);
+                margin-bottom: 0.5rem;
+                font-size: 0.9rem;
+                font-weight: 500;
+              }
+
+              input, select {
+                width: 100%;
+                padding: 0.75rem;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: $border-radius-small;
+                color: $white;
+                font-size: 0.9rem;
+                transition: all $transition-fast;
+
+                &:focus {
+                  outline: none;
+                  border-color: $accent-color;
+                  background: rgba(255, 255, 255, 0.15);
+                }
+              }
+
+              input[type="range"] {
+                padding: 0.5rem 0;
+              }
+
+              .intensity-value {
+                display: inline-block;
+                margin-left: 0.5rem;
+                color: $accent-color;
+                font-weight: 600;
+              }
+            }
+
+            .substitution-options {
+              margin-top: 1rem;
+              padding-top: 1rem;
+              border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+              h5 {
+                color: rgba(255, 255, 255, 0.9);
+                margin-bottom: 0.75rem;
+                font-size: 1rem;
+              }
+
+              .substitution-list {
+                display: grid;
+                gap: 0.5rem;
+
+                .substitution-option {
+                  background: rgba(255, 255, 255, 0.05);
+                  border: 1px solid rgba(255, 255, 255, 0.1);
+                  border-radius: $border-radius-small;
+                  padding: 0.75rem;
+                  cursor: pointer;
+                  transition: all $transition-fast;
+                  text-align: left;
+
+                  &:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                    border-color: $accent-color;
+                  }
+
+                  .sub-type {
+                    color: $primary-color;
+                    font-weight: 600;
+                    text-transform: capitalize;
+                    margin-bottom: 0.25rem;
+                  }
+
+                  .sub-description {
+                    color: rgba(255, 255, 255, 0.8);
+                    font-size: 0.85rem;
+                    margin-bottom: 0.25rem;
+                  }
+
+                  .sub-stats {
+                    color: rgba(255, 255, 255, 0.6);
+                    font-size: 0.8rem;
+                  }
+                }
+              }
+            }
+          }
+
+          .rebalance-options {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+            h5 {
+              color: rgba(255, 255, 255, 0.9);
+              margin-bottom: 0.75rem;
+              font-size: 1rem;
+            }
+
+            .checkbox-label {
+              display: flex;
+              align-items: center;
+              margin-bottom: 0.5rem;
+              color: rgba(255, 255, 255, 0.8);
+              font-size: 0.9rem;
+              cursor: pointer;
+
+              input[type="checkbox"] {
+                width: auto;
+                margin-right: 0.5rem;
+                transform: scale(1.2);
+                accent-color: $accent-color;
+              }
+            }
+          }
+        }
+      }
+
+      .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        padding: 1.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+        .btn {
+          padding: 0.75rem 1.5rem;
+          font-size: 0.9rem;
+
+          &.btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.8);
+
+            &:hover {
+              background: rgba(255, 255, 255, 0.15);
+              color: $white;
+            }
+          }
+        }
+      }
+    }
+
+    // Mobile responsiveness
+    @media (max-width: 768px) {
+      padding: 0.5rem;
+
+      .modal-content {
+        max-height: 95vh;
+
+        .modal-header, .modal-body, .modal-footer {
+          padding: 1rem;
+        }
+
+        .quick-actions {
+          flex-direction: column;
+        }
+
+        .modal-footer {
+          flex-direction: column-reverse;
+
+          .btn {
+            width: 100%;
+            margin: 0.25rem 0;
+          }
+        }
+      }
+    }
+  }
+}

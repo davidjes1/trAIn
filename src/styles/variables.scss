@@ -1,0 +1,67 @@
+// Color Variables
+$primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$primary-color: #667eea;
+$secondary-color: #764ba2;
+$accent-color: #667eea;
+$white: #ffffff;
+$black: #000000;
+$success-color: #4caf50;
+$error-color: #f44336;
+$green-terminal: #00ff00;
+
+// CSS Custom Properties for Auth Components
+:root {
+  --primary-color: #{$primary-color};
+  --secondary-color: #{$secondary-color};
+  --success-color: #{$success-color};
+  --error-color: #{$error-color};
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --glass-bg: rgba(255, 255, 255, 0.95);
+}
+
+// Opacity Variables
+$glass-opacity-1: rgba(255, 255, 255, 0.1);
+$glass-opacity-2: rgba(255, 255, 255, 0.2);
+$glass-opacity-3: rgba(255, 255, 255, 0.3);
+$glass-opacity-05: rgba(255, 255, 255, 0.05);
+$glass-opacity-5: rgba(255, 255, 255, 0.5);
+$glass-opacity-8: rgba(255, 255, 255, 0.8);
+
+$black-opacity-1: rgba(0, 0, 0, 0.1);
+$black-opacity-2: rgba(0, 0, 0, 0.2);
+$black-opacity-3: rgba(0, 0, 0, 0.3);
+
+$success-opacity: rgba(76, 175, 80, 0.3);
+$success-border: rgba(76, 175, 80, 0.5);
+$error-opacity: rgba(244, 67, 54, 0.3);
+$error-border: rgba(244, 67, 54, 0.5);
+
+// Font Variables
+$font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+$font-family-mono: 'Courier New', monospace;
+
+// Size Variables
+$border-radius: 15px;
+$border-radius-small: 6px;
+$border-radius-medium: 10px;
+$border-radius-large: 20px;
+$border-radius-button: 25px;
+
+// Spacing Variables
+$spacing-xs: 5px;
+$spacing-sm: 10px;
+$spacing-md: 15px;
+$spacing-lg: 20px;
+$spacing-xl: 30px;
+$spacing-xxl: 60px;
+
+// Breakpoints
+$mobile: 768px;
+$tablet: 1024px;
+$desktop: 1200px;
+
+// Animation Variables
+$transition-fast: 0.2s ease;
+$transition-normal: 0.3s ease;
+$animation-spin: spin 1s ease-in-out infinite;

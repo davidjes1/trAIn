@@ -1,0 +1,45 @@
+{
+  "name": "garmin-fit-parser",
+  "version": "1.0.0",
+  "description": "A web application for parsing and analyzing Garmin FIT files",
+  "main": "dist/index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "type-check": "tsc --noEmit",
+    "start": "npm run dev",
+    "deploy:vercel": "vercel --prod",
+    "deploy:netlify": "netlify deploy --prod",
+    "deploy:gh-pages": "npm run build && gh-pages -d dist"
+  },
+  "keywords": [
+    "garmin",
+    "fit-file",
+    "fitness",
+    "parser",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^24.1.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "buffer": "^6.0.3",
+    "eslint": "^8.45.0",
+    "sass": "^1.69.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.2.0",
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.0",
+    "chartjs-adapter-date-fns": "^3.0.0",
+    "date-fns": "^4.1.0",
+    "firebase": "^12.0.0",
+    "fit-file-parser": "^1.21.0"
+  }
+}
