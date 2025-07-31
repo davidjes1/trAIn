@@ -3,7 +3,6 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import { getFunctions } from 'firebase/functions';
 
 // Firebase configuration object - Replace with your project's config
 const firebaseConfig = {
@@ -23,7 +22,6 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const functions = getFunctions(app);
 
 // Enable Firestore offline persistence
 import { enableNetwork, disableNetwork } from 'firebase/firestore';

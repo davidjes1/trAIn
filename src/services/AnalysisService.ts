@@ -117,21 +117,21 @@ export class AnalysisService {
       date,
       activityId: this.generateActivityId(date, sport),
       sport,
-      subSport: session?.sub_sport,
+      subSport: session?.sub_sport || undefined,
       duration,
       distance,
-      avgHR: hrMetrics.avgHR,
-      maxHR: hrMetrics.maxHR,
-      hrDrift: hrMetrics.hrDrift,
+      avgHR: hrMetrics.avgHR || undefined,
+      maxHR: hrMetrics.maxHR || undefined,
+      hrDrift: hrMetrics.hrDrift || undefined,
       zone1Minutes: hrZones.zone1,
       zone2Minutes: hrZones.zone2,
       zone3Minutes: hrZones.zone3,
       zone4Minutes: hrZones.zone4,
       zone5Minutes: hrZones.zone5,
       trainingLoad,
-      calories: session?.total_calories,
-      totalAscent: session?.total_ascent,
-      totalDescent: session?.total_descent,
+      calories: session?.total_calories || undefined,
+      totalAscent: session?.total_ascent || undefined,
+      totalDescent: session?.total_descent || undefined,
       avgSpeed: this.convertToKmh(session?.avg_speed),
       maxSpeed: this.convertToKmh(session?.max_speed),
       fileName
@@ -332,8 +332,8 @@ export class AnalysisService {
     return meters ? Math.round((meters / 1000) * 100) / 100 : 0;
   }
 
-  private convertToKmh(metersPerSecond?: number): number | undefined {
-    return metersPerSecond ? Math.round((metersPerSecond * 3.6) * 10) / 10 : undefined;
+  private convertToKmh(metersPerSecond?: number): number {
+    return metersPerSecond ? Math.round((metersPerSecond * 3.6) * 10) / 10 : 0;
   }
 
   /**

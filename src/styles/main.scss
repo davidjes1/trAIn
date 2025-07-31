@@ -878,3 +878,191 @@ p {
         }
     }
 }
+
+// Navigation Header
+.nav-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $spacing-md 0;
+    margin-bottom: $spacing-lg;
+    border-bottom: 1px solid $glass-opacity-2;
+
+    .nav-brand h1 {
+        margin: 0;
+        font-size: 1.8rem;
+        text-align: left;
+    }
+
+    .nav-menu {
+        display: flex;
+        gap: $spacing-md;
+    }
+
+    .nav-btn {
+        background: transparent;
+        border: 1px solid $glass-opacity-2;
+        color: $white-opacity-3;
+        padding: $spacing-sm $spacing-lg;
+        border-radius: $border-radius-medium;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.95rem;
+
+        &:hover {
+            background: $glass-opacity-1;
+            color: $white;
+            border-color: $accent-color;
+        }
+
+        &.active {
+            background: $accent-color;
+            color: $white;
+            border-color: $accent-color;
+            box-shadow: 0 2px 10px $accent-color-opacity-2;
+        }
+    }
+
+    .nav-user-info {
+        display: flex;
+        align-items: center;
+        gap: $spacing-md;
+
+        .nav-username {
+            color: $white;
+            font-size: 0.9rem;
+        }
+
+        .nav-logout-btn {
+            background: transparent;
+            border: 1px solid $error-color;
+            color: $error-color;
+            padding: $spacing-xs $spacing-sm;
+            border-radius: $border-radius-small;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+
+            &:hover {
+                background: $error-color;
+                color: $white;
+            }
+        }
+    }
+}
+
+// View Management
+.view-container {
+    display: none;
+
+    &.active {
+        display: block;
+    }
+}
+
+// Profile View
+.profile-container {
+    background: $glass-opacity-1;
+    border-radius: $border-radius-large;
+    padding: $spacing-xl;
+    margin-top: $spacing-lg;
+
+    .profile-header {
+        text-align: center;
+        margin-bottom: $spacing-xl;
+
+        h2 {
+            color: $white;
+            font-size: 2rem;
+            margin-bottom: $spacing-md;
+        }
+    }
+
+    .profile-card {
+        display: flex;
+        align-items: center;
+        background: $glass-opacity-1;
+        border-radius: $border-radius-medium;
+        padding: $spacing-lg;
+        margin-bottom: $spacing-xl;
+        border: 1px solid $glass-opacity-2;
+
+        .profile-avatar {
+            margin-right: $spacing-lg;
+            font-size: 4rem;
+            color: $accent-color;
+        }
+
+        .profile-info {
+            h3 {
+                color: $white;
+                font-size: 1.5rem;
+                margin-bottom: $spacing-xs;
+            }
+
+            .profile-email {
+                color: $white-opacity-3;
+                margin-bottom: $spacing-xs;
+            }
+
+            .profile-joined {
+                color: $white-opacity-2;
+                font-size: 0.9rem;
+            }
+        }
+    }
+
+    .profile-stats {
+        margin-bottom: $spacing-xl;
+
+        .stat-card {
+            background: $glass-opacity-1;
+            border-radius: $border-radius-medium;
+            padding: $spacing-lg;
+            border: 1px solid $glass-opacity-2;
+
+            h4 {
+                color: $white;
+                margin-bottom: $spacing-md;
+                text-align: center;
+            }
+
+            .stat-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: $spacing-md;
+
+                .stat-item {
+                    text-align: center;
+                    padding: $spacing-md;
+                    background: rgba(255, 255, 255, 0.05);
+                    border-radius: $border-radius-small;
+                    border: 1px solid $glass-opacity-2;
+
+                    .stat-value {
+                        display: block;
+                        font-size: 1.8rem;
+                        font-weight: bold;
+                        color: $accent-color;
+                        margin-bottom: $spacing-xs;
+                    }
+
+                    .stat-label {
+                        color: $white-opacity-3;
+                        font-size: 0.9rem;
+                    }
+                }
+            }
+        }
+    }
+
+    .profile-actions {
+        display: flex;
+        justify-content: center;
+        gap: $spacing-md;
+
+        .btn {
+            min-width: 150px;
+        }
+    }
+}

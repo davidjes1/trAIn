@@ -414,7 +414,9 @@ export class DashboardService {
           processed: true
         };
 
-        const activityId = await FirestoreService.addActivity(firebaseActivity);
+        // Remove undefined values for Firestore compatibility
+        const cleanedActivity = this.removeUndefinedValues(firebaseActivity) as Omit<FirebaseActivity, 'id' | 'userId' | 'uploadedAt'>;
+        const activityId = await FirestoreService.addActivity(cleanedActivity);
         this.clearCache(); // Clear cache to force refresh
         return activityId;
       } else {
@@ -434,25 +436,30 @@ export class DashboardService {
     try {
       if (AuthService.isAuthenticated()) {
         // Convert to Firebase format
-        const firebaseLaps: Omit<FirebaseLapData, 'id' | 'userId'>[] = laps.map(lap => ({
-          activityId: lap.activityId || '',
-          lapNumber: lap.lapNumber,
-          lapDuration: lap.lapDuration,
-          lapDistance: lap.lapDistance,
-          avgHR: lap.avgHR,
-          maxHR: lap.maxHR,
-          avgSpeed: lap.avgSpeed,
-          maxSpeed: lap.maxSpeed,
-          avgPace: lap.avgPace,
-          elevationGain: lap.elevationGain,
-          elevationLoss: lap.elevationLoss,
-          avgPower: lap.avgPower,
-          maxPower: lap.maxPower,
-          normalizedPower: lap.normalizedPower,
-          startTime: lap.startTime,
-          endTime: lap.endTime,
-          splitType: lap.splitType
-        }));
+        const firebaseLaps = laps.map(lap => {
+          const firebaseLap = {
+            activityId: lap.activityId || '',
+            lapNumber: lap.lapNumber,
+            lapDuration: lap.lapDuration,
+            lapDistance: lap.lapDistance,
+            avgHR: lap.avgHR,
+            maxHR: lap.maxHR,
+            avgSpeed: lap.avgSpeed,
+            maxSpeed: lap.maxSpeed,
+            avgPace: lap.avgPace,
+            elevationGain: lap.elevationGain,
+            elevationLoss: lap.elevationLoss,
+            avgPower: lap.avgPower,
+            maxPower: lap.maxPower,
+            normalizedPower: lap.normalizedPower,
+            startTime: lap.startTime,
+            endTime: lap.endTime,
+            splitType: lap.splitType
+          };
+          
+          // Remove undefined values for Firestore compatibility
+          return this.removeUndefinedValues(firebaseLap) as Omit<FirebaseLapData, 'id' | 'userId'>;
+        });
 
         await FirestoreService.addLapData(firebaseLaps);
         this.clearCache(); // Clear cache to force refresh
@@ -574,5 +581,20 @@ export class DashboardService {
         avgWeeklyLoad: 0
       };
     }
+  }
+
+  /**
+   * Remove undefined values from object for Firestore compatibility
+   */
+  private removeUndefinedValues<T extends Record<string, any>>(obj: T): Partial<T> {
+    const cleaned: Partial<T> = {};
+    
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        cleaned[key as keyof T] = value;
+      }
+    }
+    
+    return cleaned;
   }
 }

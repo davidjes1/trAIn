@@ -11,6 +11,22 @@
     
     <!-- Main Application Container -->
     <div id="main-content" class="container" style="display: none;">
+        <!-- Navigation Header -->
+        <div class="nav-header">
+            <div class="nav-brand">
+                <h1>🏃‍♂️ trAIn</h1>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+                <button class="nav-btn" data-view="profile">Profile</button>
+            </nav>
+            <div class="nav-user" id="nav-user">
+                <!-- User info will be populated here -->
+            </div>
+        </div>
+
+        <!-- Dashboard View -->
+        <div id="dashboard-view" class="view-container active">
         <!-- Training Hub Header -->
         <div class="training-hub-header">
             <div class="hub-title">
@@ -250,6 +266,19 @@
                 <div class="modal-footer">
                     <button class="btn btn-secondary" id="cancel-plan-generation">Cancel</button>
                     <button class="btn btn-primary" id="confirm-plan-generation">Generate Plan</button>
+                </div>
+            </div>
+        </div>
+        </div> <!-- End Dashboard View -->
+
+        <!-- Profile View -->
+        <div id="profile-view" class="view-container">
+            <div class="profile-container">
+                <div class="profile-header">
+                    <h2>User Profile</h2>
+                </div>
+                <div id="profile-content">
+                    <!-- Profile content will be populated here -->
                 </div>
             </div>
         </div>

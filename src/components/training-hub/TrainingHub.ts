@@ -14,6 +14,7 @@ import { UIHelpers } from '../../utils/ui-helpers';
 import { WorkoutCalendar } from './WorkoutCalendar';
 import { WorkoutComparison } from './WorkoutComparison';
 import { AuthManager } from '../auth/AuthManager';
+import { Router } from '../../services/Router';
 import { User } from 'firebase/auth';
 
 export class TrainingHub {
@@ -21,6 +22,7 @@ export class TrainingHub {
   private workoutCalendar: WorkoutCalendar;
   private workoutComparison: WorkoutComparison;
   private authManager!: AuthManager; // Initialized in constructor
+  private router!: Router; // Initialized after authentication
   private dashboardService: DashboardService;
   private currentUser: User | null = null;
   private userProfile: UserProfile | null = null;
@@ -57,6 +59,14 @@ export class TrainingHub {
       
       if (authContainer) authContainer.style.display = 'none';
       if (mainContent) mainContent.style.display = 'block';
+      
+      // Initialize router
+      this.router = new Router((view: string) => this.onViewChange(view));
+      
+      // Update nav user info
+      const displayName = this.userProfile?.displayName || this.currentUser?.email || 'User';
+      const email = this.currentUser?.email || '';
+      this.router.updateNavUser(displayName, email);
       
       // Initialize the app
       this.initializeEventListeners();
@@ -115,6 +125,11 @@ export class TrainingHub {
 
     // File handling in import drawer
     this.setupFileHandling();
+
+    // Global logout event listener
+    document.addEventListener('logout-requested', () => {
+      this.handleLogout();
+    });
 
     // Plan generation modal
     document.getElementById('close-plan-modal')?.addEventListener('click', () => {
@@ -1041,5 +1056,99 @@ export class TrainingHub {
 
   public async getDashboardData(forceRefresh = false) {
     return await this.dashboardService.getDashboardData(forceRefresh);
+  }
+
+  // View management methods
+  private onViewChange(view: string): void {
+    if (view === 'profile') {
+      this.renderProfileView();
+    }
+    // Dashboard view is handled by default HTML content
+  }
+
+  private renderProfileView(): void {
+    const profileContent = document.getElementById('profile-content');
+    if (!profileContent) return;
+
+    const displayName = this.userProfile?.displayName || this.currentUser?.email || 'User';
+    const email = this.currentUser?.email || '';
+    const joinDate = this.currentUser?.metadata?.creationTime 
+      ? new Date(this.currentUser.metadata.creationTime).toLocaleDateString()
+      : 'Unknown';
+
+    profileContent.innerHTML = `
+      <div class="profile-content">
+        <div class="profile-card">
+          <div class="profile-avatar">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <div class="profile-info">
+            <h3>${displayName}</h3>
+            <p class="profile-email">${email}</p>
+            <p class="profile-joined">Joined: ${joinDate}</p>
+          </div>
+        </div>
+        
+        <div class="profile-stats">
+          <div class="stat-card">
+            <h4>Training Statistics</h4>
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-value">${this.userProfile?.stats?.totalActivities || 0}</span>
+                <span class="stat-label">Total Activities</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value">${Math.round((this.userProfile?.stats?.totalTrainingTime || 0) / 60)}</span>
+                <span class="stat-label">Hours Trained</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value">${this.userProfile?.stats?.lastActivityDate || 'Never'}</span>
+                <span class="stat-label">Last Activity</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value">Coming Soon</span>
+                <span class="stat-label">Total Distance</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-actions">
+          <button class="btn btn-secondary" id="edit-profile-btn">Edit Profile</button>
+          <button class="btn btn-danger" id="delete-account-btn">Delete Account</button>
+        </div>
+      </div>
+    `;
+
+    // Attach event listeners for profile actions
+    document.getElementById('edit-profile-btn')?.addEventListener('click', () => {
+      this.showEditProfileModal();
+    });
+
+    document.getElementById('delete-account-btn')?.addEventListener('click', () => {
+      this.showDeleteAccountModal();
+    });
+  }
+
+  private async handleLogout(): Promise<void> {
+    try {
+      // Use AuthService directly for logout
+      const { AuthService } = await import('../../firebase/auth');
+      await AuthService.logout();
+      UIHelpers.showStatus('Signed out successfully', 'success');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      UIHelpers.showStatus('Logout failed. Please try again.', 'error');
+    }
+  }
+
+  private showEditProfileModal(): void {
+    UIHelpers.showStatus('Edit profile functionality coming soon!', 'info');
+  }
+
+  private showDeleteAccountModal(): void {
+    if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      UIHelpers.showStatus('Delete account functionality coming soon!', 'info');
+    }
   }
 }

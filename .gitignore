@@ -80,3 +80,4 @@ jspm_packages/
 android/
 ios/
 .capacitor/
+firebase.json

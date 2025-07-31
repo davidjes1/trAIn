@@ -88,17 +88,17 @@ export class WorkoutCalendar {
   }
 
   private generateWeekView(workouts: TrackedWorkout[]): string {
-    const today = new Date();
+    const startDate = new Date(this.config.startDate);
     const days: string[] = [];
 
-    // Create a centered view with today in the middle (3 days before, today, 3 days after)
+    // Create a centered view with startDate in the middle (3 days before, startDate, 3 days after)
     for (let i = -3; i <= 3; i++) {
-      const currentDate = new Date(today);
-      currentDate.setDate(today.getDate() + i);
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + i);
       const dateStr = currentDate.toISOString().split('T')[0];
       
       const dayWorkouts = workouts.filter(w => w.date === dateStr);
-      const isCenter = i === 0; // Today is always center
+      const isCenter = i === 0; // startDate is always center
       
       days.push(this.generateDayCard(currentDate, dayWorkouts, false, isCenter));
     }
