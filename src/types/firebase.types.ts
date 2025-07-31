@@ -267,8 +267,11 @@ export interface SecurityRuleContext {
 export type {
   ActivityMetrics,
   LapMetrics,
-  TrainingPlan,
+  TrainingPlan
+} from './training-metrics.types';
+
+export type {
   TrackedWorkout,
   WorkoutComparison,
   WorkoutStatus
-} from './training-metrics.types';
+} from './workout-tracking.types';

@@ -4,20 +4,16 @@ import {
   doc,
   addDoc,
   setDoc,
-  getDoc,
   getDocs,
   updateDoc,
   deleteDoc,
   query,
   where,
   orderBy,
-  limit,
   onSnapshot,
-  Timestamp,
   writeBatch,
   QuerySnapshot,
-  DocumentData,
-  serverTimestamp
+  DocumentData
 } from 'firebase/firestore';
 import { db } from './config';
 import { AuthService } from './auth';

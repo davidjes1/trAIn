@@ -7,12 +7,11 @@ import {
   deleteObject,
   listAll,
   getMetadata,
-  updateMetadata,
   UploadTaskSnapshot
 } from 'firebase/storage';
 import { storage } from './config';
 import { AuthService } from './auth';
-import { FirebaseFileUpload, FileUploadResult } from '../types/firebase.types';
+import { FileUploadResult } from '../types/firebase.types';
 
 export class StorageService {
   private static getUserId(): string {

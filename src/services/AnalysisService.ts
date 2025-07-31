@@ -7,12 +7,15 @@ import {
   BatchProcessingOptions 
 } from '../types/training-metrics.types';
 import { HRZoneCalculator, DEFAULT_TRAINING_CONFIG } from '../config/training';
+import { DashboardService } from './DashboardService';
 
 export class AnalysisService {
   private hrCalculator: HRZoneCalculator;
+  private dashboardService: DashboardService;
 
   constructor() {
     this.hrCalculator = new HRZoneCalculator(DEFAULT_TRAINING_CONFIG);
+    this.dashboardService = new DashboardService();
   }
 
   /**
@@ -47,6 +50,24 @@ export class AnalysisService {
 
           const activityMetrics = this.extractActivityMetrics(fitData, typeof file === 'string' ? file : file.name);
           const lapMetrics = this.extractLapMetrics(fitData, activityMetrics.date, activityMetrics.activityId);
+
+          // Save to Firebase/localStorage through DashboardService
+          try {
+            const savedActivityId = await this.dashboardService.addActivity(activityMetrics);
+            
+            // Update lap metrics with the actual saved activity ID
+            const lapsWithActivityId = lapMetrics.map(lap => ({
+              ...lap,
+              activityId: savedActivityId
+            }));
+            
+            await this.dashboardService.addLapData(lapsWithActivityId);
+            
+            // Update activity metrics with saved ID for result
+            activityMetrics.activityId = savedActivityId;
+          } catch (saveError) {
+            console.warn('Failed to save activity to Firebase, data will only be in result:', saveError);
+          }
 
           result.totalActivities.push(activityMetrics);
           result.totalLaps.push(...lapMetrics);

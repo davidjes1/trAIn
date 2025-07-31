@@ -9,6 +9,7 @@ import { UserProfile } from '../../types/firebase.types';
 import { WorkoutMatchingService } from '../../services/WorkoutMatchingService';
 import { PlanGenerator } from '../../services/PlanGenerator';
 import { FileService } from '../../services/FileService';
+import { DashboardService, DashboardData } from '../../services/DashboardService';
 import { UIHelpers } from '../../utils/ui-helpers';
 import { WorkoutCalendar } from './WorkoutCalendar';
 import { WorkoutComparison } from './WorkoutComparison';
@@ -19,13 +20,17 @@ export class TrainingHub {
   private state: TrainingHubState;
   private workoutCalendar: WorkoutCalendar;
   private workoutComparison: WorkoutComparison;
-  private authManager: AuthManager;
+  private authManager!: AuthManager; // Initialized in constructor
+  private dashboardService: DashboardService;
   private currentUser: User | null = null;
   private userProfile: UserProfile | null = null;
   private isAuthenticated: boolean = false;
 
   constructor() {
     this.state = this.initializeState();
+    
+    // Initialize services
+    this.dashboardService = new DashboardService();
     
     // Initialize authentication first
     const authContainer = document.getElementById('auth-container');
@@ -106,10 +111,7 @@ export class TrainingHub {
       this.showPlanGenerationModal();
     });
 
-    // Import drawer
-    document.getElementById('close-import-drawer')?.addEventListener('click', () => {
-      this.hideImportDrawer();
-    });
+    // Import drawer - handled in showImportDrawer method
 
     // File handling in import drawer
     this.setupFileHandling();
@@ -143,18 +145,26 @@ export class TrainingHub {
     this.setState({ isLoading: true });
     
     try {
-      // Load any existing tracked workouts from localStorage or server
+      // Initialize Dashboard Service
+      await this.dashboardService.initialize();
+      
+      // Load dashboard data (activities, laps, metrics) from Firebase or localStorage
+      const dashboardData = await this.dashboardService.getDashboardData();
+      
+      // Load tracked workouts (still from localStorage for now - will be migrated later)
       const savedWorkouts = this.loadSavedWorkouts();
       this.setState({ trackedWorkouts: savedWorkouts });
 
-      // Update header metrics
-      this.updateHeaderMetrics();
+      // Update header metrics with Firebase data
+      this.updateHeaderMetricsFromDashboard(dashboardData);
       
       // Initialize calendar with current workouts
       await this.workoutCalendar.initialize(this.state.trackedWorkouts, this.state.calendar);
       
       // Load analytics data
       this.updateAnalytics();
+      
+      console.log(`Loaded ${dashboardData.activities.length} activities from Firebase`);
       
     } catch (error) {
       console.error('Error loading initial data:', error);
@@ -207,6 +217,64 @@ export class TrainingHub {
     if (readinessEl) readinessEl.textContent = metrics.readiness.toString();
     if (weeklyLoadEl) weeklyLoadEl.textContent = metrics.weeklyLoad.toString();
     if (streakEl) streakEl.textContent = `${metrics.streak}d`;
+  }
+
+  // Header Metrics Updates using Firebase Dashboard Data
+  private updateHeaderMetricsFromDashboard(dashboardData: DashboardData): void {
+    const readinessEl = document.getElementById('readiness-metric')?.querySelector('.metric-value');
+    const weeklyLoadEl = document.getElementById('weekly-load-metric')?.querySelector('.metric-value');
+    const streakEl = document.getElementById('streak-metric')?.querySelector('.metric-value');
+
+    // Calculate metrics from dashboard data
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay()); // Start of week
+
+    // Filter activities for this week
+    const thisWeekActivities = dashboardData.activities.filter(activity => {
+      const activityDate = new Date(activity.date);
+      return activityDate >= weekStart && activityDate <= now;
+    });
+
+    // Calculate weekly training load from Firebase activities
+    const weeklyLoad = thisWeekActivities.reduce((sum, activity) => 
+      sum + (activity.trainingLoad || 0), 0
+    );
+
+    // Calculate activity streak
+    let streak = 0;
+    const sortedActivities = dashboardData.activities
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    if (sortedActivities.length > 0) {
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      
+      // Check if there's an activity today or yesterday to start the streak
+      if (sortedActivities[0]?.date === today || sortedActivities[0]?.date === yesterday) {
+        let currentDate = sortedActivities[0]?.date === today ? today : yesterday;
+        
+        for (const activity of sortedActivities) {
+          if (activity.date === currentDate) {
+            streak++;
+            // Move to previous day
+            const prevDate = new Date(currentDate);
+            prevDate.setDate(prevDate.getDate() - 1);
+            currentDate = prevDate.toISOString().split('T')[0];
+          } else {
+            break;
+          }
+        }
+      }
+    }
+
+    // Simple readiness calculation (could be enhanced with HR, sleep data, etc.)
+    const readiness = Math.min(100, Math.max(50, 85 - (weeklyLoad / 50))); // Decreases with high load
+
+    // Update DOM elements
+    if (readinessEl) readinessEl.textContent = Math.round(readiness).toString();
+    if (weeklyLoadEl) weeklyLoadEl.textContent = Math.round(weeklyLoad).toString();
+    if (streakEl) streakEl.textContent = `${streak}d`;
   }
 
   private calculateCurrentMetrics() {
@@ -289,22 +357,7 @@ export class TrainingHub {
     this.showWorkoutDetail(workout);
   }
 
-  // Import Data Management
-  private showImportDrawer(): void {
-    const drawer = document.getElementById('data-import-drawer');
-    if (drawer) {
-      drawer.style.display = 'block';
-      setTimeout(() => drawer.classList.add('visible'), 10);
-    }
-  }
-
-  private hideImportDrawer(): void {
-    const drawer = document.getElementById('data-import-drawer');
-    if (drawer) {
-      drawer.classList.remove('visible');
-      setTimeout(() => drawer.style.display = 'none', 300);
-    }
-  }
+  // Import Data Management (methods implemented later in the file)
 
   private setupFileHandling(): void {
     // Single file handling
@@ -746,16 +799,201 @@ export class TrainingHub {
     try {
       UIHelpers.showStatus('Syncing data...', 'info');
       
-      // Placeholder for actual sync logic
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Force refresh of dashboard data from Firebase
+      const dashboardData = await this.dashboardService.getDashboardData(true);
       
-      this.updateHeaderMetrics();
+      // Update header metrics with fresh data
+      this.updateHeaderMetricsFromDashboard(dashboardData);
+      
+      // Update analytics
       this.updateAnalytics();
       
-      UIHelpers.showStatus('Data synced successfully!', 'success');
+      // Refresh calendar with latest data
+      await this.workoutCalendar.initialize(this.state.trackedWorkouts, this.state.calendar);
+      
+      UIHelpers.showStatus(
+        `Data synced! Loaded ${dashboardData.activities.length} activities.`, 
+        'success'
+      );
       
     } catch (error) {
+      console.error('Sync error:', error);
       this.addError('Failed to sync data');
+    }
+  }
+
+  // FIT File Import
+  private showImportDrawer(): void {
+    const drawer = document.createElement('div');
+    drawer.className = 'import-drawer';
+    drawer.innerHTML = `
+      <div class="drawer-overlay" id="drawer-overlay"></div>
+      <div class="drawer-content">
+        <div class="drawer-header">
+          <h3>📁 Import FIT Files</h3>
+          <button class="close-btn" id="close-import-drawer">&times;</button>
+        </div>
+        <div class="drawer-body">
+          <div class="import-options">
+            <div class="drop-zone" id="fit-drop-zone">
+              <p>Drop .fit files here or click to select</p>
+              <input type="file" id="fit-file-input" accept=".fit" multiple style="display: none;">
+              <button class="btn btn-secondary" id="select-files-btn">Select Files</button>
+            </div>
+            
+            <div class="import-settings">
+              <label>
+                <input type="checkbox" id="auto-save-firebase" checked>
+                Automatically save to Firebase
+              </label>
+            </div>
+            
+            <div class="selected-files" id="selected-files-list"></div>
+            
+            <div class="import-actions">
+              <button class="btn btn-primary" id="process-files-btn" disabled>
+                Process Files
+              </button>
+              <button class="btn btn-ghost" id="clear-files-btn">
+                Clear All
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(drawer);
+    this.initializeImportDrawerEvents();
+  }
+
+  private initializeImportDrawerEvents(): void {
+    const overlay = document.getElementById('drawer-overlay');
+    const closeBtn = document.getElementById('close-import-drawer');
+    const dropZone = document.getElementById('fit-drop-zone');
+    const fileInput = document.getElementById('fit-file-input') as HTMLInputElement;
+    const selectBtn = document.getElementById('select-files-btn');
+    const processBtn = document.getElementById('process-files-btn');
+    const clearBtn = document.getElementById('clear-files-btn');
+    const filesList = document.getElementById('selected-files-list');
+
+    let selectedFiles: File[] = [];
+
+    // Close drawer events
+    [overlay, closeBtn].forEach(el => {
+      el?.addEventListener('click', () => {
+        document.querySelector('.import-drawer')?.remove();
+      });
+    });
+
+    // File selection events
+    selectBtn?.addEventListener('click', () => {
+      fileInput?.click();
+    });
+
+    dropZone?.addEventListener('click', () => {
+      fileInput?.click();
+    });
+
+    // Drag and drop events
+    dropZone?.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone?.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone?.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      
+      const files = Array.from(e.dataTransfer?.files || [])
+        .filter(file => file.name.toLowerCase().endsWith('.fit'));
+      
+      if (files.length > 0) {
+        selectedFiles.push(...files);
+        this.updateFilesList(selectedFiles, filesList, processBtn);
+      }
+    });
+
+    // File input change
+    fileInput?.addEventListener('change', (e) => {
+      const files = Array.from((e.target as HTMLInputElement).files || []);
+      selectedFiles.push(...files);
+      this.updateFilesList(selectedFiles, filesList, processBtn);
+    });
+
+    // Process files
+    processBtn?.addEventListener('click', async () => {
+      const autoSave = (document.getElementById('auto-save-firebase') as HTMLInputElement)?.checked ?? true;
+      await this.processFitFiles(selectedFiles, autoSave);
+      
+      // Close drawer after processing
+      document.querySelector('.import-drawer')?.remove();
+    });
+
+    // Clear files
+    clearBtn?.addEventListener('click', () => {
+      selectedFiles = [];
+      this.updateFilesList(selectedFiles, filesList, processBtn);
+    });
+  }
+
+  private updateFilesList(files: File[], listElement: HTMLElement | null, processBtn: HTMLElement | null): void {
+    if (!listElement || !processBtn) return;
+
+    if (files.length === 0) {
+      listElement.innerHTML = '';
+      processBtn.setAttribute('disabled', 'true');
+      return;
+    }
+
+    listElement.innerHTML = `
+      <h4>Selected Files (${files.length})</h4>
+      ${files.map((file, index) => `
+        <div class="file-item">
+          <span class="file-name">${file.name}</span>
+          <span class="file-size">${(file.size / 1024).toFixed(1)} KB</span>
+          <button class="remove-file" data-index="${index}">×</button>
+        </div>
+      `).join('')}
+    `;
+
+    // Add remove file event listeners
+    listElement.querySelectorAll('.remove-file').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const index = parseInt((e.target as HTMLElement).dataset.index || '0');
+        files.splice(index, 1);
+        this.updateFilesList(files, listElement, processBtn);
+      });
+    });
+
+    processBtn.removeAttribute('disabled');
+  }
+
+  private async processFitFiles(files: File[], saveToFirebase: boolean): Promise<void> {
+    if (files.length === 0) return;
+
+    try {
+      const result = await FileService.processBatchFiles(files, {
+        saveToFirebase,
+        showProgress: true
+      });
+
+      // Refresh data after successful processing
+      if (result.successful > 0) {
+        await this.syncData();
+      }
+
+      // Show detailed results
+      console.log('Import results:', result);
+      console.log(`Processing complete! ✅ ${result.successful} successful, ❌ ${result.failed} failed`);
+      
+    } catch (error) {
+      console.error('Batch processing error:', error);
+      this.addError('Failed to process files');
     }
   }
 
@@ -778,5 +1016,30 @@ export class TrainingHub {
       )
     });
     this.saveWorkouts();
+  }
+
+  // Helper methods for accessing authentication state
+  public getCurrentUser(): User | null {
+    return this.currentUser;
+  }
+
+  public getUserProfile(): UserProfile | null {
+    return this.userProfile;
+  }
+
+  public getIsAuthenticated(): boolean {
+    return this.isAuthenticated;
+  }
+
+  public getAuthManager(): AuthManager {
+    return this.authManager;
+  }
+
+  public getDashboardService(): DashboardService {
+    return this.dashboardService;
+  }
+
+  public async getDashboardData(forceRefresh = false) {
+    return await this.dashboardService.getDashboardData(forceRefresh);
   }
 }

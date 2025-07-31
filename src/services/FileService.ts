@@ -2,12 +2,25 @@ import { ParsedFitData } from '../types/fit-parser.types';
 import { ActivityMetrics, LapMetrics } from '../types/training-metrics.types';
 import { FitParser } from '../parser/FitParser';
 import { AnalysisService } from './AnalysisService';
+import { DashboardService } from './DashboardService';
+import { AuthService } from '../firebase/auth';
 import { UIHelpers } from '../utils/ui-helpers';
 
 export interface FileProcessingResult {
   parsedData: ParsedFitData;
   activityMetrics: ActivityMetrics;
   lapMetrics: LapMetrics[];
+}
+
+export interface FileUploadResult {
+  success: boolean;
+  activityId?: string;
+  error?: string;
+}
+
+export interface FileProcessingOptions {
+  saveToFirebase?: boolean;
+  showProgress?: boolean;
 }
 
 export class FileService {
@@ -19,6 +32,7 @@ export class FileService {
   });
   
   private static analysisService = new AnalysisService();
+  private static dashboardService = new DashboardService();
 
   public static handleFile(file: File): Promise<ParsedFitData> {
     return this.handleFileBasic(file);
@@ -42,6 +56,128 @@ export class FileService {
         reject(error);
       }
     });
+  }
+
+  /**
+   * Process FIT file and save analyzed data to Firebase
+   */
+  public static async processAndSaveToFirebase(
+    file: File, 
+    options: FileProcessingOptions = {}
+  ): Promise<FileUploadResult> {
+    const { saveToFirebase = true, showProgress = true } = options;
+
+    try {
+      if (showProgress) {
+        UIHelpers.showLoading('📖 Processing FIT file...');
+      }
+
+      // Check if user is authenticated for Firebase save
+      if (saveToFirebase && !AuthService.isAuthenticated()) {
+        throw new Error('User not authenticated. Please sign in to save data.');
+      }
+
+      // Parse and analyze the FIT file
+      const result = await this.handleFileWithAnalysis(file);
+      
+      if (showProgress) {
+        UIHelpers.showLoading('💾 Saving to Firebase...');
+      }
+
+      let activityId: string | undefined;
+
+      if (saveToFirebase) {
+        // Save activity data to Firebase
+        activityId = await this.dashboardService.addActivity(result.activityMetrics);
+        
+        // Save lap data to Firebase if available
+        if (result.lapMetrics.length > 0) {
+          // Update lap metrics with the saved activity ID
+          const lapsWithActivityId = result.lapMetrics.map(lap => ({
+            ...lap,
+            activityId: activityId
+          }));
+          
+          await this.dashboardService.addLapData(lapsWithActivityId);
+        }
+      }
+
+      if (showProgress) {
+        const message = saveToFirebase 
+          ? `✅ Activity saved successfully! (${result.lapMetrics.length} laps processed)`
+          : '✅ FIT file processed successfully!';
+        UIHelpers.showStatus(message, 'success');
+      }
+
+      return {
+        success: true,
+        activityId
+      };
+
+    } catch (error) {
+      const errorMessage = (error as Error).message;
+      
+      if (showProgress) {
+        UIHelpers.showStatus(`❌ Error: ${errorMessage}`, 'error');
+      }
+      
+      console.error('File processing error:', error);
+      
+      return {
+        success: false,
+        error: errorMessage
+      };
+    }
+  }
+
+  /**
+   * Process multiple FIT files and save to Firebase
+   */
+  public static async processBatchFiles(
+    files: File[],
+    options: FileProcessingOptions = {}
+  ): Promise<{
+    successful: number;
+    failed: number;
+    results: FileUploadResult[];
+  }> {
+    const results: FileUploadResult[] = [];
+    let successful = 0;
+    let failed = 0;
+
+    UIHelpers.showLoading(`Processing ${files.length} files...`);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      
+      try {
+        UIHelpers.showLoading(`Processing file ${i + 1}/${files.length}: ${file.name}`);
+        
+        const result = await this.processAndSaveToFirebase(file, {
+          ...options,
+          showProgress: false // Don't show individual progress for batch
+        });
+
+        results.push(result);
+        
+        if (result.success) {
+          successful++;
+        } else {
+          failed++;
+        }
+      } catch (error) {
+        failed++;
+        results.push({
+          success: false,
+          error: `Failed to process ${file.name}: ${(error as Error).message}`
+        });
+      }
+    }
+
+    const message = `Batch complete: ${successful} successful, ${failed} failed`;
+    UIHelpers.showStatus(message, failed > 0 ? 'error' : 'success');
+
+    return { successful, failed, results };
   }
 
   private static handleFileBasic(file: File): Promise<ParsedFitData> {
