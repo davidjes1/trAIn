@@ -15,6 +15,7 @@ import { WorkoutCalendar } from './WorkoutCalendar';
 import { WorkoutComparison } from './WorkoutComparison';
 import { AuthManager } from '../auth/AuthManager';
 import { Router } from '../../services/Router';
+import { UserProfileService } from '../../services/UserProfileService';
 import { User } from 'firebase/auth';
 
 export class TrainingHub {
@@ -24,15 +25,14 @@ export class TrainingHub {
   private authManager!: AuthManager; // Initialized in constructor
   private router!: Router; // Initialized after authentication
   private dashboardService: DashboardService;
-  private currentUser: User | null = null;
-  private userProfile: UserProfile | null = null;
-  private isAuthenticated: boolean = false;
+  private userProfileService: UserProfileService;
 
   constructor() {
     this.state = this.initializeState();
     
     // Initialize services
     this.dashboardService = new DashboardService();
+    this.userProfileService = UserProfileService.getInstance();
     
     // Initialize authentication first
     const authContainer = document.getElementById('auth-container');
@@ -47,12 +47,10 @@ export class TrainingHub {
     this.workoutComparison = new WorkoutComparison();
   }
 
-  private onAuthStateChanged(user: User | null, profile: UserProfile | null): void {
-    this.currentUser = user;
-    this.userProfile = profile;
-    this.isAuthenticated = user !== null;
+  private onAuthStateChanged(user: User | null): void {
+    const isAuthenticated = user !== null;
 
-    if (this.isAuthenticated) {
+    if (isAuthenticated) {
       // Hide auth container and show main app
       const authContainer = document.getElementById('auth-container');
       const mainContent = document.getElementById('main-content');
@@ -63,9 +61,9 @@ export class TrainingHub {
       // Initialize router
       this.router = new Router((view: string) => this.onViewChange(view));
       
-      // Update nav user info
-      const displayName = this.userProfile?.displayName || this.currentUser?.email || 'User';
-      const email = this.currentUser?.email || '';
+      // Update nav user info using centralized service
+      const displayName = this.userProfileService.getDisplayName();
+      const email = this.userProfileService.getEmail();
       this.router.updateNavUser(displayName, email);
       
       // Initialize the app
@@ -576,6 +574,28 @@ export class TrainingHub {
   private showPlanGenerationModal(): void {
     const modal = document.getElementById('plan-generation-modal');
     if (modal) {
+      // Pre-populate form with user profile data
+      const userProfileService = UserProfileService.getInstance();
+      const trainingProfile = userProfileService.getTrainingProfile();
+      
+      // Populate age field
+      const ageInput = document.getElementById('athlete-age') as HTMLInputElement;
+      if (ageInput && trainingProfile.age) {
+        ageInput.value = trainingProfile.age.toString();
+      }
+      
+      // Populate fitness level
+      const fitnessInput = document.getElementById('fitness-level') as HTMLSelectElement;
+      if (fitnessInput && trainingProfile.fitnessLevel) {
+        fitnessInput.value = trainingProfile.fitnessLevel;
+      }
+      
+      // Set default event date (12 weeks from now)
+      const eventDateInput = document.getElementById('event-date') as HTMLInputElement;
+      if (eventDateInput) {
+        eventDateInput.value = this.getDefaultEventDate();
+      }
+      
       modal.style.display = 'flex';
     }
   }
@@ -620,13 +640,21 @@ export class TrainingHub {
   }
 
   private gatherPlanOptions(): any {
-    // Gather form values from the modal
-    const age = parseInt((document.getElementById('athlete-age') as HTMLInputElement).value) || 30;
-    const fitnessLevel = (document.getElementById('fitness-level') as HTMLSelectElement).value as 'beginner' | 'intermediate' | 'advanced';
-    const eventDate = (document.getElementById('event-date') as HTMLInputElement).value;
-    const planDuration = parseInt((document.getElementById('plan-duration') as HTMLInputElement).value) || 10;
-    const bodyBattery = parseInt((document.getElementById('body-battery') as HTMLInputElement).value) || undefined;
-    const sleepScore = parseInt((document.getElementById('sleep-score') as HTMLInputElement).value) || undefined;
+    // Get user profile data from centralized service
+    const userProfileService = UserProfileService.getInstance();
+    const trainingProfile = userProfileService.getTrainingProfile();
+    
+    // Gather form values from the modal (these override profile defaults)
+    const ageInput = (document.getElementById('athlete-age') as HTMLInputElement)?.value;
+    const fitnessInput = (document.getElementById('fitness-level') as HTMLSelectElement)?.value;
+    const eventDate = (document.getElementById('event-date') as HTMLInputElement)?.value;
+    const planDuration = parseInt((document.getElementById('plan-duration') as HTMLInputElement)?.value) || 10;
+    const bodyBattery = parseInt((document.getElementById('body-battery') as HTMLInputElement)?.value) || undefined;
+    const sleepScore = parseInt((document.getElementById('sleep-score') as HTMLInputElement)?.value) || undefined;
+
+    // Use profile data as defaults, form data as overrides
+    const age = ageInput ? parseInt(ageInput) : trainingProfile.age;
+    const fitnessLevel = (fitnessInput as 'beginner' | 'intermediate' | 'advanced') || trainingProfile.fitnessLevel;
 
     // Generate sample recent data based on actual workouts
     const recentWorkouts = this.state.trackedWorkouts
@@ -650,7 +678,11 @@ export class TrainingHub {
         sex: 'male' as const,
         eventDate: eventDate || this.getDefaultEventDate(),
         trainingDays: 5,
-        fitnessLevel
+        fitnessLevel,
+        preferredSports: trainingProfile.preferredSports,
+        goals: trainingProfile.goals,
+        restingHR: trainingProfile.restingHR,
+        maxHR: trainingProfile.maxHR
       },
       recoveryMetrics: {
         bodyBattery,
@@ -1033,17 +1065,17 @@ export class TrainingHub {
     this.saveWorkouts();
   }
 
-  // Helper methods for accessing authentication state
+  // Helper methods for accessing authentication state (delegated to UserProfileService)
   public getCurrentUser(): User | null {
-    return this.currentUser;
+    return this.userProfileService.getCurrentUser();
   }
 
   public getUserProfile(): UserProfile | null {
-    return this.userProfile;
+    return this.userProfileService.getUserProfile();
   }
 
   public getIsAuthenticated(): boolean {
-    return this.isAuthenticated;
+    return this.userProfileService.isAuthenticated();
   }
 
   public getAuthManager(): AuthManager {
@@ -1070,11 +1102,10 @@ export class TrainingHub {
     const profileContent = document.getElementById('profile-content');
     if (!profileContent) return;
 
-    const displayName = this.userProfile?.displayName || this.currentUser?.email || 'User';
-    const email = this.currentUser?.email || '';
-    const joinDate = this.currentUser?.metadata?.creationTime 
-      ? new Date(this.currentUser.metadata.creationTime).toLocaleDateString()
-      : 'Unknown';
+    const displayName = this.userProfileService.getDisplayName();
+    const email = this.userProfileService.getEmail();
+    const joinDate = this.userProfileService.getJoinDate();
+    const activityStats = this.userProfileService.getActivityStats();
 
     profileContent.innerHTML = `
       <div class="profile-content">
@@ -1094,15 +1125,15 @@ export class TrainingHub {
             <h4>Training Statistics</h4>
             <div class="stat-grid">
               <div class="stat-item">
-                <span class="stat-value">${this.userProfile?.stats?.totalActivities || 0}</span>
+                <span class="stat-value">${activityStats.totalActivities}</span>
                 <span class="stat-label">Total Activities</span>
               </div>
               <div class="stat-item">
-                <span class="stat-value">${Math.round((this.userProfile?.stats?.totalTrainingTime || 0) / 60)}</span>
+                <span class="stat-value">${Math.round(activityStats.totalTrainingTime / 60)}</span>
                 <span class="stat-label">Hours Trained</span>
               </div>
               <div class="stat-item">
-                <span class="stat-value">${this.userProfile?.stats?.lastActivityDate || 'Never'}</span>
+                <span class="stat-value">${activityStats.lastActivityDate || 'Never'}</span>
                 <span class="stat-label">Last Activity</span>
               </div>
               <div class="stat-item">

@@ -18,6 +18,9 @@ export interface UserPreferences {
   fitnessLevel: 'beginner' | 'intermediate' | 'advanced';
   restingHR: number;
   maxHR: number;
+  age: number;
+  sports: string[];
+  goals: string[];
 }
 
 export interface HRZoneConfig {

@@ -1,7 +1,7 @@
 import { MetricsCalculator, DashboardMetrics } from './MetricsCalculator';
 import { ActivityMetrics, LapMetrics } from '../types/training-metrics.types';
 import { FirestoreService } from '../firebase/firestore';
-import { AuthService } from '../firebase/auth';
+import { UserProfileService } from './UserProfileService';
 import { FirebaseActivity, FirebaseLapData } from '../types/firebase.types';
 
 export interface DashboardData {
@@ -15,9 +15,10 @@ export class DashboardService {
   private cachedData: DashboardData | null = null;
   private cacheExpiry: Date | null = null;
   private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+  private userProfileService: UserProfileService;
 
   constructor() {
-    // Simplified constructor - Firebase integration will be added later
+    this.userProfileService = UserProfileService.getInstance();
   }
 
   /**
@@ -31,7 +32,7 @@ export class DashboardService {
 
     try {
       // Check if user is authenticated
-      if (!AuthService.isAuthenticated()) {
+      if (!this.userProfileService.isAuthenticated()) {
         console.warn('User not authenticated, using localStorage fallback');
         return this.getLocalStorageData();
       }
@@ -187,7 +188,7 @@ export class DashboardService {
   async testConnection(): Promise<{ success: boolean; message: string }> {
     try {
       // Check if user is authenticated for Firebase
-      if (AuthService.isAuthenticated()) {
+      if (this.userProfileService.isAuthenticated()) {
         try {
           // Test Firebase connection by trying to get activities
           const testActivities = await FirestoreService.getActivities();
@@ -238,7 +239,7 @@ export class DashboardService {
    */
   async signIn(): Promise<boolean> {
     try {
-      return AuthService.isAuthenticated();
+      return this.userProfileService.isAuthenticated();
     } catch (error) {
       console.error('Sign in check failed:', error);
       return false;
@@ -387,7 +388,7 @@ export class DashboardService {
    */
   async addActivity(activity: ActivityMetrics): Promise<string> {
     try {
-      if (AuthService.isAuthenticated()) {
+      if (this.userProfileService.isAuthenticated()) {
         // Convert to Firebase format and save
         const firebaseActivity: Omit<FirebaseActivity, 'id' | 'userId' | 'uploadedAt'> = {
           date: activity.date,
@@ -434,7 +435,7 @@ export class DashboardService {
    */
   async addLapData(laps: LapMetrics[]): Promise<void> {
     try {
-      if (AuthService.isAuthenticated()) {
+      if (this.userProfileService.isAuthenticated()) {
         // Convert to Firebase format
         const firebaseLaps = laps.map(lap => {
           const firebaseLap = {

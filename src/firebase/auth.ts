@@ -147,25 +147,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * Update user profile
-   */
-  static async updateUserProfile(updates: Partial<UserProfile>): Promise<void> {
-    try {
-      if (!this.currentUser) throw new Error('No authenticated user');
-
-      const docRef = doc(db, 'users', this.currentUser.uid, 'profile', 'data');
-      await setDoc(docRef, updates, { merge: true });
-
-      // Update Firebase Auth profile if display name changed
-      if (updates.displayName !== undefined) {
-        await updateProfile(this.currentUser, { displayName: updates.displayName });
-      }
-    } catch (error) {
-      console.error('Error updating user profile:', error);
-      throw error;
-    }
-  }
 
   /**
    * Send password reset email
@@ -223,7 +204,10 @@ export class AuthService {
       },
       fitnessLevel: 'intermediate',
       restingHR: 60,
-      maxHR: 190
+      maxHR: 190,
+      age: 35,
+      sports: ['running', 'cycling'],
+      goals: ['fitness', 'endurance']
     };
   }
 
@@ -232,6 +216,35 @@ export class AuthService {
    */
   private static notifyAuthStateListeners(user: User | null): void {
     this.authStateListeners.forEach(listener => listener(user));
+  }
+
+  /**
+   * Update user profile data
+   */
+  static async updateUserProfile(updates: Partial<UserProfile>): Promise<UserProfile> {
+    try {
+      if (!this.currentUser) {
+        throw new Error('No authenticated user');
+      }
+
+      const userDoc = doc(db, 'users', this.currentUser.uid);
+      const currentProfile = await this.getUserProfile();
+      
+      if (!currentProfile) {
+        throw new Error('No existing profile found');
+      }
+
+      const updatedProfile: UserProfile = {
+        ...currentProfile,
+        ...updates
+      };
+
+      await setDoc(userDoc, updatedProfile, { merge: true });
+      return updatedProfile;
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      throw error;
+    }
   }
 
   /**
