@@ -875,17 +875,57 @@ export class TrainingHub {
       // Force refresh of dashboard data from Firebase
       const dashboardData = await this.dashboardService.getDashboardData(true);
       
+      // Convert Firebase activities to TrackedWorkouts
+      const firebaseWorkouts = dashboardData.activities.map(activity => {
+        // Create a tracked workout from the completed activity
+        const trackedWorkout: TrackedWorkout = {
+          date: activity.date,
+          workoutType: activity.sport,
+          description: `${activity.sport} - ${activity.distance.toFixed(2)}km in ${activity.duration} min`,
+          expectedFatigue: Math.round(activity.trainingLoad / 5), // Estimate from training load
+          durationMin: activity.duration,
+          completed: true,
+          status: 'completed',
+          actualWorkout: activity,
+          actualFatigue: Math.round(activity.trainingLoad / 5),
+          completedAt: activity.date,
+          // No comparison data for activities without planned workouts
+          comparison: undefined
+        };
+        return trackedWorkout;
+      });
+      
+      // Merge with existing planned workouts and avoid duplicates
+      const existingPlanned = this.state.trackedWorkouts.filter(w => w.status === 'planned');
+      const existingCompleted = this.state.trackedWorkouts.filter(w => w.status === 'completed');
+      
+      // Only add Firebase workouts that don't already exist
+      const newFirebaseWorkouts = firebaseWorkouts.filter(fw => 
+        !existingCompleted.some(existing => 
+          existing.date === fw.date && 
+          existing.workoutType === fw.workoutType &&
+          existing.actualWorkout?.activityId === fw.actualWorkout?.activityId
+        )
+      );
+      
+      const updatedWorkouts = [...existingPlanned, ...existingCompleted, ...newFirebaseWorkouts];
+      
+      // Update state with merged workouts
+      this.setState({
+        trackedWorkouts: updatedWorkouts
+      });
+      
       // Update header metrics with fresh data
       this.updateHeaderMetricsFromDashboard(dashboardData);
       
       // Update analytics
       this.updateAnalytics();
       
-      // Refresh calendar with latest data
-      await this.workoutCalendar.initialize(this.state.trackedWorkouts, this.state.calendar);
+      // Refresh calendar with merged workout data
+      await this.workoutCalendar.updateWorkouts(updatedWorkouts);
       
       UIHelpers.showStatus(
-        `Data synced! Loaded ${dashboardData.activities.length} activities.`, 
+        `Data synced! Loaded ${dashboardData.activities.length} activities from Firebase.`, 
         'success'
       );
       
