@@ -9,6 +9,10 @@ $success-color: #4caf50;
 $error-color: #f44336;
 $green-terminal: #00ff00;
 
+// Text Colors
+$text-primary: #1f2937;
+$text-secondary: #6b7280;
+
 // CSS Custom Properties for Auth Components
 :root {
   --primary-color: #{$primary-color};
@@ -20,7 +24,10 @@ $green-terminal: #00ff00;
   --glass-bg: rgba(255, 255, 255, 0.95);
 }
 
-// Opacity Variables
+// Glass/Transparency Variables
+$glass-bg: rgba(255, 255, 255, 0.95);
+$glass-blur: blur(10px);
+$glass-border: 1px solid rgba(255, 255, 255, 0.2);
 $glass-opacity-1: rgba(255, 255, 255, 0.1);
 $glass-opacity-2: rgba(255, 255, 255, 0.2);
 $glass-opacity-3: rgba(255, 255, 255, 0.3);
@@ -53,6 +60,10 @@ $border-radius-small: 6px;
 $border-radius-medium: 10px;
 $border-radius-large: 20px;
 $border-radius-button: 25px;
+// Alternative naming for consistency
+$border-radius-sm: 6px;
+$border-radius-md: 10px;
+$border-radius-lg: 20px;
 
 // Spacing Variables
 $spacing-xs: 5px;

@@ -13,6 +13,7 @@ import { DashboardService, DashboardData } from '../../services/DashboardService
 import { UIHelpers } from '../../utils/ui-helpers';
 import { EnhancedWorkoutCalendar } from './WorkoutCalendar-Enhanced';
 import { WorkoutComparison } from './WorkoutComparison';
+import { RecoveryMetricsTracker } from '../recovery/RecoveryMetricsTracker';
 import { AuthManager } from '../auth/AuthManager';
 import { Router } from '../../services/Router';
 import { UserProfileService } from '../../services/UserProfileService';
@@ -22,6 +23,7 @@ export class TrainingHub {
   private state: TrainingHubState;
   private workoutCalendar: EnhancedWorkoutCalendar;
   private workoutComparison: WorkoutComparison;
+  private recoveryTracker!: RecoveryMetricsTracker; // Initialized after authentication
   private authManager!: AuthManager; // Initialized in constructor
   private router!: Router; // Initialized after authentication
   private dashboardService: DashboardService;
@@ -60,6 +62,12 @@ export class TrainingHub {
       
       // Initialize router
       this.router = new Router((view: string) => this.onViewChange(view));
+      
+      // Initialize recovery metrics tracker
+      const recoveryContainer = document.getElementById('recovery-metrics-container');
+      if (recoveryContainer) {
+        this.recoveryTracker = new RecoveryMetricsTracker(recoveryContainer);
+      }
       
       // Update nav user info using centralized service
       const displayName = this.userProfileService.getDisplayName();
@@ -120,6 +128,12 @@ export class TrainingHub {
 
     document.getElementById('generate-plan-btn')?.addEventListener('click', () => {
       this.showPlanGenerationModal();
+    });
+
+    // Recovery metrics updates
+    window.addEventListener('recovery-metrics-updated', () => {
+      // Refresh dashboard metrics when recovery data changes
+      this.loadInitialData();
     });
 
     // Import drawer - handled in showImportDrawer method
@@ -303,8 +317,18 @@ export class TrainingHub {
       }
     }
 
-    // Simple readiness calculation (could be enhanced with HR, sleep data, etc.)
-    const readiness = Math.min(100, Math.max(50, 85 - (weeklyLoad / 50))); // Decreases with high load
+    // Enhanced readiness calculation using recovery metrics
+    let readiness = 85 - (weeklyLoad / 50); // Base calculation decreases with high training load
+    
+    // Incorporate recovery metrics if available
+    if (this.recoveryTracker) {
+      const recoveryScore = this.recoveryTracker.getReadinessScore();
+      // Blend recovery metrics (60%) with load-based calculation (40%)
+      readiness = (recoveryScore * 0.6) + (readiness * 0.4);
+    }
+    
+    // Ensure readiness stays within reasonable bounds
+    readiness = Math.min(100, Math.max(30, readiness));
 
     // Update DOM elements
     if (readinessEl) readinessEl.textContent = Math.round(readiness).toString();
@@ -761,11 +785,7 @@ export class TrainingHub {
         trainingDays: 5,
         fitnessLevel
       },
-      recoveryMetrics: {
-        bodyBattery,
-        sleepScore,
-        restingHR: trainingProfile.restingHR
-      },
+      recoveryMetrics: this.getEnhancedRecoveryMetrics(bodyBattery, sleepScore, trainingProfile.restingHR),
       recentFatigueScores,
       recentWorkouts,
       planDuration,
@@ -773,6 +793,23 @@ export class TrainingHub {
       // Enhanced plan options with historical data
       historicalActivities,
       completedWorkouts
+    };
+  }
+
+  private getEnhancedRecoveryMetrics(formBodyBattery?: number, formSleepScore?: number, defaultRestingHR?: number): any {
+    // Prioritize daily recovery metrics over form values
+    const todaysMetrics = this.recoveryTracker?.getCurrentMetrics();
+    
+    return {
+      bodyBattery: todaysMetrics?.bodyBattery ?? formBodyBattery,
+      sleepScore: todaysMetrics?.sleepScore ?? formSleepScore,
+      hrv: todaysMetrics?.hrv,
+      restingHR: todaysMetrics?.restingHR ?? defaultRestingHR,
+      subjectiveFatigue: todaysMetrics?.subjectiveFatigue,
+      stressLevel: todaysMetrics?.stressLevel,
+      // Add metadata about data source
+      hasCurrentDayData: todaysMetrics !== null,
+      dataSource: todaysMetrics ? 'daily-tracker' : 'form-input'
     };
   }
 
