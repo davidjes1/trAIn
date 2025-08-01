@@ -5,15 +5,95 @@ import {
   ReadinessMetrics, 
   PlanGenerationResult,
   WorkoutType,
-  TrainingPhase
+  TrainingPhase,
+  ActivityMetrics
 } from '../types/training-metrics.types';
 import { WorkoutLibrary, WORKOUT_LIBRARY } from '../config/workouts';
+import { TrackedWorkout } from '../types/workout-tracking.types';
+
+// Enhanced plan options with actual workout data
+export interface EnhancedPlanOptions extends PlanOptions {
+  historicalActivities?: ActivityMetrics[];
+  completedWorkouts?: TrackedWorkout[];
+}
+
+// Activity pattern analysis
+interface ActivityPattern {
+  preferredSports: string[];
+  averageWeeklyDistance: number;
+  averageWeeklyDuration: number;
+  averageTrainingLoad: number;
+  consistencyScore: number;
+  strongDays: string[]; // Days of week with better performance
+  preferredIntensityDistribution: {
+    easy: number;
+    moderate: number;
+    hard: number;
+  };
+}
 
 export class PlanGenerator {
   private static readonly MAX_HARD_WORKOUTS_PER_WEEK = 2;
 
   /**
+   * Generate an enhanced training plan using actual workout data for better recommendations
+   */
+  static generateEnhancedPlan(options: EnhancedPlanOptions): PlanGenerationResult {
+    // Analyze historical data if available
+    const activityPattern = this.analyzeActivityPattern(options);
+    const enhancedReadiness = this.calculateEnhancedReadinessMetrics(options, activityPattern);
+    
+    const recommendations: string[] = [];
+    const warnings: string[] = [];
+    const plan: TrainingPlan[] = [];
+
+    // Add insights from historical data analysis
+    this.addActivityPatternInsights(activityPattern, recommendations);
+
+    // Generate plan for each day with enhanced logic
+    const startDate = new Date();
+    for (let dayOffset = 0; dayOffset < options.planDuration; dayOffset++) {
+      const targetDate = new Date(startDate);
+      targetDate.setDate(startDate.getDate() + dayOffset);
+      
+      const dayWorkout = this.selectEnhancedWorkoutForDay(
+        options, 
+        enhancedReadiness, 
+        activityPattern,
+        plan, 
+        dayOffset,
+        recommendations,
+        warnings
+      );
+
+      if (dayWorkout) {
+        plan.push({
+          date: this.formatDate(targetDate),
+          workoutType: dayWorkout.type,
+          description: dayWorkout.description,
+          expectedFatigue: dayWorkout.fatigueScore,
+          durationMin: dayWorkout.durationMin,
+          workoutId: `${dayWorkout.type}-${dayWorkout.tag}`,
+          completed: false
+        });
+      }
+    }
+
+    // Add enhanced recommendations
+    this.addEnhancedRecommendations(enhancedReadiness, activityPattern, recommendations, warnings);
+
+    return {
+      plan,
+      readinessMetrics: enhancedReadiness,
+      recommendations,
+      warnings,
+      generatedAt: new Date().toISOString()
+    };
+  }
+
+  /**
    * Generate a dynamic training plan based on user state and recovery metrics
+   * (Legacy method - maintained for backward compatibility)
    */
   static generatePlan(options: PlanOptions): PlanGenerationResult {
     const readinessMetrics = this.calculateReadinessMetrics(options);
@@ -347,6 +427,350 @@ export class PlanGenerator {
 
   private static formatDate(date: Date): string {
     return date.toISOString().split('T')[0];
+  }
+
+  /**
+   * Analyze historical activity patterns to inform plan generation
+   */
+  private static analyzeActivityPattern(options: EnhancedPlanOptions): ActivityPattern {
+    const activities = options.historicalActivities || [];
+    // Note: completedWorkouts could be used for workout-specific analysis in future enhancements
+
+    if (activities.length === 0) {
+      // Return default pattern if no historical data
+      return {
+        preferredSports: ['running'],
+        averageWeeklyDistance: 0,
+        averageWeeklyDuration: 0,
+        averageTrainingLoad: 0,
+        consistencyScore: 0,
+        strongDays: [],
+        preferredIntensityDistribution: {
+          easy: 0.7,
+          moderate: 0.2,
+          hard: 0.1
+        }
+      };
+    }
+
+    // Analyze sport preferences
+    const sportCounts = activities.reduce((acc, activity) => {
+      acc[activity.sport] = (acc[activity.sport] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const preferredSports = Object.entries(sportCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 3)
+      .map(([sport]) => sport);
+
+    // Calculate weekly averages (last 8 weeks)
+    const recentActivities = activities
+      .filter(a => {
+        const activityDate = new Date(a.date);
+        const eightWeeksAgo = new Date();
+        eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 56);
+        return activityDate >= eightWeeksAgo;
+      });
+
+    const weeklyGroups = this.groupActivitiesByWeek(recentActivities);
+    const weeklyDistances = weeklyGroups.map(week => 
+      week.reduce((sum, a) => sum + a.distance, 0)
+    );
+    const weeklyDurations = weeklyGroups.map(week => 
+      week.reduce((sum, a) => sum + a.duration, 0)
+    );
+    const weeklyLoads = weeklyGroups.map(week => 
+      week.reduce((sum, a) => sum + a.trainingLoad, 0)
+    );
+
+    // Analyze consistency (how many weeks had activities)
+    const weeksWithActivity = weeklyGroups.filter(week => week.length > 0).length;
+    const consistencyScore = weeklyGroups.length > 0 ? 
+      (weeksWithActivity / weeklyGroups.length) * 100 : 0;
+
+    // Analyze strong days of the week
+    const dayOfWeekPerformance = activities.reduce((acc, activity) => {
+      const dayOfWeek = new Date(activity.date).getDay();
+      const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek];
+      
+      if (!acc[dayName]) {
+        acc[dayName] = { count: 0, totalLoad: 0 };
+      }
+      acc[dayName].count++;
+      acc[dayName].totalLoad += activity.trainingLoad;
+      return acc;
+    }, {} as Record<string, { count: number; totalLoad: number }>);
+
+    const strongDays = Object.entries(dayOfWeekPerformance)
+      .filter(([, data]) => data.count >= 3) // At least 3 activities on this day
+      .sort(([,a], [,b]) => (b.totalLoad / b.count) - (a.totalLoad / a.count))
+      .slice(0, 3)
+      .map(([day]) => day);
+
+    // Analyze intensity distribution based on training load
+    const intensityDistribution = this.analyzeIntensityDistribution(activities);
+
+    return {
+      preferredSports,
+      averageWeeklyDistance: this.average(weeklyDistances),
+      averageWeeklyDuration: this.average(weeklyDurations),
+      averageTrainingLoad: this.average(weeklyLoads),
+      consistencyScore,
+      strongDays,
+      preferredIntensityDistribution: intensityDistribution
+    };
+  }
+
+  /**
+   * Calculate enhanced readiness metrics using historical data
+   */
+  private static calculateEnhancedReadinessMetrics(
+    options: EnhancedPlanOptions, 
+    pattern: ActivityPattern
+  ): ReadinessMetrics {
+    // Start with base readiness calculation
+    const baseReadiness = this.calculateReadinessMetrics(options);
+
+    // Enhance with historical analysis
+    let enhancedScore = baseReadiness.score;
+
+    // Adjust based on consistency
+    if (pattern.consistencyScore > 80) {
+      enhancedScore += 5; // Reward consistency
+    } else if (pattern.consistencyScore < 40) {
+      enhancedScore -= 10; // Penalize inconsistency
+    }
+
+    // Adjust based on recent training progression
+    const recentProgression = this.analyzeRecentProgression(options.historicalActivities || []);
+    if (recentProgression > 0.1) {
+      enhancedScore += 5; // Positive progression
+    } else if (recentProgression < -0.2) {
+      enhancedScore -= 15; // Significant decline
+    }
+
+    return {
+      ...baseReadiness,
+      score: Math.max(0, Math.min(100, enhancedScore))
+    };
+  }
+
+  /**
+   * Enhanced workout selection using activity patterns
+   */
+  private static selectEnhancedWorkoutForDay(
+    options: EnhancedPlanOptions,
+    readiness: ReadinessMetrics,
+    pattern: ActivityPattern,
+    existingPlan: TrainingPlan[],
+    dayOffset: number,
+    recommendations: string[],
+    warnings: string[]
+  ): WorkoutType | null {
+    // Check day of week preferences
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + dayOffset);
+    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][targetDate.getDay()];
+    
+    const isStrongDay = pattern.strongDays.includes(dayName);
+    
+    // Use base logic first
+    const baseWorkout = this.selectWorkoutForDay(
+      options, readiness, existingPlan, dayOffset, recommendations, warnings
+    );
+
+    if (!baseWorkout) return null;
+
+    // Enhance workout selection based on patterns
+    const enhancedWorkout = this.enhanceWorkoutWithPattern(baseWorkout, pattern, isStrongDay);
+
+    // Prefer user's favorite sports
+    if (pattern.preferredSports.length > 0 && Math.random() < 0.7) {
+      const preferredSport = this.randomChoice(pattern.preferredSports);
+      const preferredWorkouts = WORKOUT_LIBRARY.filter(w => 
+        w.type.toLowerCase().includes(preferredSport.toLowerCase()) ||
+        w.description.toLowerCase().includes(preferredSport.toLowerCase())
+      );
+      
+      if (preferredWorkouts.length > 0) {
+        const matchingWorkout = preferredWorkouts.find(w => 
+          Math.abs(w.fatigueScore - enhancedWorkout.fatigueScore) <= 10
+        );
+        if (matchingWorkout) {
+          return matchingWorkout;
+        }
+      }
+    }
+
+    return enhancedWorkout;
+  }
+
+  /**
+   * Add insights from activity pattern analysis
+   */
+  private static addActivityPatternInsights(
+    pattern: ActivityPattern, 
+    recommendations: string[]
+  ): void {
+    if (pattern.consistencyScore > 80) {
+      recommendations.push(`Excellent consistency (${pattern.consistencyScore.toFixed(0)}%) - maintaining current training frequency`);
+    } else if (pattern.consistencyScore < 40) {
+      recommendations.push(`Low consistency detected (${pattern.consistencyScore.toFixed(0)}%) - focusing on sustainable routine`);
+    }
+
+    if (pattern.strongDays.length > 0) {
+      recommendations.push(`Your strongest days: ${pattern.strongDays.join(', ')} - scheduling key workouts accordingly`);
+    }
+
+    if (pattern.averageWeeklyDistance > 0) {
+      recommendations.push(`Based on your average ${pattern.averageWeeklyDistance.toFixed(1)}km/week - adjusting distances appropriately`);
+    }
+
+    if (pattern.preferredSports.length > 0) {
+      recommendations.push(`Incorporating your preferred activities: ${pattern.preferredSports.join(', ')}`);
+    }
+  }
+
+  /**
+   * Add enhanced recommendations based on historical analysis
+   */
+  private static addEnhancedRecommendations(
+    readiness: ReadinessMetrics,
+    pattern: ActivityPattern,
+    recommendations: string[],
+    warnings: string[]
+  ): void {
+    // Base recommendations
+    this.addGeneralRecommendations(readiness, recommendations, warnings);
+
+    // Pattern-based recommendations
+    if (pattern.averageTrainingLoad > 0) {
+      const currentLoad = readiness.trainingLoad7Day;
+      const historical = pattern.averageTrainingLoad;
+      
+      if (currentLoad > historical * 1.3) {
+        warnings.push('Current training load is 30% above your historical average - consider reducing intensity');
+      } else if (currentLoad < historical * 0.7) {
+        recommendations.push('Training load is below your historical average - opportunity to increase volume');
+      }
+    }
+
+    // Intensity distribution recommendations
+    const easyPct = pattern.preferredIntensityDistribution.easy;
+    if (easyPct < 0.6) {
+      warnings.push('Historical data shows high intensity focus - adding more easy/recovery sessions');
+    } else if (easyPct > 0.85) {
+      recommendations.push('Good easy training base - can handle more intensity for progression');
+    }
+  }
+
+  /**
+   * Helper methods for enhanced analysis
+   */
+  private static groupActivitiesByWeek(activities: ActivityMetrics[]): ActivityMetrics[][] {
+    const weeks: ActivityMetrics[][] = [];
+    const sorted = [...activities].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    if (sorted.length === 0) return [];
+
+    let currentWeek: ActivityMetrics[] = [];
+    let currentWeekStart = this.getWeekStart(new Date(sorted[0].date));
+
+    for (const activity of sorted) {
+      const activityDate = new Date(activity.date);
+      const weekStart = this.getWeekStart(activityDate);
+      
+      if (weekStart.getTime() !== currentWeekStart.getTime()) {
+        if (currentWeek.length > 0) {
+          weeks.push(currentWeek);
+        }
+        currentWeek = [];
+        currentWeekStart = weekStart;
+      }
+      
+      currentWeek.push(activity);
+    }
+    
+    if (currentWeek.length > 0) {
+      weeks.push(currentWeek);
+    }
+    
+    return weeks;
+  }
+
+  private static getWeekStart(date: Date): Date {
+    const weekStart = new Date(date);
+    weekStart.setDate(date.getDate() - date.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    return weekStart;
+  }
+
+  private static analyzeIntensityDistribution(activities: ActivityMetrics[]): {
+    easy: number;
+    moderate: number;
+    hard: number;
+  } {
+    if (activities.length === 0) {
+      return { easy: 0.7, moderate: 0.2, hard: 0.1 };
+    }
+
+    const total = activities.length;
+    const easy = activities.filter(a => a.trainingLoad < 150).length;
+    const hard = activities.filter(a => a.trainingLoad > 300).length;
+    const moderate = total - easy - hard;
+
+    return {
+      easy: easy / total,
+      moderate: moderate / total,
+      hard: hard / total
+    };
+  }
+
+  private static analyzeRecentProgression(activities: ActivityMetrics[]): number {
+    if (activities.length < 6) return 0;
+
+    const sorted = [...activities].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const firstHalf = sorted.slice(0, Math.floor(sorted.length / 2));
+    const secondHalf = sorted.slice(Math.floor(sorted.length / 2));
+
+    const firstAvgLoad = this.average(firstHalf.map(a => a.trainingLoad));
+    const secondAvgLoad = this.average(secondHalf.map(a => a.trainingLoad));
+
+    return firstAvgLoad > 0 ? (secondAvgLoad - firstAvgLoad) / firstAvgLoad : 0;
+  }
+
+  private static enhanceWorkoutWithPattern(
+    workout: WorkoutType, 
+    pattern: ActivityPattern, 
+    isStrongDay: boolean
+  ): WorkoutType {
+    // Adjust duration based on historical averages
+    let adjustedDuration = workout.durationMin;
+    
+    if (pattern.averageWeeklyDuration > 0) {
+      const avgSessionDuration = pattern.averageWeeklyDuration / 4; // Assume 4 sessions per week
+      if (avgSessionDuration > 45) {
+        adjustedDuration = Math.min(workout.durationMin * 1.2, workout.durationMin + 15);
+      } else if (avgSessionDuration < 30) {
+        adjustedDuration = Math.max(workout.durationMin * 0.8, workout.durationMin - 10);
+      }
+    }
+
+    // Boost intensity on strong days
+    let adjustedFatigue = workout.fatigueScore;
+    if (isStrongDay && workout.fatigueScore < 80) {
+      adjustedFatigue = Math.min(100, workout.fatigueScore + 5);
+    }
+
+    return {
+      ...workout,
+      durationMin: Math.round(adjustedDuration),
+      fatigueScore: adjustedFatigue,
+      description: isStrongDay ? 
+        `${workout.description} (scheduled on your strong day)` : 
+        workout.description
+    };
   }
 
   /**

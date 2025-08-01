@@ -7,7 +7,7 @@ import {
 import { ActivityMetrics, LapMetrics } from '../../types/training-metrics.types';
 import { UserProfile } from '../../types/firebase.types';
 import { WorkoutMatchingService } from '../../services/WorkoutMatchingService';
-import { PlanGenerator } from '../../services/PlanGenerator';
+import { PlanGenerator, EnhancedPlanOptions } from '../../services/PlanGenerator';
 import { FileService } from '../../services/FileService';
 import { DashboardService, DashboardData } from '../../services/DashboardService';
 import { UIHelpers } from '../../utils/ui-helpers';
@@ -657,10 +657,10 @@ export class TrainingHub {
 
   private async generatePlan(): Promise<void> {
     try {
-      UIHelpers.showStatus('Generating training plan...', 'info');
+      UIHelpers.showStatus('Generating enhanced training plan...', 'info');
       
-      const planOptions = this.gatherPlanOptions();
-      const result = PlanGenerator.generatePlan(planOptions);
+      const planOptions = await this.gatherEnhancedPlanOptions();
+      const result = PlanGenerator.generateEnhancedPlan(planOptions);
       
       // Convert to tracked workouts and add to state
       const newTrackedWorkouts = result.plan.map(workout => 
@@ -679,7 +679,11 @@ export class TrainingHub {
       this.updateHeaderMetrics();
       
       this.hidePlanGenerationModal();
-      UIHelpers.showStatus(`Generated ${newTrackedWorkouts.length} new workouts!`, 'success');
+      
+      // Show enhanced feedback with recommendations
+      const recommendations = result.recommendations.slice(0, 3).join('; ');
+      const message = `Generated ${newTrackedWorkouts.length} workouts! ${recommendations ? `Insights: ${recommendations}` : ''}`;
+      UIHelpers.showStatus(message, 'success');
       
     } catch (error) {
       console.error('Error generating plan:', error);
@@ -687,7 +691,7 @@ export class TrainingHub {
     }
   }
 
-  private gatherPlanOptions(): any {
+  private async gatherEnhancedPlanOptions(): Promise<EnhancedPlanOptions> {
     // Get user profile data from centralized service
     const userProfileService = UserProfileService.getInstance();
     const trainingProfile = userProfileService.getTrainingProfile();
@@ -704,7 +708,36 @@ export class TrainingHub {
     const age = ageInput ? parseInt(ageInput) : trainingProfile.age;
     const fitnessLevel = (fitnessInput as 'beginner' | 'intermediate' | 'advanced') || trainingProfile.fitnessLevel;
 
-    // Generate sample recent data based on actual workouts
+    // Get historical activities from Firebase for enhanced analysis
+    let historicalActivities: any[] = [];
+    let completedWorkouts: any[] = [];
+    
+    try {
+      const dashboardData = await this.dashboardService.getDashboardData();
+      historicalActivities = dashboardData.activities;
+      
+      // Convert completed tracked workouts to the enhanced format
+      completedWorkouts = this.state.trackedWorkouts
+        .filter(w => w.status === 'completed' && w.actualWorkout)
+        .map(w => ({
+          date: w.date,
+          workoutType: w.workoutType,
+          expectedDuration: w.durationMin,
+          actualDuration: w.actualWorkout!.duration,
+          expectedFatigue: w.expectedFatigue,
+          actualFatigue: w.actualFatigue || Math.round(w.actualWorkout!.trainingLoad / 5),
+          completed: true,
+          sport: w.actualWorkout!.sport,
+          trainingLoad: w.actualWorkout!.trainingLoad
+        }));
+      
+      console.log(`Enhanced plan generation: Using ${historicalActivities.length} historical activities and ${completedWorkouts.length} completed workouts`);
+    } catch (error) {
+      console.warn('Could not load historical data for enhanced planning, using basic planning:', error);
+      // Fall back to basic planning without historical data
+    }
+
+    // Generate recent workouts data based on actual workouts
     const recentWorkouts = this.state.trackedWorkouts
       .filter(w => w.status === 'completed' && w.actualWorkout)
       .slice(-7)
@@ -726,20 +759,20 @@ export class TrainingHub {
         sex: 'male' as const,
         eventDate: eventDate || this.getDefaultEventDate(),
         trainingDays: 5,
-        fitnessLevel,
-        preferredSports: trainingProfile.preferredSports,
-        goals: trainingProfile.goals,
-        restingHR: trainingProfile.restingHR,
-        maxHR: trainingProfile.maxHR
+        fitnessLevel
       },
       recoveryMetrics: {
         bodyBattery,
-        sleepScore
+        sleepScore,
+        restingHR: trainingProfile.restingHR
       },
       recentFatigueScores,
       recentWorkouts,
       planDuration,
-      availabilityToday: true
+      availabilityToday: true,
+      // Enhanced plan options with historical data
+      historicalActivities,
+      completedWorkouts
     };
   }
 
