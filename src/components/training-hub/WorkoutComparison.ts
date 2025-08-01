@@ -23,12 +23,24 @@ export class WorkoutComparison {
   }
 
   private generatePlannedOnlyHTML(workout: TrackedWorkout): string {
+    const intensityColor = this.getIntensityColor(workout.expectedFatigue);
+    const intensityLabel = this.getIntensityLabel(workout.expectedFatigue);
+    const formattedDate = new Date(workout.date).toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+
     return `
       <div class="workout-comparison-content">
         <div class="comparison-header">
           <div class="workout-status planned">
             <span class="status-icon">📅</span>
             <span class="status-text">Planned Workout</span>
+          </div>
+          <div class="workout-date">
+            <span class="date-text">${formattedDate}</span>
           </div>
         </div>
 
@@ -41,36 +53,36 @@ export class WorkoutComparison {
             </div>
             <div class="detail-item">
               <div class="label">Duration</div>
-              <div class="value">${workout.durationMin} minutes</div>
+              <div class="value">${workout.durationMin} <span class="unit">minutes</span></div>
             </div>
             <div class="detail-item">
-              <div class="label">Expected Fatigue</div>
-              <div class="value">${workout.expectedFatigue}/100</div>
+              <div class="label">Expected Intensity</div>
+              <div class="value" style="color: ${intensityColor}">${intensityLabel}</div>
             </div>
             <div class="detail-item">
               <div class="label">Expected Load</div>
-              <div class="value">${(workout.expectedFatigue * 5).toFixed(0)} TRIMP</div>
+              <div class="value">${(workout.expectedFatigue * 5).toFixed(0)} <span class="unit">TRIMP</span></div>
             </div>
           </div>
 
           <div class="workout-description">
-            <h5>Description</h5>
+            <h5>📝 Workout Description</h5>
             <p>${workout.description}</p>
           </div>
 
           ${workout.userNotes ? `
             <div class="user-notes">
-              <h5>Notes</h5>
+              <h5>📋 Personal Notes</h5>
               <p>${workout.userNotes}</p>
             </div>
           ` : ''}
 
           <div class="workout-actions">
             <button class="btn btn-primary" onclick="markWorkoutCompleted('${workout.date}')">
-              Mark as Completed
+              ✅ Mark as Completed
             </button>
             <button class="btn btn-secondary" onclick="editWorkout('${workout.date}')">
-              Edit Workout
+              ✏️ Edit Workout
             </button>
           </div>
         </div>
@@ -514,5 +526,19 @@ export class WorkoutComparison {
     if (Math.abs(variance) <= 10) return 'Training load matched plan well';
     if (variance > 10) return 'Higher than planned training stimulus';
     return 'Lower than planned training stimulus';
+  }
+
+  private getIntensityColor(intensity: number): string {
+    if (intensity < 30) return '#4CAF50'; // Green - Easy
+    if (intensity < 60) return '#FF9800'; // Orange - Moderate
+    if (intensity < 80) return '#F44336'; // Red - Hard
+    return '#9C27B0'; // Purple - Very Hard
+  }
+
+  private getIntensityLabel(intensity: number): string {
+    if (intensity < 30) return 'Easy';
+    if (intensity < 60) return 'Moderate';
+    if (intensity < 80) return 'Hard';
+    return 'Very Hard';
   }
 }

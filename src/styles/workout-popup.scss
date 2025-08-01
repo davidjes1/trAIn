@@ -1,0 +1,853 @@
+// Enhanced Workout Detail Popup Styles
+@import 'variables';
+
+// Enhanced workout detail panel with modern design
+.workout-detail-panel {
+  position: fixed;
+  right: -500px;
+  top: 0;
+  width: 500px;
+  height: 100vh;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.12) 100%);
+  backdrop-filter: blur(20px);
+  border-left: 2px solid rgba(255, 255, 255, 0.15);
+  transition: right $transition-normal;
+  z-index: 1000;
+  overflow-y: auto;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.3);
+
+  &.visible {
+    right: 0;
+  }
+
+  @media (max-width: 768px) {
+    width: 100vw;
+    right: -100vw;
+  }
+
+  // Enhanced panel header
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem 2rem 1.5rem 2rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.1) 100%);
+
+    h3 {
+      margin: 0;
+      color: $primary-color;
+      font-size: 1.4rem;
+      font-weight: 600;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .close-panel-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.8);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: all $transition-normal;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: $white;
+        transform: scale(1.1);
+      }
+    }
+  }
+
+  .panel-content {
+    padding: 0;
+  }
+}
+
+// Enhanced workout comparison content
+.workout-comparison-content {
+  padding: 2rem;
+
+  // Status header with modern styling
+  .comparison-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.1) 100%);
+    border-radius: $border-radius-large;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    flex-wrap: wrap;
+    gap: 1rem;
+
+    .workout-status {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+
+      .status-icon {
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .status-text {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: $white;
+      }
+
+      &.planned {
+        .status-icon {
+          background: rgba(102, 126, 234, 0.2);
+        }
+        .status-text {
+          color: $primary-color;
+        }
+      }
+
+      &.completed {
+        .status-icon {
+          background: rgba(76, 175, 80, 0.2);
+        }
+        .status-text {
+          color: $success-color;
+        }
+      }
+
+      &.unplanned {
+        .status-icon {
+          background: rgba(255, 152, 0, 0.2);
+        }
+        .status-text {
+          color: #FF9800;
+        }
+      }
+
+      &.missed {
+        .status-icon {
+          background: rgba(244, 67, 54, 0.2);
+        }
+        .status-text {
+          color: $error-color;
+        }
+      }
+    }
+
+    .adherence-badge {
+      padding: 0.75rem 1.25rem;
+      border-radius: 25px;
+      font-weight: 700;
+      font-size: 1rem;
+      border: 2px solid;
+
+      &.excellent {
+        background: rgba(76, 175, 80, 0.2);
+        color: $success-color;
+        border-color: rgba(76, 175, 80, 0.4);
+      }
+
+      &.good {
+        background: rgba(139, 195, 74, 0.2);
+        color: #8BC34A;
+        border-color: rgba(139, 195, 74, 0.4);
+      }
+
+      &.fair {
+        background: rgba(255, 152, 0, 0.2);
+        color: #FF9800;
+        border-color: rgba(255, 152, 0, 0.4);
+      }
+
+      &.poor {
+        background: rgba(244, 67, 54, 0.2);
+        color: $error-color;
+        border-color: rgba(244, 67, 54, 0.4);
+      }
+    }
+
+    .workout-date {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+
+      .date-text {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+    }
+  }
+
+  // Enhanced section styling
+  h4 {
+    color: $white;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 2rem 0 1rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 50px;
+      height: 2px;
+      background: $primary-color;
+    }
+  }
+
+  h5 {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+    font-weight: 500;
+    margin: 1.5rem 0 0.75rem 0;
+  }
+}
+
+// Enhanced detail grid
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+
+  .detail-item {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.08) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: $border-radius-medium;
+    padding: 1.25rem;
+    transition: all $transition-normal;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.15) 100%);
+    }
+
+    .label {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    .value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: $white;
+      line-height: 1.2;
+
+      .unit {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.7);
+        margin-left: 0.25rem;
+      }
+    }
+  }
+}
+
+// Enhanced comparison overview
+.comparison-overview {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.1) 100%);
+  border-radius: $border-radius-large;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  .overview-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+
+    .metric-item {
+      .metric-label {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .metric-comparison {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-size: 1.1rem;
+
+        .planned {
+          color: rgba(255, 255, 255, 0.8);
+          font-weight: 500;
+        }
+
+        .arrow {
+          color: $primary-color;
+          font-weight: 700;
+          font-size: 1.2rem;
+        }
+
+        .actual {
+          color: $white;
+          font-weight: 700;
+        }
+
+        .variance {
+          padding: 0.25rem 0.75rem;
+          border-radius: 15px;
+          font-size: 0.9rem;
+          font-weight: 600;
+
+          &.positive {
+            background: rgba(76, 175, 80, 0.2);
+            color: $success-color;
+          }
+
+          &.negative {
+            background: rgba(244, 67, 54, 0.2);
+            color: $error-color;
+          }
+
+          &.neutral {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+          }
+        }
+      }
+
+      .metric-value {
+        .compliance-score {
+          font-size: 1.4rem;
+          font-weight: 700;
+          padding: 0.5rem 1rem;
+          border-radius: 20px;
+
+          &.excellent {
+            background: rgba(76, 175, 80, 0.2);
+            color: $success-color;
+          }
+
+          &.good {
+            background: rgba(139, 195, 74, 0.2);
+            color: #8BC34A;
+          }
+
+          &.fair {
+            background: rgba(255, 152, 0, 0.2);
+            color: #FF9800;
+          }
+
+          &.poor {
+            background: rgba(244, 67, 54, 0.2);
+            color: $error-color;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Enhanced comparison table
+.comparison-table {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.08) 100%);
+  border-radius: $border-radius-medium;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 2rem;
+
+  .comparison-row {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background $transition-fast;
+
+    &:hover:not(.header) {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    &.header {
+      background: rgba(255, 255, 255, 0.1);
+      font-weight: 600;
+      color: $white;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .metric-name {
+      color: $white;
+      font-weight: 500;
+    }
+
+    .planned-value,
+    .actual-value {
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 500;
+    }
+
+    .actual-value {
+      font-weight: 600;
+      color: $white;
+    }
+
+    .variance-value {
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 12px;
+      text-align: center;
+
+      &.positive {
+        background: rgba(76, 175, 80, 0.2);
+        color: $success-color;
+      }
+
+      &.negative {
+        background: rgba(244, 67, 54, 0.2);
+        color: $error-color;
+      }
+
+      &.neutral {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.8);
+      }
+    }
+  }
+}
+
+// Enhanced performance analysis
+.performance-analysis {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.1) 100%);
+  border-radius: $border-radius-large;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  .analysis-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+
+    .analysis-item {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: $border-radius-medium;
+      padding: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+
+      .analysis-label {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.7);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+      }
+
+      .analysis-value {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 15px;
+        display: inline-block;
+
+        &.excellent {
+          background: rgba(76, 175, 80, 0.2);
+          color: $success-color;
+        }
+
+        &.good {
+          background: rgba(139, 195, 74, 0.2);
+          color: #8BC34A;
+        }
+
+        &.fair {
+          background: rgba(255, 152, 0, 0.2);
+          color: #FF9800;
+        }
+
+        &.poor {
+          background: rgba(244, 67, 54, 0.2);
+          color: $error-color;
+        }
+
+        &.positive {
+          background: rgba(76, 175, 80, 0.2);
+          color: $success-color;
+        }
+
+        &.negative {
+          background: rgba(244, 67, 54, 0.2);
+          color: $error-color;
+        }
+
+        &.neutral {
+          background: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.9);
+        }
+      }
+
+      .analysis-description {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.95rem;
+        line-height: 1.4;
+      }
+    }
+  }
+}
+
+// Enhanced heart rate section
+.heart-rate-section {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.1) 100%);
+  border-radius: $border-radius-large;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  .hr-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1.5rem;
+
+    .hr-metric {
+      text-align: center;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: $border-radius-medium;
+      padding: 1.5rem 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+
+      .hr-label {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.7);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+      }
+
+      .hr-value {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: $white;
+
+        &.excellent { color: $success-color; }
+        &.good { color: #8BC34A; }
+        &.fair { color: #FF9800; }
+        &.poor { color: $error-color; }
+      }
+    }
+  }
+}
+
+// Enhanced HR zones
+.hr-zones-section, .hr-zones-comparison {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.1) 100%);
+  border-radius: $border-radius-large;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  .zones-chart, .zones-comparison-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    .zone-bar, .zone-comparison-row {
+      display: grid;
+      grid-template-columns: 40px 1fr 80px;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: $border-radius-small;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+
+      .zone-label, .zone-name {
+        font-weight: 600;
+        color: $white;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.5rem;
+        border-radius: 6px;
+      }
+
+      .zone-bar-track {
+        height: 20px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+
+        .zone-bar-fill {
+          height: 100%;
+          border-radius: 10px;
+          transition: width $transition-normal;
+        }
+      }
+
+      .zone-time {
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 500;
+        text-align: right;
+      }
+    }
+
+    .zone-comparison-row {
+      grid-template-columns: 40px 1fr 1fr 1fr;
+
+      .zone-planned, .zone-actual {
+        color: rgba(255, 255, 255, 0.8);
+        text-align: center;
+        font-weight: 500;
+      }
+
+      .zone-actual {
+        color: $white;
+        font-weight: 600;
+      }
+
+      .zone-variance {
+        text-align: center;
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 10px;
+
+        &.positive {
+          background: rgba(76, 175, 80, 0.2);
+          color: $success-color;
+        }
+
+        &.negative {
+          background: rgba(244, 67, 54, 0.2);
+          color: $error-color;
+        }
+
+        &.neutral {
+          background: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.8);
+        }
+      }
+    }
+  }
+
+  .overall-compliance {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: $border-radius-medium;
+    text-align: center;
+    color: $white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+// Enhanced feedback section
+.feedback-section {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.1) 100%);
+  border-radius: $border-radius-large;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  .feedback-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    .feedback-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1.25rem;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: $border-radius-medium;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all $transition-normal;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateX(5px);
+      }
+
+      .feedback-icon {
+        font-size: 1.2rem;
+        flex-shrink: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+      }
+
+      .feedback-text {
+        color: rgba(255, 255, 255, 0.9);
+        line-height: 1.5;
+        font-size: 0.95rem;
+      }
+    }
+  }
+}
+
+// Enhanced workout actions
+.workout-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    font-weight: 600;
+    transition: all $transition-normal;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    &:hover::before {
+      left: 100%;
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    &.btn-primary {
+      background: linear-gradient(135deg, $primary-color, $secondary-color);
+      color: $white;
+    }
+
+    &.btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: $white;
+      }
+    }
+  }
+}
+
+// Enhanced workout description
+.workout-description, .user-notes {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: $border-radius-medium;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  h5 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: $white;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  p {
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+    margin: 0;
+    font-size: 0.95rem;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .workout-detail-panel {
+    .panel-header {
+      padding: 1.5rem 1.5rem 1rem 1.5rem;
+
+      h3 {
+        font-size: 1.2rem;
+      }
+    }
+  }
+
+  .workout-comparison-content {
+    padding: 1.5rem;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .comparison-table .comparison-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    
+    .metric-name {
+      grid-column: 1 / -1;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .hr-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .zones-chart .zone-bar,
+  .zones-comparison-chart .zone-comparison-row {
+    grid-template-columns: 30px 1fr 60px;
+    gap: 0.5rem;
+  }
+
+  .zones-comparison-chart .zone-comparison-row {
+    grid-template-columns: 30px 1fr;
+    
+    .zone-planned, .zone-actual, .zone-variance {
+      font-size: 0.85rem;
+    }
+  }
+
+  .workout-actions {
+    .btn {
+      flex: 1;
+      min-width: 120px;
+    }
+  }
+}
