@@ -443,11 +443,13 @@ export class TrainingHub {
     try {
       UIHelpers.showStatus('Processing FIT file...', 'info');
       
+      // Parse and analyze the file
       const result = await FileService.handleFileWithAnalysis(file);
       
       if (result.activityMetrics) {
+        // Save to Firebase using DashboardService and handle workout matching
         await this.processNewActivity(result.activityMetrics, result.lapMetrics);
-        UIHelpers.showStatus('Activity processed successfully!', 'success');
+        UIHelpers.showStatus('Activity processed and saved successfully!', 'success');
       }
       
     } catch (error) {
@@ -492,6 +494,8 @@ export class TrainingHub {
 
       for (const file of files) {
         try {
+          UIHelpers.showStatus(`Processing ${file.name} (${processed + 1}/${files.length})...`, 'info');
+          
           const result = await FileService.handleFileWithAnalysis(file);
           if (result.activityMetrics) {
             await this.processNewActivity(result.activityMetrics, result.lapMetrics);
@@ -509,7 +513,19 @@ export class TrainingHub {
       
       UIHelpers.showStatus(message, errors > 0 ? 'warning' : 'success');
       
+      // Clear the file list after processing
+      (this as any).bulkFiles = [];
+      const selectedFilesEl = document.getElementById('selectedFiles');
+      if (selectedFilesEl) {
+        selectedFilesEl.innerHTML = '';
+      }
+      const bulkActionsEl = document.getElementById('bulkActions');
+      if (bulkActionsEl) {
+        bulkActionsEl.style.display = 'none';
+      }
+      
     } catch (error) {
+      console.error('Bulk processing failed:', error);
       this.addError('Bulk processing failed');
     }
   }
@@ -559,6 +575,16 @@ export class TrainingHub {
       this.setState({
         trackedWorkouts: [...this.state.trackedWorkouts, trackedWorkout]
       });
+    }
+
+    // Save activity and laps to Firebase
+    try {
+      await this.dashboardService.addActivity(activity);
+      if (laps && laps.length > 0) {
+        await this.dashboardService.addLapData(laps);
+      }
+    } catch (error) {
+      console.warn('Failed to save to Firebase, data will be kept locally:', error);
     }
 
     // Save and refresh UI
