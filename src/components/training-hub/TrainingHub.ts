@@ -11,7 +11,7 @@ import { PlanGenerator } from '../../services/PlanGenerator';
 import { FileService } from '../../services/FileService';
 import { DashboardService, DashboardData } from '../../services/DashboardService';
 import { UIHelpers } from '../../utils/ui-helpers';
-import { WorkoutCalendar } from './WorkoutCalendar';
+import { EnhancedWorkoutCalendar } from './WorkoutCalendar-Enhanced';
 import { WorkoutComparison } from './WorkoutComparison';
 import { AuthManager } from '../auth/AuthManager';
 import { Router } from '../../services/Router';
@@ -20,7 +20,7 @@ import { User } from 'firebase/auth';
 
 export class TrainingHub {
   private state: TrainingHubState;
-  private workoutCalendar: WorkoutCalendar;
+  private workoutCalendar: EnhancedWorkoutCalendar;
   private workoutComparison: WorkoutComparison;
   private authManager!: AuthManager; // Initialized in constructor
   private router!: Router; // Initialized after authentication
@@ -43,7 +43,7 @@ export class TrainingHub {
     this.authManager = new AuthManager(authContainer, this.onAuthStateChanged.bind(this));
     
     // Initialize other components (they will be shown after authentication)
-    this.workoutCalendar = new WorkoutCalendar(this.onWorkoutSelected.bind(this));
+    this.workoutCalendar = new EnhancedWorkoutCalendar(this.onWorkoutSelected.bind(this));
     this.workoutComparison = new WorkoutComparison();
   }
 
