@@ -70,6 +70,9 @@ export class TrainingHub {
       this.initializeEventListeners();
       this.loadInitialData();
     } else {
+      // Disable real-time sync when user logs out
+      this.dashboardService.disableRealtimeSync();
+      
       // Show auth container and hide main app
       const authContainer = document.getElementById('auth-container');
       const mainContent = document.getElementById('main-content');
@@ -176,6 +179,25 @@ export class TrainingHub {
       
       // Load analytics data
       this.updateAnalytics();
+      
+      // Enable real-time synchronization
+      const realtimeEnabled = this.dashboardService.enableRealtimeSync({
+        onDataChange: (newData) => {
+          this.handleRealtimeDataUpdate(newData);
+        },
+        onError: (error) => {
+          console.error('Real-time sync error:', error);
+          this.addError('Real-time sync error: ' + error.message);
+        }
+      });
+
+      if (realtimeEnabled) {
+        console.log('✅ Real-time synchronization enabled');
+        this.updateSyncButtonStatus(true);
+      } else {
+        console.warn('⚠️ Real-time synchronization could not be enabled');
+        this.updateSyncButtonStatus(false);
+      }
       
       console.log(`Loaded ${dashboardData.activities.length} activities from Firebase`);
       
@@ -932,6 +954,91 @@ export class TrainingHub {
     } catch (error) {
       console.error('Sync error:', error);
       this.addError('Failed to sync data');
+    }
+  }
+
+  /**
+   * Handle real-time data updates from Firebase
+   */
+  private async handleRealtimeDataUpdate(dashboardData: DashboardData): Promise<void> {
+    try {
+      console.log(`🔄 Real-time update: ${dashboardData.activities.length} activities`);
+      
+      // Convert Firebase activities to TrackedWorkouts (same logic as syncData)
+      const firebaseWorkouts = dashboardData.activities.map(activity => {
+        const trackedWorkout: TrackedWorkout = {
+          date: activity.date,
+          workoutType: activity.sport,
+          description: `${activity.sport} - ${activity.distance.toFixed(2)}km in ${activity.duration} min`,
+          expectedFatigue: Math.round(activity.trainingLoad / 5),
+          durationMin: activity.duration,
+          completed: true,
+          status: 'completed',
+          actualWorkout: activity,
+          actualFatigue: Math.round(activity.trainingLoad / 5),
+          completedAt: activity.date,
+          comparison: undefined
+        };
+        return trackedWorkout;
+      });
+      
+      // Merge with existing planned workouts and avoid duplicates
+      const existingPlanned = this.state.trackedWorkouts.filter(w => w.status === 'planned');
+      const existingCompleted = this.state.trackedWorkouts.filter(w => w.status === 'completed');
+      
+      const newFirebaseWorkouts = firebaseWorkouts.filter(fw => 
+        !existingCompleted.some(existing => 
+          existing.date === fw.date && 
+          existing.workoutType === fw.workoutType &&
+          existing.actualWorkout?.activityId === fw.actualWorkout?.activityId
+        )
+      );
+      
+      const updatedWorkouts = [...existingPlanned, ...existingCompleted, ...newFirebaseWorkouts];
+      
+      // Update state
+      this.setState({
+        trackedWorkouts: updatedWorkouts
+      });
+      
+      // Update header metrics with fresh data
+      this.updateHeaderMetricsFromDashboard(dashboardData);
+      
+      // Update analytics
+      this.updateAnalytics();
+      
+      // Refresh calendar
+      await this.workoutCalendar.updateWorkouts(updatedWorkouts);
+      
+      // Show subtle notification for real-time updates
+      if (newFirebaseWorkouts.length > 0) {
+        UIHelpers.showStatus(
+          `🔄 ${newFirebaseWorkouts.length} new activities synced`, 
+          'info'
+        );
+      }
+      
+    } catch (error) {
+      console.error('Error handling real-time update:', error);
+      this.addError('Real-time update failed');
+    }
+  }
+
+  /**
+   * Update sync button to show real-time status
+   */
+  private updateSyncButtonStatus(isRealtimeEnabled: boolean): void {
+    const syncButton = document.getElementById('sync-data-btn');
+    if (syncButton) {
+      if (isRealtimeEnabled) {
+        syncButton.innerHTML = '🔄 Live Sync';
+        syncButton.style.color = '#4CAF50'; // Green to indicate active
+        syncButton.title = 'Real-time synchronization active - click to refresh manually';
+      } else {
+        syncButton.innerHTML = '🔄 Sync Data';
+        syncButton.style.color = '#666'; // Gray to indicate inactive
+        syncButton.title = 'Click to sync data manually';
+      }
     }
   }
 

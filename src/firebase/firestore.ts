@@ -11,9 +11,7 @@ import {
   where,
   orderBy,
   onSnapshot,
-  writeBatch,
-  QuerySnapshot,
-  DocumentData
+  writeBatch
 } from 'firebase/firestore';
 import { db } from './config';
 import { AuthService } from './auth';
@@ -328,75 +326,6 @@ export class FirestoreService {
   }
 
   /**
-   * REAL-TIME LISTENERS
-   */
-  static subscribeToActivities(
-    callback: (activities: FirebaseActivity[]) => void,
-    startDate?: Date,
-    endDate?: Date
-  ): () => void {
-    try {
-      const userId = this.getUserId();
-      let q = query(
-        collection(db, 'users', userId, 'activities'),
-        orderBy('date', 'desc')
-      );
-
-      if (startDate) {
-        q = query(q, where('date', '>=', startDate.toISOString().split('T')[0]));
-      }
-      if (endDate) {
-        q = query(q, where('date', '<=', endDate.toISOString().split('T')[0]));
-      }
-
-      return onSnapshot(q, (querySnapshot: QuerySnapshot<DocumentData>) => {
-        const activities = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          uploadedAt: doc.data().uploadedAt?.toDate()
-        })) as FirebaseActivity[];
-        callback(activities);
-      });
-    } catch (error) {
-      console.error('Error subscribing to activities:', error);
-      return () => {}; // Return empty unsubscribe function
-    }
-  }
-
-  static subscribeToTrackedWorkouts(
-    callback: (workouts: FirebaseTrackedWorkout[]) => void,
-    startDate?: Date,
-    endDate?: Date
-  ): () => void {
-    try {
-      const userId = this.getUserId();
-      let q = query(
-        collection(db, 'users', userId, 'trackedWorkouts'),
-        orderBy('date', 'asc')
-      );
-
-      if (startDate) {
-        q = query(q, where('date', '>=', startDate.toISOString().split('T')[0]));
-      }
-      if (endDate) {
-        q = query(q, where('date', '<=', endDate.toISOString().split('T')[0]));
-      }
-
-      return onSnapshot(q, (querySnapshot: QuerySnapshot<DocumentData>) => {
-        const workouts = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          lastUpdated: doc.data().lastUpdated?.toDate()
-        })) as FirebaseTrackedWorkout[];
-        callback(workouts);
-      });
-    } catch (error) {
-      console.error('Error subscribing to tracked workouts:', error);
-      return () => {}; // Return empty unsubscribe function
-    }
-  }
-
-  /**
    * BATCH OPERATIONS
    */
   static async batchUpdateActivities(updates: Array<{ id: string; data: Partial<FirebaseActivity> }>): Promise<void> {
@@ -427,6 +356,250 @@ export class FirestoreService {
     } catch (error) {
       console.error('Error updating user stats:', error);
       throw error;
+    }
+  }
+
+  /**
+   * REAL-TIME SYNCHRONIZATION METHODS
+   */
+
+  /**
+   * Listen to real-time changes in activities
+   */
+  static subscribeToActivities(
+    callback: (activities: FirebaseActivity[]) => void,
+    onError?: (error: Error) => void,
+    dateRange?: { startDate?: Date; endDate?: Date }
+  ): () => void {
+    try {
+      const userId = this.getUserId();
+      const activitiesRef = collection(db, 'users', userId, 'activities');
+      
+      let q = query(activitiesRef, orderBy('date', 'desc'));
+      
+      // Add date range filtering if provided
+      if (dateRange?.startDate) {
+        q = query(q, where('date', '>=', dateRange.startDate.toISOString().split('T')[0]));
+      }
+      if (dateRange?.endDate) {
+        q = query(q, where('date', '<=', dateRange.endDate.toISOString().split('T')[0]));
+      }
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const activities: FirebaseActivity[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          activities.push({
+            id: doc.id,
+            ...data,
+            uploadedAt: data.uploadedAt.toDate()
+          } as FirebaseActivity);
+        });
+        callback(activities);
+      }, (error) => {
+        console.error('Error in activities subscription:', error);
+        onError?.(error);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error setting up activities subscription:', error);
+      onError?.(error as Error);
+      return () => {}; // Return no-op unsubscribe function
+    }
+  }
+
+  /**
+   * Listen to real-time changes in training plans
+   */
+  static subscribeToTrainingPlans(
+    callback: (plans: FirebaseTrainingPlan[]) => void,
+    onError?: (error: Error) => void,
+    dateRange?: { startDate?: Date; endDate?: Date }
+  ): () => void {
+    try {
+      const userId = this.getUserId();
+      const plansRef = collection(db, 'users', userId, 'trainingPlans');
+      
+      let q = query(plansRef, orderBy('date', 'asc'));
+      
+      // Add date range filtering if provided
+      if (dateRange?.startDate) {
+        q = query(q, where('date', '>=', dateRange.startDate.toISOString().split('T')[0]));
+      }
+      if (dateRange?.endDate) {
+        q = query(q, where('date', '<=', dateRange.endDate.toISOString().split('T')[0]));
+      }
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const plans: FirebaseTrainingPlan[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          plans.push({
+            id: doc.id,
+            ...data,
+            generatedAt: data.generatedAt.toDate()
+          } as FirebaseTrainingPlan);
+        });
+        callback(plans);
+      }, (error) => {
+        console.error('Error in training plans subscription:', error);
+        onError?.(error);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error setting up training plans subscription:', error);
+      onError?.(error as Error);
+      return () => {}; // Return no-op unsubscribe function
+    }
+  }
+
+  /**
+   * Listen to real-time changes in tracked workouts
+   */
+  static subscribeToTrackedWorkouts(
+    callback: (workouts: FirebaseTrackedWorkout[]) => void,
+    onError?: (error: Error) => void,
+    dateRange?: { startDate?: Date; endDate?: Date }
+  ): () => void {
+    try {
+      const userId = this.getUserId();
+      const workoutsRef = collection(db, 'users', userId, 'trackedWorkouts');
+      
+      let q = query(workoutsRef, orderBy('date', 'asc'));
+      
+      // Add date range filtering if provided
+      if (dateRange?.startDate) {
+        q = query(q, where('date', '>=', dateRange.startDate.toISOString().split('T')[0]));
+      }
+      if (dateRange?.endDate) {
+        q = query(q, where('date', '<=', dateRange.endDate.toISOString().split('T')[0]));
+      }
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const workouts: FirebaseTrackedWorkout[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          workouts.push({
+            id: doc.id,
+            ...data,
+            lastUpdated: data.lastUpdated.toDate()
+          } as FirebaseTrackedWorkout);
+        });
+        callback(workouts);
+      }, (error) => {
+        console.error('Error in tracked workouts subscription:', error);
+        onError?.(error);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error setting up tracked workouts subscription:', error);
+      onError?.(error as Error);
+      return () => {}; // Return no-op unsubscribe function
+    }
+  }
+
+  /**
+   * Listen to real-time changes in user profile  
+   */
+  static subscribeToUserProfile(
+    callback: (profile: any) => void,
+    onError?: (error: Error) => void
+  ): () => void {
+    try {
+      const userId = this.getUserId();
+      const profileRef = doc(db, 'users', userId, 'profile', 'data');
+
+      const unsubscribe = onSnapshot(profileRef, (doc) => {
+        if (doc.exists()) {
+          const data = doc.data();
+          const profile = {
+            ...data,
+            createdAt: data.createdAt.toDate()
+          };
+          callback(profile);
+        } else {
+          callback(null);
+        }
+      }, (error) => {
+        console.error('Error in user profile subscription:', error);
+        onError?.(error);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error setting up user profile subscription:', error);
+      onError?.(error as Error);
+      return () => {}; // Return no-op unsubscribe function
+    }
+  }
+
+  /**
+   * Subscribe to multiple data types at once for comprehensive real-time sync
+   */
+  static subscribeToAllUserData(
+    callbacks: {
+      onActivitiesChange?: (activities: FirebaseActivity[]) => void;
+      onTrainingPlansChange?: (plans: FirebaseTrainingPlan[]) => void;
+      onTrackedWorkoutsChange?: (workouts: FirebaseTrackedWorkout[]) => void;
+      onProfileChange?: (profile: any) => void;
+    },
+    onError?: (error: Error) => void,
+    dateRange?: { startDate?: Date; endDate?: Date }
+  ): () => void {
+    const unsubscribers: (() => void)[] = [];
+
+    try {
+      // Subscribe to activities
+      if (callbacks.onActivitiesChange) {
+        const unsubActivities = this.subscribeToActivities(
+          callbacks.onActivitiesChange,
+          onError,
+          dateRange
+        );
+        unsubscribers.push(unsubActivities);
+      }
+
+      // Subscribe to training plans
+      if (callbacks.onTrainingPlansChange) {
+        const unsubPlans = this.subscribeToTrainingPlans(
+          callbacks.onTrainingPlansChange,
+          onError,
+          dateRange
+        );
+        unsubscribers.push(unsubPlans);
+      }
+
+      // Subscribe to tracked workouts
+      if (callbacks.onTrackedWorkoutsChange) {
+        const unsubWorkouts = this.subscribeToTrackedWorkouts(
+          callbacks.onTrackedWorkoutsChange,
+          onError,
+          dateRange
+        );
+        unsubscribers.push(unsubWorkouts);
+      }
+
+      // Subscribe to user profile
+      if (callbacks.onProfileChange) {
+        const unsubProfile = this.subscribeToUserProfile(
+          callbacks.onProfileChange,
+          onError
+        );
+        unsubscribers.push(unsubProfile);
+      }
+
+      // Return combined unsubscribe function
+      return () => {
+        unsubscribers.forEach(unsub => unsub());
+      };
+
+    } catch (error) {
+      console.error('Error setting up comprehensive data subscription:', error);
+      onError?.(error as Error);
+      return () => {}; // Return no-op unsubscribe function
     }
   }
 }

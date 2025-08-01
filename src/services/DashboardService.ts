@@ -16,6 +16,13 @@ export class DashboardService {
   private cacheExpiry: Date | null = null;
   private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
   private userProfileService: UserProfileService;
+  
+  // Real-time synchronization
+  private realtimeUnsubscribe: (() => void) | null = null;
+  private realtimeCallbacks: {
+    onDataChange?: (data: DashboardData) => void;
+    onError?: (error: Error) => void;
+  } = {};
 
   constructor() {
     this.userProfileService = UserProfileService.getInstance();
@@ -597,5 +604,138 @@ export class DashboardService {
     }
     
     return cleaned;
+  }
+
+  /**
+   * REAL-TIME SYNCHRONIZATION METHODS
+   */
+
+  /**
+   * Start real-time synchronization of dashboard data
+   */
+  enableRealtimeSync(callbacks?: {
+    onDataChange?: (data: DashboardData) => void;
+    onError?: (error: Error) => void;
+  }): boolean {
+    try {
+      // Check if user is authenticated
+      if (!this.userProfileService.isAuthenticated()) {
+        console.warn('Cannot enable real-time sync: User not authenticated');
+        return false;
+      }
+
+      // Stop existing subscription if any
+      this.disableRealtimeSync();
+
+      // Store callbacks
+      this.realtimeCallbacks = callbacks || {};
+
+      // Subscribe to activities with real-time updates
+      this.realtimeUnsubscribe = FirestoreService.subscribeToActivities(
+        (activities) => {
+          this.handleRealtimeActivitiesUpdate(activities);
+        },
+        (error) => {
+          console.error('Real-time activities sync error:', error);
+          this.realtimeCallbacks.onError?.(error);
+        }
+      );
+
+      console.log('Real-time synchronization enabled');
+      return true;
+
+    } catch (error) {
+      console.error('Failed to enable real-time sync:', error);
+      this.realtimeCallbacks.onError?.(error as Error);
+      return false;
+    }
+  }
+
+  /**
+   * Stop real-time synchronization
+   */
+  disableRealtimeSync(): void {
+    if (this.realtimeUnsubscribe) {
+      this.realtimeUnsubscribe();
+      this.realtimeUnsubscribe = null;
+      console.log('Real-time synchronization disabled');
+    }
+  }
+
+  /**
+   * Check if real-time sync is currently active
+   */
+  isRealtimeSyncEnabled(): boolean {
+    return this.realtimeUnsubscribe !== null;
+  }
+
+  /**
+   * Handle real-time activities updates
+   */
+  private async handleRealtimeActivitiesUpdate(firebaseActivities: FirebaseActivity[]): Promise<void> {
+    try {
+      // Convert Firebase activities to ActivityMetrics format
+      const activities = firebaseActivities.map(this.convertFirebaseActivityToMetrics);
+
+      // Get lap data for activities (this could be optimized with real-time lap subscriptions)
+      const allLapData: FirebaseLapData[] = [];
+      const activityMap = new Map<string, string>(); // activity ID -> date mapping
+
+      for (const activity of firebaseActivities) {
+        activityMap.set(activity.id, activity.date);
+        try {
+          const activityLaps = await FirestoreService.getLapDataForActivity(activity.id);
+          allLapData.push(...activityLaps);
+        } catch (error) {
+          console.warn(`Failed to load laps for activity ${activity.id}:`, error);
+        }
+      }
+
+      // Convert Firebase lap data to LapMetrics format
+      const laps = allLapData.map(lap => 
+        this.convertFirebaseLapToMetrics(lap, activityMap.get(lap.activityId))
+      );
+
+      // Calculate metrics
+      const metrics = MetricsCalculator.calculateDashboardMetrics(activities);
+
+      // Create updated dashboard data
+      const dashboardData: DashboardData = {
+        metrics,
+        activities,
+        laps,
+        lastUpdated: new Date()
+      };
+
+      // Update cache
+      this.cachedData = dashboardData;
+      this.cacheExpiry = new Date(Date.now() + this.CACHE_DURATION_MS);
+
+      // Notify callback
+      this.realtimeCallbacks.onDataChange?.(dashboardData);
+
+    } catch (error) {
+      console.error('Error handling real-time activities update:', error);
+      this.realtimeCallbacks.onError?.(error as Error);
+    }
+  }
+
+  /**
+   * Get current sync status for debugging
+   */
+  getSyncStatus(): {
+    isEnabled: boolean;
+    hasCallbacks: boolean;
+    cacheStatus: {
+      hasCachedData: boolean;
+      cacheExpiry: Date | null;
+      isValid: boolean;
+    };
+  } {
+    return {
+      isEnabled: this.isRealtimeSyncEnabled(),
+      hasCallbacks: Object.keys(this.realtimeCallbacks).length > 0,
+      cacheStatus: this.getCacheStatus()
+    };
   }
 }
