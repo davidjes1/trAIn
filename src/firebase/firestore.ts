@@ -265,8 +265,14 @@ export class FirestoreService {
   static async addRecoveryMetrics(metrics: Omit<FirebaseRecoveryMetrics, 'userId' | 'recordedAt'>): Promise<void> {
     try {
       const userId = this.getUserId();
-      const metricsData: FirebaseRecoveryMetrics = {
-        ...metrics,
+      
+      // Filter out undefined values to avoid Firestore errors
+      const cleanMetrics = Object.fromEntries(
+        Object.entries(metrics).filter(([_, value]) => value !== undefined)
+      );
+      
+      const metricsData: any = {
+        ...cleanMetrics,
         userId,
         recordedAt: new Date()
       };

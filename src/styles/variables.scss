@@ -35,6 +35,12 @@ $glass-opacity-05: rgba(255, 255, 255, 0.05);
 $glass-opacity-5: rgba(255, 255, 255, 0.5);
 $glass-opacity-8: rgba(255, 255, 255, 0.8);
 
+// High-readability backgrounds for modals and important content
+$readable-bg: rgba(255, 255, 255, 0.92);
+$readable-bg-dark: rgba(248, 250, 252, 0.95);
+$modal-bg: rgba(255, 255, 255, 0.88);
+$modal-overlay: rgba(0, 0, 0, 0.75);
+
 $black-opacity-1: rgba(0, 0, 0, 0.1);
 $black-opacity-2: rgba(0, 0, 0, 0.2);
 $black-opacity-3: rgba(0, 0, 0, 0.3);

@@ -8,9 +8,9 @@
   top: 0;
   width: 500px;
   height: 100vh;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.12) 100%);
+  background: linear-gradient(145deg, $readable-bg 0%, $readable-bg-dark 100%);
   backdrop-filter: blur(20px);
-  border-left: 2px solid rgba(255, 255, 255, 0.15);
+  border-left: 2px solid rgba(255, 255, 255, 0.3);
   transition: right $transition-normal;
   z-index: 1000;
   overflow-y: auto;

@@ -6,12 +6,13 @@
 }
 
 .recovery-metrics-tracker {
-  background: $glass-bg;
+  background: $readable-bg;
   backdrop-filter: $glass-blur;
   border: $glass-border;
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
   margin-bottom: $spacing-lg;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 
   .recovery-header {
     display: flex;
@@ -68,14 +69,16 @@
     }
 
     .metric-group {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.15);
       border-radius: $border-radius-md;
       padding: $spacing-md;
       transition: all 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.2);
 
       &:hover {
-        background: rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.25);
         transform: translateY(-2px);
+        border-color: rgba(255, 255, 255, 0.3);
       }
 
       label {
@@ -92,17 +95,18 @@
         input[type="number"] {
           width: 100%;
           padding: $spacing-sm;
-          border: 2px solid rgba(255, 255, 255, 0.1);
+          border: 2px solid rgba(255, 255, 255, 0.3);
           border-radius: $border-radius-md;
-          background: rgba(255, 255, 255, 0.1);
-          color: $text-primary;
+          background: rgba(255, 255, 255, 0.4);
+          color: #1a202c;
           font-size: 1rem;
+          font-weight: 500;
           transition: all 0.3s ease;
 
           &:focus {
             outline: none;
             border-color: $accent-color;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.6);
           }
 
           &::placeholder {
@@ -190,11 +194,12 @@
       textarea {
         width: 100%;
         padding: $spacing-md;
-        border: 2px solid rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.3);
         border-radius: $border-radius-md;
-        background: rgba(255, 255, 255, 0.05);
-        color: $text-primary;
+        background: rgba(255, 255, 255, 0.4);
+        color: #1a202c;
         font-size: 0.9rem;
+        font-weight: 500;
         resize: vertical;
         min-height: 80px;
         transition: all 0.3s ease;
@@ -202,7 +207,7 @@
         &:focus {
           outline: none;
           border-color: $accent-color;
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.6);
         }
 
         &::placeholder {

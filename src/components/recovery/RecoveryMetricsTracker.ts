@@ -311,16 +311,19 @@ export class RecoveryMetricsTracker {
         return;
       }
 
-      const metricsData: Omit<FirebaseRecoveryMetrics, 'userId' | 'recordedAt'> = {
+      // Create metrics data object, filtering out undefined values for Firestore
+      const metricsData: any = {
         date: this.currentDate,
-        sleepScore: formData.sleepScore,
-        bodyBattery: formData.bodyBattery,
-        hrv: formData.hrv,
-        restingHR: formData.restingHR,
         subjectiveFatigue: formData.subjectiveFatigue || 5, // Default to 5 if not provided
-        stressLevel: formData.stressLevel,
-        notes: formData.notes
       };
+
+      // Only add fields that have values (Firestore doesn't allow undefined)
+      if (formData.sleepScore !== undefined) metricsData.sleepScore = formData.sleepScore;
+      if (formData.bodyBattery !== undefined) metricsData.bodyBattery = formData.bodyBattery;
+      if (formData.hrv !== undefined) metricsData.hrv = formData.hrv;
+      if (formData.restingHR !== undefined) metricsData.restingHR = formData.restingHR;
+      if (formData.stressLevel !== undefined) metricsData.stressLevel = formData.stressLevel;
+      if (formData.notes && formData.notes.trim()) metricsData.notes = formData.notes.trim();
 
       await FirestoreService.addRecoveryMetrics(metricsData);
       
