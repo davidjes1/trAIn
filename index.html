@@ -4,26 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Training Hub - Plan, Track, Analyze</title>
+    <!-- Inter font for accessibility and modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Authentication Container -->
     <div id="auth-container" style="display: block;"></div>
     
+    <!-- Skip Links for Accessibility -->
+    <div class="skip-links">
+        <a href="#main-content" class="skip-link">Skip to main content</a>
+        <a href="#nav-menu" class="skip-link">Skip to navigation</a>
+    </div>
+
     <!-- Main Application Container -->
-    <div id="main-content" class="container" style="display: none;">
-        <!-- Navigation Header -->
-        <div class="nav-header">
-            <div class="nav-brand">
-                <h1>🏃‍♂️ trAIn</h1>
-            </div>
-            <nav class="nav-menu">
-                <button class="nav-btn active" data-view="dashboard">Dashboard</button>
-                <button class="nav-btn" data-view="profile">Profile</button>
-            </nav>
-            <div class="nav-user" id="nav-user">
-                <!-- User info will be populated here -->
-            </div>
-        </div>
+    <div class="app-container">
+        <div id="main-content" class="main-container" style="display: none;">
+            <!-- Application Header -->
+            <header class="app-header">
+                <div class="nav-header">
+                    <div class="nav-brand">
+                        <h1>🏃‍♂️ trAIn</h1>
+                    </div>
+                    <nav class="nav-menu" id="nav-menu" role="navigation" aria-label="Main navigation">
+                        <button class="nav-btn active" data-view="dashboard" aria-current="page">Dashboard</button>
+                        <button class="nav-btn" data-view="profile">Profile</button>
+                    </nav>
+                    <div class="nav-user" id="nav-user">
+                        <!-- User info will be populated here -->
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="app-main" id="main-content-area" role="main">
 
         <!-- Dashboard View -->
         <div id="dashboard-view" class="view-container active">
@@ -33,100 +49,130 @@
                 <h1>🏃‍♂️ Training Hub</h1>
                 <p class="hub-subtitle">Plan, track, and analyze your training</p>
             </div>
-            <div class="hub-metrics">
-                <div class="metric-item" id="readiness-metric">
-                    <div class="metric-value">--</div>
-                    <div class="metric-label">Readiness</div>
+            <div class="hub-metrics" role="region" aria-label="Key training metrics">
+                <div class="metric-item" id="readiness-metric" role="img" aria-label="Readiness score">
+                    <div class="metric-value" aria-describedby="readiness-label">--</div>
+                    <div class="metric-label" id="readiness-label">Readiness</div>
                 </div>
-                <div class="metric-item" id="weekly-load-metric">
-                    <div class="metric-value">--</div>
-                    <div class="metric-label">Weekly Load</div>
+                <div class="metric-item" id="weekly-load-metric" role="img" aria-label="Weekly training load">
+                    <div class="metric-value" aria-describedby="weekly-load-label">--</div>
+                    <div class="metric-label" id="weekly-load-label">Weekly Load</div>
                 </div>
-                <div class="metric-item" id="streak-metric">
-                    <div class="metric-value">--</div>
-                    <div class="metric-label">Streak</div>
+                <div class="metric-item" id="streak-metric" role="img" aria-label="Training streak">
+                    <div class="metric-value" aria-describedby="streak-label">--</div>
+                    <div class="metric-label" id="streak-label">Streak</div>
                 </div>
             </div>
             <div class="hub-controls">
-                <button class="btn btn-secondary" id="import-data-btn" type="button">📁 Import Data</button>
-                <button class="btn btn-primary" id="sync-data-btn" type="button">🔄 Sync</button>
+                <button class="btn btn-secondary" id="import-data-btn" type="button" aria-describedby="import-help">
+                    <span aria-hidden="true">📁</span> Import Data
+                </button>
+                <div class="visually-hidden" id="import-help">Import training data from FIT files</div>
+                <button class="btn btn-primary" id="sync-data-btn" type="button" aria-describedby="sync-help">
+                    <span aria-hidden="true">🔄</span> Sync
+                </button>
+                <div class="visually-hidden" id="sync-help">Synchronize training data</div>
             </div>
         </div>
         
         <!-- Main Training Hub Content -->
         <div class="training-hub-main">
             <!-- Recovery Metrics Section -->
-            <div class="recovery-metrics-section">
-                <div id="recovery-metrics-container">
+            <section class="recovery-metrics-section" aria-labelledby="recovery-heading">
+                <div class="section-header">
+                    <h2 id="recovery-heading">Recovery Metrics</h2>
+                </div>
+                <div id="recovery-metrics-container" role="region" aria-live="polite" aria-busy="true">
                     <!-- Recovery metrics tracker will be populated by JavaScript -->
-                    <div class="recovery-loading">
+                    <div class="card recovery-loading">
                         <p>Loading recovery metrics...</p>
+                        <div class="visually-hidden">Please wait while recovery metrics are being loaded</div>
                     </div>
                 </div>
-            </div>
+            </section>
 
             <!-- AI Insights Section -->
-            <div class="ai-insights-section">
+            <section class="ai-insights-section" aria-labelledby="ai-insights-heading">
                 <div class="section-header">
-                    <h2>🤖 AI Training Insights</h2>
-                    <div class="ai-controls">
-                        <button class="btn btn-ghost" id="refresh-ai-btn" title="Refresh AI Insights">🔄</button>
-                        <button class="btn btn-ghost" id="toggle-ai-btn" title="Toggle AI Features">⚙️</button>
+                    <h2 id="ai-insights-heading"><span aria-hidden="true">🤖</span> AI Training Insights</h2>
+                    <div class="section-actions ai-controls">
+                        <button class="btn btn-ghost" id="refresh-ai-btn" aria-label="Refresh AI insights">
+                            <span aria-hidden="true">🔄</span>
+                        </button>
+                        <button class="btn btn-ghost" id="toggle-ai-btn" aria-label="Toggle AI features settings">
+                            <span aria-hidden="true">⚙️</span>
+                        </button>
                     </div>
                 </div>
                 
-                <div class="ai-insights-content" id="ai-insights-content">
-                    <div class="ai-loading">
+                <div class="ai-insights-content" id="ai-insights-content" role="region" aria-live="polite" aria-busy="true">
+                    <div class="card ai-loading">
                         <p>Loading AI insights...</p>
+                        <div class="visually-hidden">Please wait while AI insights are being generated</div>
                     </div>
                 </div>
-            </div>
+            </section>
 
             <!-- Training Calendar Section -->
-            <div class="training-calendar-section">
+            <section class="training-calendar-section" aria-labelledby="calendar-heading">
                 <div class="section-header">
-                    <h2>Training Calendar</h2>
-                    <div class="calendar-controls">
-                        <button class="btn btn-ghost" id="prev-week-btn">‹</button>
-                        <span class="current-period" id="current-period">This Week</span>
-                        <button class="btn btn-ghost" id="next-week-btn">›</button>
-                        <button class="btn btn-secondary" id="generate-plan-btn">🎯 Generate Plan</button>
+                    <h2 id="calendar-heading">Training Calendar</h2>
+                    <div class="section-actions calendar-controls" role="toolbar" aria-label="Calendar navigation">
+                        <button class="btn btn-ghost" id="prev-week-btn" aria-label="Previous week">
+                            <span aria-hidden="true">‹</span>
+                        </button>
+                        <span class="current-period" id="current-period" aria-live="polite">This Week</span>
+                        <button class="btn btn-ghost" id="next-week-btn" aria-label="Next week">
+                            <span aria-hidden="true">›</span>
+                        </button>
+                        <button class="btn btn-secondary" id="generate-plan-btn" aria-describedby="plan-help">
+                            <span aria-hidden="true">🎯</span> Generate Plan
+                        </button>
+                        <div class="visually-hidden" id="plan-help">Generate a new training plan based on your goals</div>
                     </div>
                 </div>
                 
-                <div class="workout-calendar" id="workout-calendar">
-                    <!-- Calendar will be populated by JavaScript -->
-                    <div class="calendar-loading">
-                        <p>Loading training calendar...</p>
+                <div class="calendar-container">
+                    <div class="workout-calendar" id="workout-calendar" role="grid" aria-label="Weekly training calendar" aria-busy="true">
+                        <!-- Calendar will be populated by JavaScript -->
+                        <div class="card calendar-loading">
+                            <p>Loading training calendar...</p>
+                            <div class="visually-hidden">Please wait while the training calendar loads</div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
             <!-- Workout Detail Panel -->
-            <div class="workout-detail-panel" id="workout-detail-panel" style="display: none;">
-                <div class="panel-header">
+            <aside class="card workout-detail-panel" id="workout-detail-panel" style="display: none;" role="dialog" aria-labelledby="workout-detail-title" aria-modal="false">
+                <header class="panel-header">
                     <h3 id="workout-detail-title">Workout Details</h3>
-                    <button class="btn btn-ghost close-panel-btn" id="close-detail-panel">×</button>
-                </div>
-                <div class="panel-content" id="workout-detail-content">
+                    <button class="btn btn-ghost close-panel-btn" id="close-detail-panel" aria-label="Close workout details panel">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </header>
+                <div class="panel-content" id="workout-detail-content" role="region" aria-live="polite">
                     <!-- Workout comparison content will be populated by JavaScript -->
+                    <div class="visually-hidden">Workout details will appear here when you select a workout from the calendar</div>
                 </div>
-            </div>
+            </aside>
 
             <!-- Analytics Dashboard -->
-            <div class="analytics-section">
+            <section class="analytics-section" aria-labelledby="analytics-heading">
                 <div class="section-header">
-                    <h2>Training Analytics</h2>
-                    <div class="analytics-controls">
-                        <select id="analytics-timeframe" class="form-control">
+                    <h2 id="analytics-heading">Training Analytics</h2>
+                    <div class="section-actions analytics-controls">
+                        <label for="analytics-timeframe" class="visually-hidden">Select time period for analytics</label>
+                        <select id="analytics-timeframe" class="input" aria-describedby="timeframe-help">
                             <option value="week">This Week</option>
                             <option value="month">This Month</option>
                             <option value="quarter">Last 3 Months</option>
                         </select>
+                        <div class="visually-hidden" id="timeframe-help">Choose the time period for viewing training analytics</div>
                     </div>
                 </div>
                 
-                <div class="analytics-grid">
+                <div class="analytics-grid grid-auto-fit">
                     <!-- Adherence Overview -->
                     <div class="analytics-card">
                         <h3>Plan Adherence</h3>
@@ -171,25 +217,26 @@
                     </div>
 
                     <!-- Performance Trends -->
-                    <div class="analytics-card">
-                        <h3>Performance Trends</h3>
+                    <div class="card analytics-card" role="region" aria-labelledby="performance-title" aria-describedby="performance-description">
+                        <h3 id="performance-title">Performance Trends</h3>
                         <div class="performance-metrics" id="performance-metrics">
                             <div class="performance-item">
                                 <span class="metric-label">Avg Duration Variance</span>
-                                <span class="metric-value" id="avg-duration-variance">--</span>
+                                <span class="metric-value" id="avg-duration-variance" aria-label="Average duration variance percentage">--</span>
                             </div>
                             <div class="performance-item">
                                 <span class="metric-label">Zone Compliance</span>
-                                <span class="metric-value" id="zone-compliance">--</span>
+                                <span class="metric-value" id="zone-compliance" aria-label="Heart rate zone compliance percentage">--</span>
                             </div>
                             <div class="performance-item">
                                 <span class="metric-label">Consistency Score</span>
-                                <span class="metric-value" id="consistency-score">--</span>
+                                <span class="metric-value" id="consistency-score" aria-label="Training consistency score">--</span>
                             </div>
                         </div>
+                        <div class="visually-hidden" id="performance-description">Performance metrics showing training consistency and compliance</div>
                     </div>
                 </div>
-            </div>
+            </section>
         </div>
 
         <!-- Data Import Drawer (Hidden by default) -->
@@ -212,88 +259,100 @@
                 </div>
 
                 <!-- Bulk Import -->
-                <div class="import-section">
-                    <h4>Bulk Import</h4>
-                    <div class="bulk-drop-zone" id="bulkDropZone">
-                        <p>📁 Drag & drop multiple .fit files here</p>
-                        <button class="btn" type="button">
+                <section class="import-section" aria-labelledby="bulk-import-heading">
+                    <h4 id="bulk-import-heading">Bulk Import</h4>
+                    <div class="bulk-drop-zone" id="bulkDropZone" role="button" tabindex="0" aria-describedby="bulk-import-help">
+                        <p><span aria-hidden="true">📁</span> Drag & drop multiple .fit files here</p>
+                        <button class="btn btn-secondary" type="button">
                             Or click to browse FIT files
                         </button>
-                        <input type="file" id="bulkFileInput" class="file-input" accept=".fit" multiple />
+                        <input type="file" id="bulkFileInput" class="file-input" accept=".fit" multiple aria-describedby="bulk-import-help" />
                     </div>
-                    <div id="selectedFiles" class="selected-files"></div>
-                    <div class="bulk-actions" id="bulkActions" style="display: none;">
-                        <button class="btn btn-primary" type="button" data-action="analyze-activities">
-                            🔍 Process Files
+                    <div class="visually-hidden" id="bulk-import-help">Upload multiple FIT files for batch analysis. Select multiple .fit files from your training device</div>
+                    <div id="selectedFiles" class="selected-files" role="region" aria-live="polite" aria-label="Selected files for import"></div>
+                    <div class="bulk-actions" id="bulkActions" style="display: none;" role="toolbar" aria-label="Bulk import actions">
+                        <button class="btn btn-primary" type="button" data-action="analyze-activities" aria-describedby="analyze-help">
+                            <span aria-hidden="true">🔍</span> Process Files
                         </button>
-                        <button class="btn btn-primary" type="button" data-action="upload-to-sheets">
-                            📊 Upload to Sheets
+                        <div class="visually-hidden" id="analyze-help">Analyze selected FIT files and extract training data</div>
+                        <button class="btn btn-primary" type="button" data-action="upload-to-sheets" aria-describedby="sheets-help">
+                            <span aria-hidden="true">📊</span> Upload to Sheets
                         </button>
+                        <div class="visually-hidden" id="sheets-help">Upload processed training data to Google Sheets</div>
                     </div>
-                </div>
+                </section>
 
                 <!-- Import Status -->
-                <div id="import-status" class="import-status"></div>
+                <div id="import-status" class="import-status" role="status" aria-live="polite" aria-label="Import progress and status"></div>
             </div>
         </div>
 
         <!-- Plan Generation Modal -->
-        <div class="plan-generation-modal" id="plan-generation-modal" style="display: none;">
+        <div class="modal-overlay plan-generation-modal" id="plan-generation-modal" style="display: none;" role="dialog" aria-labelledby="plan-modal-title" aria-modal="true">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Generate Training Plan</h3>
-                    <button class="btn btn-ghost close-modal-btn" id="close-plan-modal">×</button>
-                </div>
+                <header class="modal-header">
+                    <h3 id="plan-modal-title">Generate Training Plan</h3>
+                    <button class="btn btn-ghost close-modal-btn" id="close-plan-modal" aria-label="Close plan generation modal">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </header>
                 <div class="modal-body">
-                    <div class="config-grid">
+                    <form class="config-grid" id="plan-generation-form" onsubmit="return false;">
                         <!-- User Profile -->
-                        <div class="config-group">
-                            <h4>Athlete Profile</h4>
+                        <fieldset class="config-group">
+                            <legend>Athlete Profile</legend>
                             <div class="form-group">
-                                <label for="athlete-age">Age:</label>
-                                <input type="number" id="athlete-age" min="16" max="80" value="30" />
+                                <label for="athlete-age" class="form-label">Age:</label>
+                                <input type="number" id="athlete-age" class="input" min="16" max="80" value="30" aria-describedby="age-help" required />
+                                <div class="form-help" id="age-help">Enter your current age (16-80 years)</div>
                             </div>
                             <div class="form-group">
-                                <label for="fitness-level">Fitness Level:</label>
-                                <select id="fitness-level">
+                                <label for="fitness-level" class="form-label">Fitness Level:</label>
+                                <select id="fitness-level" class="input" aria-describedby="fitness-help">
                                     <option value="beginner">Beginner</option>
                                     <option value="intermediate" selected>Intermediate</option>
                                     <option value="advanced">Advanced</option>
                                 </select>
+                                <div class="form-help" id="fitness-help">Choose your current fitness level</div>
                             </div>
-                        </div>
+                        </fieldset>
 
                         <!-- Training Goals -->
-                        <div class="config-group">
-                            <h4>Training Goals</h4>
+                        <fieldset class="config-group">
+                            <legend>Training Goals</legend>
                             <div class="form-group">
-                                <label for="event-date">Target Event Date:</label>
-                                <input type="date" id="event-date" />
+                                <label for="event-date" class="form-label">Target Event Date:</label>
+                                <input type="date" id="event-date" class="input" aria-describedby="event-help" />
+                                <div class="form-help" id="event-help">Optional: Set your target event or goal date</div>
                             </div>
                             <div class="form-group">
-                                <label for="plan-duration">Plan Duration (days):</label>
-                                <input type="number" id="plan-duration" min="7" max="14" value="10" />
+                                <label for="plan-duration" class="form-label">Plan Duration (days):</label>
+                                <input type="number" id="plan-duration" class="input" min="7" max="14" value="10" aria-describedby="duration-help" required />
+                                <div class="form-help" id="duration-help">Number of days for the training plan (7-14 days)</div>
                             </div>
-                        </div>
+                        </fieldset>
 
                         <!-- Recovery Status -->
-                        <div class="config-group">
-                            <h4>Current Status</h4>
+                        <fieldset class="config-group">
+                            <legend>Current Status</legend>
                             <div class="form-group">
-                                <label for="body-battery">Body Battery (0-100):</label>
-                                <input type="number" id="body-battery" min="0" max="100" placeholder="Optional" />
+                                <label for="body-battery" class="form-label">Body Battery (0-100):</label>
+                                <input type="number" id="body-battery" class="input" min="0" max="100" placeholder="Optional" aria-describedby="battery-help" />
+                                <div class="form-help" id="battery-help">Optional: Current body battery level if available</div>
                             </div>
                             <div class="form-group">
-                                <label for="sleep-score">Sleep Score (0-100):</label>
-                                <input type="number" id="sleep-score" min="0" max="100" placeholder="Optional" />
+                                <label for="sleep-score" class="form-label">Sleep Score (0-100):</label>
+                                <input type="number" id="sleep-score" class="input" min="0" max="100" placeholder="Optional" aria-describedby="sleep-help" />
+                                <div class="form-help" id="sleep-help">Optional: Recent sleep quality score if available</div>
                             </div>
-                        </div>
-                    </div>
+                        </fieldset>
+                    </form>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" id="cancel-plan-generation">Cancel</button>
-                    <button class="btn btn-primary" id="confirm-plan-generation">Generate Plan</button>
-                </div>
+                <footer class="modal-footer">
+                    <button class="btn btn-secondary" id="cancel-plan-generation" type="button">Cancel</button>
+                    <button class="btn btn-primary" id="confirm-plan-generation" type="button" aria-describedby="generate-help">Generate Plan</button>
+                    <div class="visually-hidden" id="generate-help">Generate a personalized training plan based on your inputs</div>
+                </footer>
             </div>
         </div>
         </div> <!-- End Dashboard View -->
@@ -301,17 +360,20 @@
         <!-- Profile View -->
         <div id="profile-view" class="view-container">
             <div class="profile-container">
-                <div class="profile-header">
-                    <h2>User Profile</h2>
-                </div>
-                <div id="profile-content">
+                <header class="profile-header">
+                    <h2 id="profile-heading">User Profile</h2>
+                </header>
+                <main id="profile-content" role="main" aria-labelledby="profile-heading">
                     <!-- Profile content will be populated here -->
-                </div>
+                    <div class="card profile-placeholder">
+                        <p>Profile settings and information will be displayed here.</p>
+                    </div>
+                </main>
             </div>
         </div>
 
         <!-- Status and Notifications -->
-        <div id="status" class="status-container"></div>
+        <div id="status" class="status-container" role="status" aria-live="polite" aria-label="Application status and notifications"></div>
     </div>
 
     <script type="module" src="/src/main.ts"></script>

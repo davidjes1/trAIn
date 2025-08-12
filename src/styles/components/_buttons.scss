@@ -1,0 +1,285 @@
+// Accessible Button Component System
+// WCAG 2.1 AA Compliant with proper focus states and contrast
+@use '../theme' as *;
+
+// Base button styles
+.btn {
+  // Layout & Structure
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  
+  // Sizing (minimum 44px touch target)
+  min-height: 44px;
+  padding: var(--spacing-2) var(--spacing-4);
+  
+  // Typography
+  font-family: var(--font-family);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  
+  // Visual styling
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-sm);
+  background-color: transparent;
+  cursor: pointer;
+  
+  // Transitions
+  transition: all var(--transition);
+  
+  // Focus state (keyboard navigation)
+  &:focus {
+    @include focus-outline;
+  }
+  
+  // Remove focus outline for mouse users
+  &:focus:not(:focus-visible) {
+    outline: none;
+  }
+  
+  // Disabled state
+  &:disabled,
+  &[aria-disabled="true"] {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  
+  // Icon handling
+  .icon {
+    width: 1.125em;
+    height: 1.125em;
+    flex-shrink: 0;
+  }
+}
+
+// Primary button - main CTAs
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-surface);
+  border-color: var(--color-primary);
+  
+  &:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+  }
+  
+  &:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+}
+
+// Secondary button - secondary CTAs
+.btn-secondary {
+  background-color: var(--color-secondary);
+  color: var(--color-surface);
+  border-color: var(--color-secondary);
+  
+  &:hover:not(:disabled) {
+    background-color: var(--color-secondary-hover);
+    border-color: var(--color-secondary-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+  }
+  
+  &:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+}
+
+// Outline button - less prominent actions
+.btn-outline {
+  background-color: transparent;
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  
+  &:hover:not(:disabled) {
+    background-color: var(--color-primary);
+    color: var(--color-surface);
+  }
+}
+
+// Ghost button - subtle actions
+.btn-ghost {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  border-color: transparent;
+  
+  &:hover:not(:disabled) {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--color-text-primary);
+  }
+}
+
+// Danger button - destructive actions
+.btn-danger {
+  background-color: var(--color-error);
+  color: var(--color-surface);
+  border-color: var(--color-error);
+  
+  &:hover:not(:disabled) {
+    background-color: #B71C0C; // Darker red for hover
+    border-color: #B71C0C;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+  }
+}
+
+// Button sizes
+.btn-sm {
+  min-height: 32px;
+  padding: var(--spacing-1) var(--spacing-3);
+  font-size: var(--font-size-small);
+  
+  .icon {
+    width: 1em;
+    height: 1em;
+  }
+}
+
+.btn-lg {
+  min-height: 52px;
+  padding: var(--spacing-3) var(--spacing-6);
+  font-size: 1.125rem;
+  
+  .icon {
+    width: 1.25em;
+    height: 1.25em;
+  }
+}
+
+// Block button (full width)
+.btn-block {
+  width: 100%;
+  justify-content: center;
+}
+
+// Icon-only buttons (must have aria-label)
+.btn-icon {
+  padding: var(--spacing-2);
+  min-width: 44px;
+  
+  &.btn-sm {
+    padding: var(--spacing-1);
+    min-width: 32px;
+    min-height: 32px;
+  }
+  
+  &.btn-lg {
+    padding: var(--spacing-3);
+    min-width: 52px;
+  }
+}
+
+// Toggle button states (for buttons with aria-pressed)
+.btn[aria-pressed="true"] {
+  background-color: var(--color-primary);
+  color: var(--color-surface);
+  
+  &.btn-ghost {
+    background-color: rgba(0, 102, 204, 0.1);
+    color: var(--color-primary);
+  }
+}
+
+// Loading state
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1rem;
+    height: 1rem;
+    margin: -0.5rem 0 0 -0.5rem;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    border-right-color: transparent;
+    animation: button-spin 0.75s linear infinite;
+  }
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Button groups
+.btn-group {
+  display: inline-flex;
+  border-radius: var(--border-radius-sm);
+  box-shadow: var(--shadow-sm);
+  
+  .btn {
+    border-radius: 0;
+    border-right-width: 0;
+    
+    &:first-child {
+      border-top-left-radius: var(--border-radius-sm);
+      border-bottom-left-radius: var(--border-radius-sm);
+    }
+    
+    &:last-child {
+      border-top-right-radius: var(--border-radius-sm);
+      border-bottom-right-radius: var(--border-radius-sm);
+      border-right-width: 1px;
+    }
+    
+    &:focus {
+      position: relative;
+      z-index: 1;
+    }
+  }
+}
+
+// Responsive button behavior
+@include respond-below($breakpoint-sm) {
+  .btn-responsive {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .btn-group-responsive {
+    display: flex;
+    flex-direction: column;
+    
+    .btn {
+      border-radius: var(--border-radius-sm) !important;
+      border-right-width: 1px !important;
+      border-bottom-width: 0;
+      
+      &:not(:last-child) {
+        border-bottom-width: 0;
+      }
+      
+      &:last-child {
+        border-bottom-width: 1px;
+      }
+    }
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .btn {
+    border-width: 2px;
+  }
+  
+  .btn-ghost {
+    border-color: currentColor;
+  }
+}

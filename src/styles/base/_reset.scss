@@ -1,0 +1,170 @@
+// Modern CSS Reset with accessibility considerations
+// Based on Josh Comeau's CSS Reset with accessibility enhancements
+@use '../theme' as *;
+
+// Box sizing reset
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+// Remove default margins and padding
+* {
+  margin: 0;
+  padding: 0;
+}
+
+// Set core body defaults
+html {
+  // Prevent font size inflation
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  // Smooth scrolling for users who don't prefer reduced motion
+  scroll-behavior: smooth;
+}
+
+// Respect user's motion preferences
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+body {
+  min-height: 100vh;
+  line-height: var(--line-height);
+  font-family: var(--font-family);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-primary);
+  background-color: var(--color-background);
+  // Improve text rendering
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeSpeed;
+}
+
+// Improve media defaults
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+// Remove built-in form typography styles
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+// Ensure paragraphs don't run too wide for readability
+p {
+  max-width: 65ch;
+}
+
+// Remove list styles
+ul,
+ol {
+  list-style: none;
+}
+
+// Make sure headings are accessible
+h1, h2, h3, h4, h5, h6 {
+  font-weight: var(--font-weight-medium);
+  line-height: 1.2;
+  // Better heading spacing
+  margin-block: 0.75em 0.25em;
+}
+
+// Reset heading margins for first child
+h1:first-child,
+h2:first-child,
+h3:first-child,
+h4:first-child,
+h5:first-child,
+h6:first-child {
+  margin-top: 0;
+}
+
+// Improve table display
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: 100%;
+}
+
+// Make buttons and form elements more accessible
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+// Remove default button focus for mouse users, keep for keyboard
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+// Ensure interactive elements have sufficient size for touch
+button,
+input,
+select,
+textarea {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+// Improve link accessibility
+a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.125em;
+  text-decoration-thickness: 0.125em;
+  
+  &:hover,
+  &:focus {
+    text-decoration-thickness: 0.1875em;
+  }
+  
+  &:focus {
+    @include focus-outline;
+  }
+}
+
+// Skip link for keyboard navigation
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--color-primary);
+  color: var(--color-surface);
+  padding: 8px;
+  border-radius: var(--border-radius-sm);
+  text-decoration: none;
+  z-index: 1100;
+  
+  &:focus {
+    top: 6px;
+  }
+}
+
+// Screen reader only content
+.sr-only {
+  @include sr-only;
+}

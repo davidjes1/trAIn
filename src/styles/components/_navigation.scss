@@ -1,0 +1,475 @@
+// Accessible Navigation Component System
+// WCAG 2.1 AA Compliant with keyboard navigation and screen reader support
+@use '../theme' as *;
+
+// Main navigation header
+.nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4) 0;
+  margin-bottom: var(--spacing-6);
+  border-bottom: 1px solid var(--color-border);
+  
+  @include respond-below($breakpoint-md) {
+    flex-direction: column;
+    gap: var(--spacing-3);
+    align-items: stretch;
+  }
+}
+
+// Brand/Logo area
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  
+  h1 {
+    margin: 0;
+    font-size: var(--font-size-h2);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+    line-height: 1;
+  }
+  
+  .brand-logo {
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+  }
+  
+  // Make brand clickable (link to home)
+  &.nav-brand-link {
+    text-decoration: none;
+    color: inherit;
+    border-radius: var(--border-radius-sm);
+    transition: background-color var(--transition);
+    padding: var(--spacing-2);
+    margin: calc(var(--spacing-2) * -1);
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    &:focus {
+      @include focus-outline;
+    }
+  }
+}
+
+// Main navigation menu
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  
+  @include respond-below($breakpoint-md) {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+// Navigation buttons/links
+.nav-btn,
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-4);
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  min-height: 44px; // Touch target
+  
+  &:hover {
+    color: var(--color-text-primary);
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  &:focus {
+    @include focus-outline;
+  }
+  
+  // Active state
+  &.active,
+  &[aria-current="page"] {
+    color: var(--color-primary);
+    background-color: rgba(0, 102, 204, 0.1);
+    font-weight: var(--font-weight-medium);
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: var(--color-primary);
+      border-radius: 1px;
+    }
+  }
+  
+  // Icon handling
+  .nav-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+  }
+  
+  // Badge/indicator
+  .nav-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 var(--spacing-1);
+    background-color: var(--color-error);
+    color: var(--color-surface);
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-bold);
+    border-radius: 0.625rem;
+    line-height: 1;
+  }
+}
+
+// User area (profile, logout, etc.)
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  
+  .user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0;
+    
+    @include respond-below($breakpoint-sm) {
+      align-items: center;
+    }
+    
+    .user-name {
+      font-size: var(--font-size-body);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-primary);
+      margin: 0;
+    }
+    
+    .user-email {
+      font-size: var(--font-size-small);
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+  }
+  
+  .user-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    color: var(--color-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--font-weight-bold);
+    font-size: 1.125rem;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: background-color var(--transition);
+    
+    &:hover {
+      background-color: var(--color-primary-hover);
+    }
+    
+    &:focus {
+      @include focus-outline;
+    }
+    
+    img {
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      object-fit: cover;
+    }
+  }
+}
+
+// Dropdown menu (for user menu, etc.)
+.nav-dropdown {
+  position: relative;
+  
+  .dropdown-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-2);
+    border-radius: var(--border-radius-sm);
+    transition: background-color var(--transition);
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    &:focus {
+      @include focus-outline;
+    }
+    
+    &[aria-expanded="true"] {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    .dropdown-icon {
+      transition: transform var(--transition);
+    }
+    
+    &[aria-expanded="true"] .dropdown-icon {
+      transform: rotate(180deg);
+    }
+  }
+  
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: $z-dropdown;
+    min-width: 200px;
+    padding: var(--spacing-2) 0;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    transform: translateY(-0.5rem);
+    pointer-events: none;
+    transition: all var(--transition);
+    
+    &.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-3);
+      width: 100%;
+      padding: var(--spacing-2) var(--spacing-4);
+      border: none;
+      background: none;
+      color: var(--color-text-primary);
+      font-size: var(--font-size-body);
+      text-align: left;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background-color var(--transition);
+      
+      &:hover,
+      &:focus {
+        background-color: rgba(0, 102, 204, 0.1);
+        color: var(--color-primary);
+        outline: none;
+      }
+      
+      .item-icon {
+        width: 1rem;
+        height: 1rem;
+        flex-shrink: 0;
+      }
+    }
+    
+    .dropdown-divider {
+      height: 1px;
+      margin: var(--spacing-2) 0;
+      background-color: var(--color-border);
+    }
+  }
+}
+
+// Mobile navigation toggle
+.nav-mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--spacing-2);
+  border-radius: var(--border-radius-sm);
+  transition: background-color var(--transition);
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  &:focus {
+    @include focus-outline;
+  }
+  
+  .hamburger {
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    
+    span {
+      display: block;
+      height: 2px;
+      background-color: var(--color-text-primary);
+      border-radius: 1px;
+      transition: all var(--transition);
+    }
+  }
+  
+  &[aria-expanded="true"] .hamburger {
+    span:first-child {
+      transform: rotate(45deg) translate(5px, 5px);
+    }
+    
+    span:nth-child(2) {
+      opacity: 0;
+    }
+    
+    span:last-child {
+      transform: rotate(-45deg) translate(5px, -5px);
+    }
+  }
+  
+  @include respond-below($breakpoint-md) {
+    display: block;
+  }
+}
+
+// Mobile navigation menu
+@include respond-below($breakpoint-md) {
+  .nav-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: $z-modal;
+    background-color: var(--color-surface);
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: var(--spacing-6);
+    transform: translateX(-100%);
+    transition: transform var(--transition-slow);
+    
+    &.show {
+      transform: translateX(0);
+    }
+    
+    .nav-btn,
+    .nav-link {
+      width: 100%;
+      justify-content: flex-start;
+      padding: var(--spacing-4);
+      font-size: 1.125rem;
+    }
+  }
+}
+
+// Breadcrumb navigation
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+  font-size: var(--font-size-small);
+  
+  .breadcrumb-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    
+    a {
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      
+      &:hover {
+        color: var(--color-primary);
+        text-decoration: underline;
+      }
+      
+      &:focus {
+        @include focus-outline;
+      }
+    }
+    
+    &:last-child {
+      color: var(--color-text-primary);
+      font-weight: var(--font-weight-medium);
+    }
+    
+    &:not(:last-child)::after {
+      content: "/";
+      color: var(--color-text-secondary);
+      margin-left: var(--spacing-2);
+    }
+  }
+}
+
+// Skip links for accessibility
+.skip-links {
+  position: absolute;
+  top: -100px;
+  left: var(--spacing-4);
+  z-index: 1100;
+  
+  .skip-link {
+    display: block;
+    padding: var(--spacing-2) var(--spacing-4);
+    background-color: var(--color-primary);
+    color: var(--color-surface);
+    text-decoration: none;
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-medium);
+    
+    &:focus {
+      position: relative;
+      top: var(--spacing-4);
+    }
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .nav-btn,
+  .nav-link {
+    border: 1px solid var(--color-border);
+    
+    &.active {
+      border-color: var(--color-primary);
+    }
+  }
+  
+  .dropdown-menu {
+    border-width: 2px;
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .nav-menu {
+    transition: none;
+  }
+  
+  .dropdown-menu {
+    transition: none;
+  }
+  
+  .nav-mobile-toggle .hamburger span {
+    transition: none;
+  }
+}

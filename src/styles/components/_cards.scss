@@ -1,0 +1,349 @@
+// Accessible Card Component System
+// High contrast, accessible cards with proper focus states
+@use '../theme' as *;
+
+// Base card styles
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow var(--transition), transform var(--transition);
+  
+  // Interactive cards (clickable)
+  &.card-interactive {
+    cursor: pointer;
+    
+    &:hover {
+      box-shadow: var(--shadow);
+      transform: translateY(-1px);
+    }
+    
+    &:focus {
+      @include focus-outline;
+    }
+  }
+}
+
+// Card header
+.card-header {
+  padding: var(--spacing-4) var(--spacing-4) 0;
+  
+  h2, h3, h4, h5, h6 {
+    margin: 0 0 var(--spacing-2) 0;
+    color: var(--color-text-primary);
+  }
+  
+  p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-small);
+  }
+  
+  // Header with actions
+  &.card-header-actions {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-4);
+    
+    .card-title {
+      flex: 1;
+      min-width: 0; // Allow flex shrinking
+    }
+    
+    .card-actions {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-2);
+    }
+  }
+}
+
+// Card body
+.card-body {
+  padding: var(--spacing-4);
+  
+  &:first-child {
+    padding-top: var(--spacing-4);
+  }
+  
+  &:last-child {
+    padding-bottom: var(--spacing-4);
+  }
+  
+  // When there's a header
+  .card-header + & {
+    padding-top: var(--spacing-3);
+  }
+  
+  p:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// Card footer
+.card-footer {
+  padding: 0 var(--spacing-4) var(--spacing-4);
+  margin-top: var(--spacing-3);
+  
+  // Footer with actions
+  &.card-footer-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-3);
+    
+    @include respond-below($breakpoint-sm) {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--spacing-2);
+    }
+  }
+}
+
+// Card variants
+.card-elevated {
+  box-shadow: var(--shadow-lg);
+  
+  &:hover {
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15), 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.card-flat {
+  border: none;
+  box-shadow: none;
+  background-color: transparent;
+}
+
+.card-outlined {
+  border: 2px solid var(--color-border);
+  box-shadow: none;
+}
+
+// Status variants
+.card-success {
+  border-left: 4px solid var(--color-success);
+}
+
+.card-warning {
+  border-left: 4px solid var(--color-warning);
+}
+
+.card-error {
+  border-left: 4px solid var(--color-error);
+}
+
+.card-info {
+  border-left: 4px solid var(--color-info);
+}
+
+// Card sizes
+.card-sm {
+  .card-header,
+  .card-body,
+  .card-footer {
+    padding: var(--spacing-3);
+  }
+}
+
+.card-lg {
+  .card-header,
+  .card-body,
+  .card-footer {
+    padding: var(--spacing-6);
+  }
+}
+
+// Metric cards (for statistics)
+.card-metric {
+  text-align: center;
+  
+  .metric-value {
+    display: block;
+    font-size: 2rem;
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-2);
+  }
+  
+  .metric-label {
+    display: block;
+    font-size: var(--font-size-small);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    font-weight: var(--font-weight-medium);
+  }
+  
+  .metric-change {
+    display: block;
+    margin-top: var(--spacing-2);
+    font-size: var(--font-size-small);
+    
+    &.positive {
+      color: var(--color-success);
+      
+      &::before {
+        content: "↗ ";
+      }
+    }
+    
+    &.negative {
+      color: var(--color-error);
+      
+      &::before {
+        content: "↘ ";
+      }
+    }
+    
+    &.neutral {
+      color: var(--color-text-secondary);
+      
+      &::before {
+        content: "→ ";
+      }
+    }
+  }
+}
+
+// Card group (for related cards)
+.card-group {
+  display: grid;
+  gap: var(--spacing-4);
+  
+  &.card-group-2 {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+  
+  &.card-group-3 {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+  
+  &.card-group-4 {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+  
+  @include respond-below($breakpoint-sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Card deck (equal height cards)
+.card-deck {
+  display: flex;
+  gap: var(--spacing-4);
+  
+  .card {
+    flex: 1;
+  }
+  
+  @include respond-below($breakpoint-md) {
+    flex-direction: column;
+  }
+}
+
+// Loading card state
+.card-loading {
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.4),
+      transparent
+    );
+    animation: card-loading 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes card-loading {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+// Card with image
+.card-image {
+  .card-img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  
+  .card-img-top {
+    border-top-left-radius: calc(var(--border-radius) - 1px);
+    border-top-right-radius: calc(var(--border-radius) - 1px);
+  }
+  
+  .card-img-bottom {
+    border-bottom-left-radius: calc(var(--border-radius) - 1px);
+    border-bottom-right-radius: calc(var(--border-radius) - 1px);
+  }
+}
+
+// Compact card for lists
+.card-compact {
+  padding: var(--spacing-3);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  
+  .card-icon {
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-primary);
+    color: var(--color-surface);
+    border-radius: var(--border-radius-sm);
+    font-size: 1.25rem;
+  }
+  
+  .card-content {
+    flex: 1;
+    min-width: 0;
+    
+    h4, h5, h6 {
+      margin: 0 0 var(--spacing-1) 0;
+      font-size: var(--font-size-body);
+    }
+    
+    p {
+      margin: 0;
+      font-size: var(--font-size-small);
+      color: var(--color-text-secondary);
+    }
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .card {
+    border-width: 2px;
+  }
+  
+  .card-success,
+  .card-warning,
+  .card-error,
+  .card-info {
+    border-left-width: 6px;
+  }
+}

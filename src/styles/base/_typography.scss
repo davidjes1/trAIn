@@ -1,0 +1,185 @@
+// Typography System - WCAG Compliant
+// Using Inter font with proper fallbacks
+
+// Heading styles with proper hierarchy
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  color: var(--color-text-primary);
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+  color: var(--color-text-primary);
+}
+
+h3 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+
+// Body text
+p {
+  font-size: var(--font-size-body);
+  line-height: var(--line-height);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-4);
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// Small text (must be used sparingly and only for non-critical info)
+small,
+.text-small {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height);
+  color: var(--color-text-secondary);
+}
+
+// Text utilities
+.text-primary {
+  color: var(--color-text-primary);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-error {
+  color: var(--color-error);
+}
+
+.text-success {
+  color: var(--color-success);
+}
+
+.text-warning {
+  color: var(--color-warning-text);
+}
+
+.text-info {
+  color: var(--color-info);
+}
+
+// Weight utilities
+.font-normal {
+  font-weight: var(--font-weight-normal);
+}
+
+.font-medium {
+  font-weight: var(--font-weight-medium);
+}
+
+.font-bold {
+  font-weight: var(--font-weight-bold);
+}
+
+// Size utilities
+.text-h1 {
+  font-size: var(--font-size-h1);
+  line-height: 1.2;
+}
+
+.text-h2 {
+  font-size: var(--font-size-h2);
+  line-height: 1.25;
+}
+
+.text-h3 {
+  font-size: var(--font-size-h3);
+  line-height: 1.3;
+}
+
+.text-body {
+  font-size: var(--font-size-body);
+  line-height: var(--line-height);
+}
+
+.text-small {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height);
+}
+
+// Monospace text for code
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--font-family-mono);
+  font-size: 0.875em;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.125em 0.25em;
+  border-radius: var(--border-radius-sm);
+}
+
+pre {
+  padding: var(--spacing-4);
+  overflow-x: auto;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: var(--border-radius);
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+// Lists with proper spacing
+ul,
+ol {
+  padding-left: var(--spacing-6);
+  margin-bottom: var(--spacing-4);
+  
+  li {
+    margin-bottom: var(--spacing-2);
+    line-height: var(--line-height);
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+ul {
+  list-style-type: disc;
+}
+
+ol {
+  list-style-type: decimal;
+}
+
+// Text alignment utilities
+.text-left {
+  text-align: left;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+// Responsive typography
+@media (max-width: 768px) {
+  :root {
+    --font-size-h1: 1.75rem;  // 28px on mobile
+    --font-size-h2: 1.375rem; // 22px on mobile
+    --font-size-h3: 1.125rem; // 18px on mobile
+  }
+}
+
+// Ensure text remains readable when zoomed
+@media (min-width: 1200px) {
+  body {
+    font-size: 1.125rem; // Slightly larger base size on larger screens
+  }
+}
