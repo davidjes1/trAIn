@@ -21,7 +21,9 @@ import {
   FirebaseTrainingPlan,
   FirebaseTrackedWorkout,
   FirebaseRecoveryMetrics,
-  FirebaseAnalytics
+  FirebaseAnalytics,
+  FirebaseGeneratedPlan,
+  FirebaseTrainingCalendar
 } from '../types/firebase.types';
 
 export class FirestoreService {
@@ -606,6 +608,282 @@ export class FirestoreService {
       console.error('Error setting up comprehensive data subscription:', error);
       onError?.(error as Error);
       return () => {}; // Return no-op unsubscribe function
+    }
+  }
+
+  /**
+   * GENERATED TRAINING PLANS MANAGEMENT
+   */
+  static async saveGeneratedPlan(planData: Omit<FirebaseGeneratedPlan, 'id' | 'userId' | 'generatedAt' | 'lastModified'>): Promise<string> {
+    try {
+      const userId = this.getUserId();
+      const plan: Omit<FirebaseGeneratedPlan, 'id'> = {
+        ...planData,
+        userId,
+        generatedAt: new Date(),
+        lastModified: new Date()
+      };
+
+      const docRef = await addDoc(collection(db, 'users', userId, 'generatedPlans'), plan);
+      return docRef.id;
+    } catch (error) {
+      console.error('Error saving generated plan:', error);
+      throw error;
+    }
+  }
+
+  static async getGeneratedPlans(): Promise<FirebaseGeneratedPlan[]> {
+    try {
+      const userId = this.getUserId();
+      const plansCollection = collection(db, 'users', userId, 'generatedPlans');
+      const q = query(plansCollection, orderBy('generatedAt', 'desc'));
+      
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        generatedAt: doc.data().generatedAt.toDate(),
+        lastModified: doc.data().lastModified.toDate()
+      })) as FirebaseGeneratedPlan[];
+    } catch (error) {
+      console.error('Error getting generated plans:', error);
+      throw error;
+    }
+  }
+
+  static async getActivePlan(): Promise<FirebaseGeneratedPlan | null> {
+    try {
+      const userId = this.getUserId();
+      const plansCollection = collection(db, 'users', userId, 'generatedPlans');
+      const q = query(plansCollection, where('isActive', '==', true));
+      
+      const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) return null;
+      
+      const doc = querySnapshot.docs[0];
+      return {
+        id: doc.id,
+        ...doc.data(),
+        generatedAt: doc.data().generatedAt.toDate(),
+        lastModified: doc.data().lastModified.toDate()
+      } as FirebaseGeneratedPlan;
+    } catch (error) {
+      console.error('Error getting active plan:', error);
+      throw error;
+    }
+  }
+
+  static async updateGeneratedPlan(planId: string, updates: Partial<FirebaseGeneratedPlan>): Promise<void> {
+    try {
+      const userId = this.getUserId();
+      const planRef = doc(db, 'users', userId, 'generatedPlans', planId);
+      
+      await updateDoc(planRef, {
+        ...updates,
+        lastModified: new Date()
+      });
+    } catch (error) {
+      console.error('Error updating generated plan:', error);
+      throw error;
+    }
+  }
+
+  static async setActivePlan(planId: string): Promise<void> {
+    try {
+      const userId = this.getUserId();
+      const batch = writeBatch(db);
+      
+      // First, deactivate all current active plans
+      const plansCollection = collection(db, 'users', userId, 'generatedPlans');
+      const activeQuery = query(plansCollection, where('isActive', '==', true));
+      const activePlans = await getDocs(activeQuery);
+      
+      activePlans.docs.forEach(docSnap => {
+        batch.update(docSnap.ref, { isActive: false, lastModified: new Date() });
+      });
+      
+      // Then activate the specified plan
+      const targetPlanRef = doc(db, 'users', userId, 'generatedPlans', planId);
+      batch.update(targetPlanRef, { isActive: true, lastModified: new Date() });
+      
+      await batch.commit();
+    } catch (error) {
+      console.error('Error setting active plan:', error);
+      throw error;
+    }
+  }
+
+  static async deleteGeneratedPlan(planId: string): Promise<void> {
+    try {
+      const userId = this.getUserId();
+      const planRef = doc(db, 'users', userId, 'generatedPlans', planId);
+      await deleteDoc(planRef);
+    } catch (error) {
+      console.error('Error deleting generated plan:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * TRAINING CALENDAR MANAGEMENT
+   */
+  static async saveTrainingCalendar(calendarData: Omit<FirebaseTrainingCalendar, 'id' | 'userId' | 'createdAt' | 'lastViewed'>): Promise<string> {
+    try {
+      const userId = this.getUserId();
+      const calendar: Omit<FirebaseTrainingCalendar, 'id'> = {
+        ...calendarData,
+        userId,
+        createdAt: new Date(),
+        lastViewed: new Date()
+      };
+
+      const docRef = await addDoc(collection(db, 'users', userId, 'trainingCalendars'), calendar);
+      return docRef.id;
+    } catch (error) {
+      console.error('Error saving training calendar:', error);
+      throw error;
+    }
+  }
+
+  static async getTrainingCalendars(): Promise<FirebaseTrainingCalendar[]> {
+    try {
+      const userId = this.getUserId();
+      const calendarsCollection = collection(db, 'users', userId, 'trainingCalendars');
+      const q = query(calendarsCollection, orderBy('createdAt', 'desc'));
+      
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt.toDate(),
+        lastViewed: doc.data().lastViewed.toDate()
+      })) as FirebaseTrainingCalendar[];
+    } catch (error) {
+      console.error('Error getting training calendars:', error);
+      throw error;
+    }
+  }
+
+  static async getDefaultCalendar(): Promise<FirebaseTrainingCalendar | null> {
+    try {
+      const userId = this.getUserId();
+      const calendarsCollection = collection(db, 'users', userId, 'trainingCalendars');
+      const q = query(calendarsCollection, where('isDefault', '==', true));
+      
+      const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) return null;
+      
+      const doc = querySnapshot.docs[0];
+      return {
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt.toDate(),
+        lastViewed: doc.data().lastViewed.toDate()
+      } as FirebaseTrainingCalendar;
+    } catch (error) {
+      console.error('Error getting default calendar:', error);
+      throw error;
+    }
+  }
+
+  static async updateTrainingCalendar(calendarId: string, updates: Partial<FirebaseTrainingCalendar>): Promise<void> {
+    try {
+      const userId = this.getUserId();
+      const calendarRef = doc(db, 'users', userId, 'trainingCalendars', calendarId);
+      
+      await updateDoc(calendarRef, {
+        ...updates,
+        lastViewed: new Date()
+      });
+    } catch (error) {
+      console.error('Error updating training calendar:', error);
+      throw error;
+    }
+  }
+
+  static async setDefaultCalendar(calendarId: string): Promise<void> {
+    try {
+      const userId = this.getUserId();
+      const batch = writeBatch(db);
+      
+      // First, remove default from all calendars
+      const calendarsCollection = collection(db, 'users', userId, 'trainingCalendars');
+      const defaultQuery = query(calendarsCollection, where('isDefault', '==', true));
+      const defaultCalendars = await getDocs(defaultQuery);
+      
+      defaultCalendars.docs.forEach(docSnap => {
+        batch.update(docSnap.ref, { isDefault: false });
+      });
+      
+      // Then set the specified calendar as default
+      const targetCalendarRef = doc(db, 'users', userId, 'trainingCalendars', calendarId);
+      batch.update(targetCalendarRef, { isDefault: true, lastViewed: new Date() });
+      
+      await batch.commit();
+    } catch (error) {
+      console.error('Error setting default calendar:', error);
+      throw error;
+    }
+  }
+
+  static async deleteTrainingCalendar(calendarId: string): Promise<void> {
+    try {
+      const userId = this.getUserId();
+      const calendarRef = doc(db, 'users', userId, 'trainingCalendars', calendarId);
+      await deleteDoc(calendarRef);
+    } catch (error) {
+      console.error('Error deleting training calendar:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * BULK OPERATIONS FOR GENERATED PLANS
+   */
+  static async saveGeneratedPlanWithWorkouts(
+    planData: Omit<FirebaseGeneratedPlan, 'id' | 'userId' | 'generatedAt' | 'lastModified'>,
+    workouts: Omit<FirebaseTrainingPlan, 'id' | 'userId'>[]
+  ): Promise<string> {
+    try {
+      const userId = this.getUserId();
+      const batch = writeBatch(db);
+
+      // Save the plan first
+      const planRef = doc(collection(db, 'users', userId, 'generatedPlans'));
+      const planId = planRef.id;
+
+      const plan: Omit<FirebaseGeneratedPlan, 'id'> = {
+        ...planData,
+        userId,
+        generatedAt: new Date(),
+        lastModified: new Date(),
+        workouts: [] // We'll save workouts separately and update this
+      };
+
+      batch.set(planRef, plan);
+
+      // Save all workouts with reference to the plan
+      const savedWorkouts: FirebaseTrainingPlan[] = [];
+      for (const workout of workouts) {
+        const workoutRef = doc(collection(db, 'users', userId, 'trainingPlans'));
+        const workoutData: Omit<FirebaseTrainingPlan, 'id'> = {
+          ...workout,
+          userId,
+          planRef: planId, // Link to the generated plan
+          createdAt: new Date()
+        };
+        batch.set(workoutRef, workoutData);
+        savedWorkouts.push({ id: workoutRef.id, ...workoutData });
+      }
+
+      // Update the plan with workout references
+      batch.update(planRef, { workouts: savedWorkouts });
+
+      await batch.commit();
+      return planId;
+    } catch (error) {
+      console.error('Error saving generated plan with workouts:', error);
+      throw error;
     }
   }
 }

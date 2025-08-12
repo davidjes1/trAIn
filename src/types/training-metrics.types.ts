@@ -166,9 +166,16 @@ export interface TrainingPlan {
   description: string;
   expectedFatigue: number; // 0-100
   durationMin: number;
+  sport?: string; // Sport type
   workoutId?: string; // Reference to WorkoutType
   completed?: boolean;
   actualFatigue?: number; // Post-workout fatigue
+  
+  // Additional workout details
+  workoutZones?: string[]; // HR zones or power zones
+  workoutTags?: string[]; // Tags like 'threshold', 'intervals', etc.
+  hrTargetZone?: string; // Target HR zone
+  customParameters?: Record<string, any>; // Custom workout parameters
 }
 
 export interface PlanOptions {
@@ -189,6 +196,15 @@ export interface PlanOptions {
   recentWorkouts: WorkoutSummary[];
   planDuration: number; // days (7-10 typically)
   currentPhase?: TrainingPhase;
+  
+  // Additional fields for generated plan metadata
+  planType?: string; // plan type identifier
+  sport?: string; // primary sport
+  startDate?: string; // start date for the plan
+  weeks?: number; // duration in weeks
+  weeklyHours?: number; // target weekly training hours
+  goals?: string[]; // training goals
+  trainingDays?: string[]; // available training days
   availabilityToday?: boolean;
 }
 

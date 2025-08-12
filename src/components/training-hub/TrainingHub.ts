@@ -10,6 +10,7 @@ import { WorkoutMatchingService } from '../../services/WorkoutMatchingService';
 import { PlanGenerator, EnhancedPlanOptions } from '../../services/PlanGenerator';
 import { FileService } from '../../services/FileService';
 import { DashboardService, DashboardData } from '../../services/DashboardService';
+import { FirestoreService } from '../../firebase/firestore';
 import { UIHelpers } from '../../utils/ui-helpers';
 import { EnhancedWorkoutCalendar } from './WorkoutCalendar-Enhanced';
 import { WorkoutComparison } from './WorkoutComparison';
@@ -190,8 +191,8 @@ export class TrainingHub {
       // Load dashboard data (activities, laps, metrics) from Firebase or localStorage
       const dashboardData = await this.dashboardService.getDashboardData();
       
-      // Load tracked workouts (still from localStorage for now - will be migrated later)
-      const savedWorkouts = this.loadSavedWorkouts();
+      // Load tracked workouts from Firebase first, fallback to localStorage
+      const savedWorkouts = await this.loadWorkoutsFromFirebaseOrLocal();
       this.setState({ trackedWorkouts: savedWorkouts });
 
       // Update header metrics with Firebase data
@@ -245,11 +246,125 @@ export class TrainingHub {
     }
   }
 
+  /**
+   * Load workouts from Firebase first, fallback to localStorage
+   */
+  private async loadWorkoutsFromFirebaseOrLocal(): Promise<TrackedWorkout[]> {
+    let workouts: TrackedWorkout[] = [];
+    
+    // Try to load from Firebase first if user is authenticated
+    if (this.userProfileService.isAuthenticated()) {
+      try {
+        // Check if there's an active generated plan
+        const activePlan = await FirestoreService.getActivePlan();
+        
+        if (activePlan && activePlan.workouts && activePlan.workouts.length > 0) {
+          // Convert Firebase training plans to tracked workouts
+          workouts = activePlan.workouts.map(plan => ({
+            date: plan.date,
+            workoutType: plan.workoutType,
+            description: plan.description || '',
+            durationMin: plan.durationMin || 60,
+            sport: plan.sport || 'running',
+            status: 'planned' as const,
+            expectedFatigue: plan.expectedFatigue || 50,
+            workoutZones: plan.workoutZones || [],
+            workoutTags: plan.workoutTags || [],
+            hrTargetZone: plan.hrTargetZone,
+            customParameters: plan.customParameters || {}
+          }));
+          
+          console.log(`✅ Loaded ${workouts.length} workouts from Firebase active plan`);
+          
+          // Also load any tracked workouts (with actual workout data)
+          const trackedWorkouts = await FirestoreService.getTrackedWorkouts();
+          
+          // Merge with Firebase tracked workouts, giving priority to tracked workouts
+          const trackedWorkoutMap = new Map(trackedWorkouts.map(tw => [tw.date, tw]));
+          
+          workouts = workouts.map(workout => {
+            const tracked = trackedWorkoutMap.get(workout.date);
+            if (tracked) {
+              // Convert Firebase tracked workout to local format
+              return {
+                ...workout,
+                status: tracked.status,
+                userNotes: tracked.userNotes,
+                userRating: tracked.userRating,
+                comparison: tracked.comparison,
+                completedAt: tracked.lastUpdated.toISOString()
+              };
+            }
+            return workout;
+          });
+          
+          console.log(`✅ Merged with ${trackedWorkouts.length} tracked workouts from Firebase`);
+        }
+      } catch (firebaseError) {
+        console.warn('Failed to load workouts from Firebase, falling back to localStorage:', firebaseError);
+      }
+    }
+    
+    // Fallback to localStorage if no Firebase data or not authenticated
+    if (workouts.length === 0) {
+      workouts = this.loadSavedWorkouts();
+      console.log(`📁 Loaded ${workouts.length} workouts from localStorage`);
+    }
+    
+    return workouts;
+  }
+
   private saveWorkouts(): void {
     try {
+      // Always save to localStorage for offline access
       localStorage.setItem('training-hub-workouts', JSON.stringify(this.state.trackedWorkouts));
+      
+      // Also save to Firebase if authenticated (don't await to avoid blocking UI)
+      if (this.userProfileService.isAuthenticated()) {
+        this.saveWorkoutsToFirebase().catch(error => {
+          console.warn('Failed to save workouts to Firebase:', error);
+        });
+      }
     } catch (error) {
       console.warn('Error saving workouts:', error);
+    }
+  }
+
+  /**
+   * Save completed/modified workouts to Firebase as tracked workouts
+   */
+  private async saveWorkoutsToFirebase(): Promise<void> {
+    try {
+      // Only save workouts that have been completed or modified
+      const workoutsToSave = this.state.trackedWorkouts.filter(workout => 
+        workout.status !== 'planned' || workout.userNotes || workout.userRating || workout.comparison
+      );
+      
+      for (const workout of workoutsToSave) {
+        // Check if this workout already exists in Firebase
+        const existingTracked = await FirestoreService.getTrackedWorkouts();
+        const existing = existingTracked.find(tw => tw.date === workout.date);
+        
+        const trackedWorkoutData = {
+          date: workout.date,
+          status: workout.status,
+          userNotes: workout.userNotes,
+          userRating: workout.userRating,
+          comparison: workout.comparison,
+          lastUpdated: new Date()
+        };
+        
+        if (existing) {
+          // Update existing tracked workout
+          await FirestoreService.updateTrackedWorkout(existing.id, trackedWorkoutData);
+        } else {
+          // Create new tracked workout
+          await FirestoreService.addTrackedWorkout(trackedWorkoutData);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving workouts to Firebase:', error);
+      throw error;
     }
   }
 
@@ -709,6 +824,67 @@ export class TrainingHub {
         // Don't overwrite existing workouts
         return !this.state.trackedWorkouts.some(existing => existing.date === w.date);
       });
+      
+      // Save generated plan to Firebase if user is authenticated
+      if (this.userProfileService.isAuthenticated()) {
+        try {
+          UIHelpers.showStatus('Saving training plan to cloud...', 'info');
+          
+          // Prepare plan data for Firebase
+          const startDate = planOptions.startDate || new Date().toISOString().split('T')[0];
+          const weeks = planOptions.weeks || 8;
+          const endDate = new Date(new Date(startDate).getTime() + (weeks * 7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+          
+          const generatedPlanData = {
+            planName: `${planOptions.planType || 'Custom'} - ${planOptions.sport || 'Multi-Sport'} Plan`,
+            planType: (planOptions.planType as 'base' | 'build' | 'peak' | 'recovery' | 'custom') || 'custom',
+            startDate,
+            endDate,
+            totalWeeks: weeks,
+            config: {
+              sport: planOptions.sport || 'running',
+              weeklyHours: planOptions.weeklyHours || 5,
+              fitnessLevel: planOptions.user.fitnessLevel,
+              goals: planOptions.goals || ['fitness'],
+              availableDays: planOptions.trainingDays || ['Monday', 'Wednesday', 'Friday']
+            },
+            workouts: [],
+            generatedBy: 'user' as const,
+            version: '1.0.0',
+            isActive: true
+          };
+          
+          // Convert new tracked workouts to Firebase training plans
+          const firebaseWorkouts = newTrackedWorkouts.map(workout => ({
+            date: workout.date,
+            workoutType: workout.workoutType,
+            description: workout.description,
+            durationMin: workout.durationMin,
+            sport: workout.sport || 'running',
+            expectedFatigue: workout.expectedFatigue,
+            workoutZones: workout.workoutZones || [],
+            workoutTags: workout.workoutTags || [],
+            hrTargetZone: workout.hrTargetZone,
+            customParameters: workout.customParameters || {},
+            completed: false,
+            generatedAt: new Date(),
+            generatedBy: 'user' as const,
+            createdAt: new Date()
+          }));
+          
+          // Save plan with workouts to Firebase
+          const planId = await FirestoreService.saveGeneratedPlanWithWorkouts(
+            generatedPlanData,
+            firebaseWorkouts
+          );
+          
+          console.log('Saved generated plan to Firebase with ID:', planId);
+          
+        } catch (firebaseError) {
+          console.warn('Failed to save plan to Firebase, using local storage:', firebaseError);
+          UIHelpers.showStatus('Plan generated (saved locally)', 'info');
+        }
+      }
       
       this.setState({
         trackedWorkouts: [...this.state.trackedWorkouts, ...newTrackedWorkouts]

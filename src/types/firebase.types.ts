@@ -102,11 +102,23 @@ export interface FirebaseTrainingPlan {
   description: string;
   expectedFatigue: number; // 0-100
   durationMin: number;
+  sport?: string;
   completed: boolean;
   actualFatigue?: number;
   adherenceScore?: number;
+  
+  // Additional workout details
+  workoutZones?: string[];
+  workoutTags?: string[];
+  hrTargetZone?: string;
+  customParameters?: Record<string, any>;
+  
+  // Plan association
+  planRef?: string; // Reference to FirebaseGeneratedPlan ID
+  
   generatedAt: Date;
   generatedBy: 'user' | 'algorithm';
+  createdAt: Date;
   metadata?: {
     basedOnMetrics: boolean;
     adjustmentReason?: string;
@@ -125,6 +137,68 @@ export interface FirebaseTrackedWorkout {
   userNotes?: string;
   userRating?: number; // 1-5
   lastUpdated: Date;
+}
+
+// Generated Training Plan (Firebase version) - saved generated plans to avoid regeneration
+export interface FirebaseGeneratedPlan {
+  id: string; // planId
+  userId: string;
+  planName: string;
+  planType: 'base' | 'build' | 'peak' | 'recovery' | 'custom';
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  totalWeeks: number;
+  
+  // Plan configuration
+  config: {
+    sport: string;
+    weeklyHours: number;
+    fitnessLevel: 'beginner' | 'intermediate' | 'advanced';
+    goals: string[];
+    availableDays: string[];
+  };
+  
+  // Generated workouts
+  workouts: FirebaseTrainingPlan[];
+  
+  // Plan metadata
+  generatedAt: Date;
+  generatedBy: 'user' | 'ai' | 'periodization';
+  version: string; // for plan updates
+  isActive: boolean;
+  lastModified: Date;
+}
+
+// Training Calendar View (Firebase version) - saves calendar state and customizations
+export interface FirebaseTrainingCalendar {
+  id: string; // calendarId
+  userId: string;
+  calendarName: string;
+  
+  // Calendar configuration
+  viewConfig: {
+    viewType: 'week' | 'month' | 'day';
+    startDate: string; // YYYY-MM-DD
+    showPlannedOnly: boolean;
+    showActualOnly: boolean;
+    showComparison: boolean;
+    highlightAdherence: boolean;
+  };
+  
+  // Associated plan
+  activePlanId?: string; // Reference to FirebaseGeneratedPlan
+  
+  // Calendar customizations
+  customizations: {
+    colorScheme?: 'default' | 'sport-based' | 'intensity-based';
+    displayFields: string[]; // which fields to show in calendar view
+    workoutSorting: 'date' | 'type' | 'intensity';
+  };
+  
+  // Metadata
+  createdAt: Date;
+  lastViewed: Date;
+  isDefault: boolean;
 }
 
 // Recovery Metrics (Firebase version)
