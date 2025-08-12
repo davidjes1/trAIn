@@ -13,11 +13,13 @@ import {
   PlanAdjustmentResult
 } from '../../types/training-metrics.types';
 import { UIHelpers } from '../../utils/ui-helpers';
+import { AIService } from '../../ai/AIService';
 
 export class TrainingPlanManager {
   private currentPlan: PlanGenerationResult | null = null;
   private currentMacroPlan: MacroPlan | null = null;
   private planModifications: WorkoutModification[] = [];
+  private aiInsightsEnabled = true;
 
   constructor() {
     this.initializeEventListeners();
@@ -40,6 +42,10 @@ export class TrainingPlanManager {
     // Regenerate button
     const regenerateBtn = document.getElementById('regenerate-plan-btn');
     regenerateBtn?.addEventListener('click', () => this.regeneratePlan());
+
+    // AI recommendation button
+    const aiRecommendBtn = document.getElementById('ai-recommend-btn');
+    aiRecommendBtn?.addEventListener('click', () => this.getAIRecommendation());
 
     // Template selection change
     const templateSelect = document.getElementById('plan-template') as HTMLSelectElement;
@@ -801,5 +807,275 @@ export class TrainingPlanManager {
     if (section) {
       section.style.display = 'none';
     }
+  }
+
+  /**
+   * AI INTEGRATION METHODS
+   */
+
+  private async getAIRecommendation(): Promise<void> {
+    if (!this.aiInsightsEnabled) {
+      UIHelpers.showStatus('AI insights are disabled', 'info');
+      return;
+    }
+
+    try {
+      UIHelpers.showStatus('Getting AI recommendations for your training plan...', 'info');
+
+      // Get AI insights
+      const recommendation = await AIService.getTomorrowWorkoutRecommendation('current-user');
+      const fatigueAssessment = await AIService.getCurrentFatigueAssessment('current-user');
+
+      if (recommendation.success && recommendation.data) {
+        this.displayAIRecommendation(recommendation.data, fatigueAssessment.data);
+      } else {
+        UIHelpers.showStatus('Unable to generate AI recommendation', 'warning');
+      }
+    } catch (error) {
+      console.error('Error getting AI recommendation:', error);
+      UIHelpers.showStatus('Failed to get AI recommendation', 'error');
+    }
+  }
+
+  private displayAIRecommendation(recommendation: any, fatigue: any): void {
+    // Create or update AI recommendation section
+    let aiSection = document.getElementById('ai-recommendations-section');
+    
+    if (!aiSection) {
+      aiSection = document.createElement('div');
+      aiSection.id = 'ai-recommendations-section';
+      aiSection.className = 'ai-recommendations-panel';
+      
+      // Insert after the form section
+      const formSection = document.querySelector('.plan-generation-form');
+      formSection?.parentNode?.insertBefore(aiSection, formSection.nextSibling);
+    }
+
+    aiSection.innerHTML = `
+      <div class="ai-panel-header">
+        <h3>🤖 AI Training Insights</h3>
+        <button id="close-ai-panel" class="close-btn">&times;</button>
+      </div>
+      
+      <div class="ai-insights">
+        <div class="insight-card recommendation-card">
+          <h4>Tomorrow's Recommended Workout</h4>
+          <div class="workout-recommendation">
+            <div class="workout-type">${recommendation.recommendedWorkout.type}</div>
+            <div class="workout-description">${recommendation.recommendedWorkout.description}</div>
+            <div class="workout-stats">
+              <span class="duration">${recommendation.recommendedWorkout.durationMin} min</span>
+              <span class="intensity">Intensity: ${recommendation.recommendedWorkout.fatigueScore}/100</span>
+            </div>
+            <div class="confidence">Confidence: ${recommendation.confidence}%</div>
+          </div>
+          
+          ${recommendation.reasoning && recommendation.reasoning.length > 0 ? `
+            <div class="reasoning">
+              <h5>Why this workout?</h5>
+              <ul>
+                ${recommendation.reasoning.map((reason: string) => `<li>${reason}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+          
+          ${recommendation.alternatives && recommendation.alternatives.length > 0 ? `
+            <div class="alternatives">
+              <h5>Alternative Options</h5>
+              <div class="alternative-workouts">
+                ${recommendation.alternatives.map((alt: any) => `
+                  <div class="alternative-workout">
+                    <div class="alt-type">${alt.type}</div>
+                    <div class="alt-description">${alt.description}</div>
+                    <div class="alt-stats">${alt.durationMin}min • ${alt.fatigueScore}/100</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+
+        ${fatigue ? `
+          <div class="insight-card fatigue-card">
+            <h4>Fatigue Assessment</h4>
+            <div class="fatigue-status status-${fatigue.overallStatus}">
+              <div class="status-indicator">${this.getFatigueEmoji(fatigue.overallStatus)}</div>
+              <div class="status-text">Status: ${fatigue.overallStatus}</div>
+              <div class="risk-level">Risk Level: ${fatigue.riskLevel}</div>
+            </div>
+            
+            <div class="recommendation">
+              <strong>Recommendation:</strong> ${this.getRecommendationText(fatigue.recommendation)}
+            </div>
+            
+            ${fatigue.indicators && fatigue.indicators.length > 0 ? `
+              <div class="indicators">
+                <h5>Key Indicators</h5>
+                <div class="indicator-list">
+                  ${fatigue.indicators
+                    .filter((ind: any) => ind.status !== 'normal')
+                    .map((ind: any) => `
+                      <div class="indicator ${ind.status}">
+                        <span class="metric">${ind.metric}</span>
+                        <span class="description">${ind.description}</span>
+                      </div>
+                    `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+
+        <div class="ai-actions">
+          <button class="btn btn-primary" id="apply-ai-recommendation">
+            Apply AI Recommendation to Plan
+          </button>
+          <button class="btn btn-secondary" id="get-weekly-plan">
+            Generate AI Weekly Plan
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Add event listeners
+    this.attachAIEventListeners(recommendation);
+
+    // Scroll to AI section
+    aiSection.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  private attachAIEventListeners(recommendation: any): void {
+    // Close AI panel
+    const closeBtn = document.getElementById('close-ai-panel');
+    closeBtn?.addEventListener('click', () => {
+      const aiSection = document.getElementById('ai-recommendations-section');
+      aiSection?.remove();
+    });
+
+    // Apply AI recommendation
+    const applyBtn = document.getElementById('apply-ai-recommendation');
+    applyBtn?.addEventListener('click', () => {
+      this.applyAIRecommendation(recommendation);
+    });
+
+    // Generate weekly AI plan
+    const weeklyBtn = document.getElementById('get-weekly-plan');
+    weeklyBtn?.addEventListener('click', () => {
+      this.generateAIWeeklyPlan();
+    });
+  }
+
+  private async applyAIRecommendation(recommendation: any): Promise<void> {
+    if (!this.currentPlan) {
+      UIHelpers.showStatus('Please generate a base plan first', 'warning');
+      return;
+    }
+
+    try {
+      // Find tomorrow's workout in the current plan
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+      const tomorrowWorkout = this.currentPlan.plan.find(w => w.date === tomorrowStr);
+      
+      if (tomorrowWorkout) {
+        // Replace tomorrow's workout with AI recommendation
+        const newWorkout: TrainingPlan = {
+          date: tomorrowStr,
+          workoutType: recommendation.recommendedWorkout.type,
+          description: `${recommendation.recommendedWorkout.description} (AI recommended)`,
+          expectedFatigue: recommendation.recommendedWorkout.fatigueScore,
+          durationMin: recommendation.recommendedWorkout.durationMin,
+          completed: false
+        };
+
+        // Find and replace the workout
+        const index = this.currentPlan.plan.findIndex(w => w.date === tomorrowStr);
+        if (index >= 0) {
+          this.currentPlan.plan[index] = newWorkout;
+
+          // Add to modifications
+          this.planModifications.push({
+            date: tomorrowStr,
+            type: 'change-workout-type',
+            reason: 'Applied AI recommendation',
+            originalWorkout: tomorrowWorkout,
+            newWorkout: newWorkout,
+            timestamp: new Date().toISOString()
+          });
+
+          // Update display
+          this.displayWorkoutCalendar();
+          UIHelpers.showStatus('AI recommendation applied to tomorrow\'s workout', 'success');
+        }
+      } else {
+        UIHelpers.showStatus('No workout found for tomorrow to replace', 'warning');
+      }
+
+    } catch (error) {
+      console.error('Error applying AI recommendation:', error);
+      UIHelpers.showStatus('Failed to apply AI recommendation', 'error');
+    }
+  }
+
+  private async generateAIWeeklyPlan(): Promise<void> {
+    try {
+      UIHelpers.showStatus('Generating AI-optimized weekly plan...', 'info');
+
+      // This would integrate with the PlanAdvisor for a full week
+      // For now, show a placeholder
+      UIHelpers.showStatus('AI weekly plan generation coming soon! Apply single recommendations for now.', 'info');
+
+    } catch (error) {
+      console.error('Error generating AI weekly plan:', error);
+      UIHelpers.showStatus('Failed to generate AI weekly plan', 'error');
+    }
+  }
+
+  private getFatigueEmoji(status: string): string {
+    switch (status) {
+      case 'fresh': return '✨';
+      case 'normal': return '👍';
+      case 'fatigued': return '😴';
+      case 'overtrained': return '⚠️';
+      default: return '❓';
+    }
+  }
+
+  private getRecommendationText(recommendation: string): string {
+    switch (recommendation) {
+      case 'full-training': return 'Full training load recommended';
+      case 'active-recovery': return 'Active recovery recommended';
+      case 'rest': return 'Rest day recommended';
+      case 'medical-attention': return 'Consider medical consultation';
+      default: return 'Continue with planned training';
+    }
+  }
+
+  /**
+   * Enable or disable AI features
+   */
+  public setAIEnabled(enabled: boolean): void {
+    this.aiInsightsEnabled = enabled;
+    
+    const aiBtn = document.getElementById('ai-recommend-btn') as HTMLButtonElement;
+    if (aiBtn) {
+      aiBtn.disabled = !enabled;
+      aiBtn.title = enabled ? 'Get AI workout recommendation' : 'AI features disabled';
+    }
+
+    if (!enabled) {
+      // Remove AI recommendations section if displayed
+      const aiSection = document.getElementById('ai-recommendations-section');
+      aiSection?.remove();
+    }
+  }
+
+  /**
+   * Check if AI features are enabled
+   */
+  public isAIEnabled(): boolean {
+    return this.aiInsightsEnabled;
   }
 }

@@ -3,12 +3,25 @@ import { ActivityMetrics, LapMetrics } from '../types/training-metrics.types';
 import { FirestoreService } from '../firebase/firestore';
 import { UserProfileService } from './UserProfileService';
 import { FirebaseActivity, FirebaseLapData } from '../types/firebase.types';
+import { AIService } from '../ai/AIService';
 
 export interface DashboardData {
   metrics: DashboardMetrics;
   activities: ActivityMetrics[];
   laps: LapMetrics[];
   lastUpdated: Date;
+  aiInsights?: {
+    workoutRecommendation?: any;
+    fatigueAssessment?: any;
+    performanceAnalysis?: any;
+    quickStats: {
+      readinessScore: number;
+      trendDirection: 'improving' | 'stable' | 'declining';
+      nextRecommendation: string;
+      riskLevel: 'low' | 'moderate' | 'high' | 'critical';
+    };
+    lastUpdated: string;
+  };
 }
 
 export class DashboardService {
@@ -16,6 +29,7 @@ export class DashboardService {
   private cacheExpiry: Date | null = null;
   private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
   private userProfileService: UserProfileService;
+  private aiInsightsEnabled = true; // Flag to enable/disable AI features
   
   // Real-time synchronization
   private realtimeUnsubscribe: (() => void) | null = null;
@@ -68,12 +82,26 @@ export class DashboardService {
       // Calculate metrics
       const metrics = MetricsCalculator.calculateDashboardMetrics(activities);
 
+      // Get AI insights if enabled and user is authenticated
+      let aiInsights: DashboardData['aiInsights'];
+      if (this.aiInsightsEnabled && this.userProfileService.isAuthenticated()) {
+        try {
+          aiInsights = await AIService.getDashboardInsights(
+            this.userProfileService.getCurrentUser()?.uid || ''
+          );
+        } catch (error) {
+          console.warn('Failed to load AI insights:', error);
+          // Continue without AI insights
+        }
+      }
+
       // Create dashboard data
       const dashboardData: DashboardData = {
         metrics,
         activities,
         laps,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
+        aiInsights
       };
 
       // Update cache
@@ -736,6 +764,147 @@ export class DashboardService {
       isEnabled: this.isRealtimeSyncEnabled(),
       hasCallbacks: Object.keys(this.realtimeCallbacks).length > 0,
       cacheStatus: this.getCacheStatus()
+    };
+  }
+
+  /**
+   * AI INSIGHTS METHODS
+   */
+
+  /**
+   * Get AI workout recommendation for tomorrow
+   */
+  async getAIWorkoutRecommendation(): Promise<any> {
+    try {
+      if (!this.aiInsightsEnabled || !this.userProfileService.isAuthenticated()) {
+        return null;
+      }
+
+      const userId = this.userProfileService.getCurrentUser()?.uid || '';
+      return await AIService.getTomorrowWorkoutRecommendation(userId);
+    } catch (error) {
+      console.error('Failed to get AI workout recommendation:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get AI fatigue assessment
+   */
+  async getAIFatigueAssessment(): Promise<any> {
+    try {
+      if (!this.aiInsightsEnabled || !this.userProfileService.isAuthenticated()) {
+        return null;
+      }
+
+      const userId = this.userProfileService.getCurrentUser()?.uid || '';
+      return await AIService.getCurrentFatigueAssessment(userId);
+    } catch (error) {
+      console.error('Failed to get AI fatigue assessment:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get AI performance insights
+   */
+  async getAIPerformanceInsights(): Promise<any> {
+    try {
+      if (!this.aiInsightsEnabled || !this.userProfileService.isAuthenticated()) {
+        return null;
+      }
+
+      const userId = this.userProfileService.getCurrentUser()?.uid || '';
+      return await AIService.getPerformanceInsights(userId);
+    } catch (error) {
+      console.error('Failed to get AI performance insights:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get quick training decision from AI
+   */
+  async getQuickTrainingDecision(): Promise<{
+    canTrain: boolean;
+    recommendation: 'full' | 'easy' | 'rest';
+    reasons: string[];
+    confidence: number;
+  } | null> {
+    try {
+      if (!this.aiInsightsEnabled || !this.userProfileService.isAuthenticated()) {
+        return null;
+      }
+
+      const userId = this.userProfileService.getCurrentUser()?.uid || '';
+      return await AIService.quickTrainingDecision(userId);
+    } catch (error) {
+      console.error('Failed to get quick training decision:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Enable or disable AI insights
+   */
+  setAIInsightsEnabled(enabled: boolean): void {
+    this.aiInsightsEnabled = enabled;
+    if (!enabled) {
+      // Clear AI insights from cache
+      if (this.cachedData) {
+        this.cachedData.aiInsights = undefined;
+      }
+    }
+  }
+
+  /**
+   * Check if AI insights are enabled
+   */
+  isAIInsightsEnabled(): boolean {
+    return this.aiInsightsEnabled && this.userProfileService.isAuthenticated();
+  }
+
+  /**
+   * Force refresh of AI insights
+   */
+  async refreshAIInsights(): Promise<void> {
+    if (!this.aiInsightsEnabled || !this.userProfileService.isAuthenticated()) {
+      return;
+    }
+
+    try {
+      const userId = this.userProfileService.getCurrentUser()?.uid || '';
+      const insights = await AIService.getDashboardInsights(userId);
+      
+      if (this.cachedData) {
+        this.cachedData.aiInsights = insights;
+        this.cachedData.lastUpdated = new Date();
+      }
+    } catch (error) {
+      console.error('Failed to refresh AI insights:', error);
+    }
+  }
+
+  /**
+   * Get AI insights status
+   */
+  getAIInsightsStatus(): {
+    enabled: boolean;
+    available: boolean;
+    lastUpdated?: string;
+    hasRecommendation: boolean;
+    hasFatigueAssessment: boolean;
+    hasPerformanceAnalysis: boolean;
+  } {
+    const insights = this.cachedData?.aiInsights;
+    
+    return {
+      enabled: this.aiInsightsEnabled,
+      available: this.isAIInsightsEnabled(),
+      lastUpdated: insights?.lastUpdated,
+      hasRecommendation: !!insights?.workoutRecommendation,
+      hasFatigueAssessment: !!insights?.fatigueAssessment,
+      hasPerformanceAnalysis: !!insights?.performanceAnalysis
     };
   }
 }
