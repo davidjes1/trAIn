@@ -17,6 +17,8 @@ import { FatigueMonitor } from './fatigueMonitor';
 import { PerformanceTrends } from './performanceTrends';
 import { PlanAdjuster } from './planAdjuster';
 import { FirestoreService } from '../firebase/firestore';
+import { DataAdapters } from './dataAdapters';
+import { UserProfileService } from '../services/UserProfileService';
 
 export class AIService {
   private static cachedRecommendations = new Map<string, any>();
@@ -39,10 +41,14 @@ export class AIService {
   }> {
     try {
       // Get user data from Firestore
-      const [activities, recoveryMetrics] = await Promise.all([
+      const [firebaseActivities, firebaseRecoveryMetrics] = await Promise.all([
         FirestoreService.getActivities(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)), // Last 30 days
         FirestoreService.getRecoveryMetrics(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
       ]);
+      
+      // Convert Firebase data to AI-compatible formats
+      const activities = DataAdapters.firebaseActivitiesToActivityMetrics(firebaseActivities);
+      const recoveryMetrics = firebaseRecoveryMetrics; // Already compatible
       
       // Create user profile from available data
       const userProfile = await this.createUserProfile(userId);
@@ -107,10 +113,14 @@ export class AIService {
    */
   static async getTomorrowWorkoutRecommendation(userId: string): Promise<RecommendationResponse> {
     try {
-      const [activities, recoveryMetrics] = await Promise.all([
+      const [firebaseActivities, firebaseRecoveryMetrics] = await Promise.all([
         FirestoreService.getActivities(new Date(Date.now() - 28 * 24 * 60 * 60 * 1000)), // Last 28 days
         FirestoreService.getRecoveryMetrics(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)) // Last 14 days
       ]);
+      
+      // Convert Firebase data to AI-compatible formats
+      const activities = DataAdapters.firebaseActivitiesToActivityMetrics(firebaseActivities);
+      const recoveryMetrics = firebaseRecoveryMetrics;
       
       const userProfile = await this.createUserProfile(userId);
       
@@ -132,10 +142,14 @@ export class AIService {
    */
   static async getCurrentFatigueAssessment(userId: string): Promise<FatigueResponse> {
     try {
-      const [activities, recoveryMetrics] = await Promise.all([
+      const [firebaseActivities, firebaseRecoveryMetrics] = await Promise.all([
         FirestoreService.getActivities(new Date(Date.now() - 28 * 24 * 60 * 60 * 1000)),
         FirestoreService.getRecoveryMetrics(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000))
       ]);
+      
+      // Convert Firebase data to AI-compatible formats
+      const activities = DataAdapters.firebaseActivitiesToActivityMetrics(firebaseActivities);
+      const recoveryMetrics = firebaseRecoveryMetrics;
       
       const userProfile = await this.createUserProfile(userId);
       
@@ -157,10 +171,14 @@ export class AIService {
    */
   static async getPerformanceInsights(userId: string): Promise<PerformanceResponse> {
     try {
-      const [activities, recoveryMetrics] = await Promise.all([
+      const [firebaseActivities, firebaseRecoveryMetrics] = await Promise.all([
         FirestoreService.getActivities(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)), // Last 90 days
         FirestoreService.getRecoveryMetrics(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
       ]);
+      
+      // Convert Firebase data to AI-compatible formats
+      const activities = DataAdapters.firebaseActivitiesToActivityMetrics(firebaseActivities);
+      const recoveryMetrics = firebaseRecoveryMetrics;
       
       const userProfile = await this.createUserProfile(userId);
       
@@ -210,10 +228,14 @@ export class AIService {
     confidence: number;
   }> {
     try {
-      const [activities, recoveryMetrics] = await Promise.all([
+      const [firebaseActivities, firebaseRecoveryMetrics] = await Promise.all([
         FirestoreService.getActivities(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)),
         FirestoreService.getRecoveryMetrics(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
       ]);
+      
+      // Convert Firebase data to AI-compatible formats
+      const activities = DataAdapters.firebaseActivitiesToActivityMetrics(firebaseActivities);
+      const recoveryMetrics = firebaseRecoveryMetrics;
       
       const latestRecovery = recoveryMetrics.length > 0 ? recoveryMetrics[0] : {
         date: new Date().toISOString().split('T')[0],
@@ -226,8 +248,8 @@ export class AIService {
       
       // Add confidence calculation
       let confidence = 70;
-      if (activities.length >= 7) confidence += 15;
-      if (recoveryMetrics.length >= 3) confidence += 15;
+      if (firebaseActivities.length >= 7) confidence += 15;
+      if (firebaseRecoveryMetrics.length >= 3) confidence += 15;
       
       return {
         ...result,
@@ -252,10 +274,14 @@ export class AIService {
     weatherData: WeatherCondition
   ): Promise<RecommendationResponse> {
     try {
-      const [activities, recoveryMetrics] = await Promise.all([
+      const [firebaseActivities, firebaseRecoveryMetrics] = await Promise.all([
         FirestoreService.getActivities(new Date(Date.now() - 28 * 24 * 60 * 60 * 1000)),
         FirestoreService.getRecoveryMetrics(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000))
       ]);
+      
+      // Convert Firebase data to AI-compatible formats
+      const activities = DataAdapters.firebaseActivitiesToActivityMetrics(firebaseActivities);
+      const recoveryMetrics = firebaseRecoveryMetrics;
       
       const userProfile = await this.createUserProfile(userId);
       
@@ -328,34 +354,15 @@ export class AIService {
   /**
    * Create user training profile from available data
    */
-  private static async createUserProfile(_userId: string): Promise<UserTrainingProfile> {
+  private static async createUserProfile(userId: string): Promise<UserTrainingProfile> {
     try {
-      // In a full implementation, you'd get this from user profile
-      // For now, return sensible defaults
-      return {
-        age: 35,
-        sex: 'other', // Default to avoid assumptions
-        restingHR: 60,
-        maxHR: 185,
-        fitnessLevel: 'intermediate',
-        preferredSports: ['running', 'cycling'],
-        trainingGoals: ['fitness', 'health'],
-        availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-        preferredWorkoutTimes: []
-      };
+      // Get user profile from UserProfileService
+      const userProfileService = UserProfileService.getInstance();
+      return DataAdapters.createUserTrainingProfileFromService(userProfileService);
     } catch (error) {
       // Return default profile if error
-      return {
-        age: 35,
-        sex: 'other',
-        restingHR: 60,
-        maxHR: 185,
-        fitnessLevel: 'intermediate',
-        preferredSports: ['running'],
-        trainingGoals: ['fitness'],
-        availableDays: ['Monday', 'Wednesday', 'Friday'],
-        preferredWorkoutTimes: []
-      };
+      console.warn('Failed to load user profile, using defaults:', error);
+      return DataAdapters.createUserTrainingProfile();
     }
   }
   

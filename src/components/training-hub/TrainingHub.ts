@@ -136,6 +136,15 @@ export class TrainingHub {
       this.loadInitialData();
     });
 
+    // AI Insights controls
+    document.getElementById('refresh-ai-btn')?.addEventListener('click', () => {
+      this.refreshAIInsights();
+    });
+
+    document.getElementById('toggle-ai-btn')?.addEventListener('click', () => {
+      this.toggleAIInsights();
+    });
+
     // Import drawer - handled in showImportDrawer method
 
     // File handling in import drawer
@@ -187,6 +196,9 @@ export class TrainingHub {
 
       // Update header metrics with Firebase data
       this.updateHeaderMetricsFromDashboard(dashboardData);
+      
+      // Display AI insights if available
+      this.displayAIInsights(dashboardData.aiInsights);
       
       // Initialize calendar with current workouts
       await this.workoutCalendar.initialize(this.state.trackedWorkouts, this.state.calendar);
@@ -317,8 +329,12 @@ export class TrainingHub {
       }
     }
 
-    // Enhanced readiness calculation using recovery metrics
+    // Enhanced readiness calculation - use AI insights if available
     let readiness = 85 - (weeklyLoad / 50); // Base calculation decreases with high training load
+    
+    if (dashboardData.aiInsights?.quickStats?.readinessScore) {
+      readiness = dashboardData.aiInsights.quickStats.readinessScore;
+    }
     
     // Incorporate recovery metrics if available
     if (this.recoveryTracker) {
@@ -1404,6 +1420,241 @@ export class TrainingHub {
     });
   }
 
+  /**
+   * AI INSIGHTS METHODS
+   */
+  
+  /**
+   * Display AI insights in the dashboard
+   */
+  private displayAIInsights(aiInsights?: any): void {
+    const contentEl = document.getElementById('ai-insights-content');
+    if (!contentEl) return;
+
+    if (!this.dashboardService.isAIInsightsEnabled()) {
+      contentEl.innerHTML = `
+        <div class="ai-disabled">
+          <span class="error-icon">🤖</span>
+          <p>AI insights are disabled or unavailable</p>
+          <button class="btn btn-primary enable-btn" onclick="this.enableAI()">Enable AI Insights</button>
+        </div>
+      `;
+      return;
+    }
+
+    if (!aiInsights) {
+      contentEl.innerHTML = `
+        <div class="ai-error">
+          <span class="error-icon">⚠️</span>
+          <p>Unable to load AI insights</p>
+          <button class="btn btn-secondary retry-btn" onclick="this.refreshAIInsights()">Retry</button>
+        </div>
+      `;
+      return;
+    }
+
+    // Create insights grid
+    const insightsHTML = `
+      <div class="ai-insights-grid">
+        ${this.createReadinessCard(aiInsights.quickStats)}
+        ${this.createWorkoutRecommendationCard(aiInsights.workoutRecommendation)}
+        ${this.createFatigueStatusCard(aiInsights.fatigueAssessment)}
+        ${this.createPerformanceTrendCard(aiInsights.performanceAnalysis)}
+      </div>
+    `;
+
+    contentEl.innerHTML = insightsHTML;
+  }
+
+  private createReadinessCard(quickStats: any): string {
+    if (!quickStats) return '';
+    
+    const score = quickStats.readinessScore || 0;
+    const progressPercent = (score / 100) * 360;
+    
+    return `
+      <div class="ai-insight-card">
+        <div class="insight-header">
+          <h4 class="insight-title">Training Readiness</h4>
+        </div>
+        <div class="insight-content">
+          <div class="readiness-score">
+            <div class="score-circle" style="--progress: ${progressPercent}deg">
+              ${score}
+            </div>
+            <div class="score-label">Ready to Train</div>
+          </div>
+          <div class="performance-trend">
+            <span class="trend-indicator ${quickStats.trendDirection}">${this.getTrendIcon(quickStats.trendDirection)}</span>
+            <span class="trend-text">${quickStats.trendDirection}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  private createWorkoutRecommendationCard(workoutRec: any): string {
+    if (!workoutRec || !workoutRec.recommendedWorkout) return '';
+    
+    const workout = workoutRec.recommendedWorkout;
+    const confidence = workoutRec.confidence || 0;
+    
+    return `
+      <div class="ai-insight-card">
+        <div class="insight-header">
+          <h4 class="insight-title">Tomorrow's Workout</h4>
+          <div class="insight-confidence">${confidence}% confidence</div>
+        </div>
+        <div class="insight-content">
+          <div class="workout-recommendation">
+            <div class="workout-type">${workout.type}</div>
+            <div class="workout-description">${workout.description}</div>
+            <div class="workout-stats">
+              <div class="stat">
+                <span>⏱️ ${workout.durationMin} min</span>
+              </div>
+              <div class="stat">
+                <span>💪 ${workout.fatigueScore}/100 intensity</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="insight-actions">
+          <button class="btn btn-primary btn-sm" onclick="this.applyWorkoutRecommendation()">Apply to Plan</button>
+        </div>
+      </div>
+    `;
+  }
+
+  private createFatigueStatusCard(fatigueAssessment: any): string {
+    if (!fatigueAssessment) return '';
+    
+    const status = fatigueAssessment.overallStatus || 'unknown';
+    const riskLevel = fatigueAssessment.riskLevel || 'low';
+    
+    return `
+      <div class="ai-insight-card">
+        <div class="insight-header">
+          <h4 class="insight-title">Fatigue Status</h4>
+        </div>
+        <div class="insight-content">
+          <div class="fatigue-status">
+            <div class="status-indicator ${status}"></div>
+            <div class="status-text">${status}</div>
+          </div>
+          <p style="margin: 0.5rem 0; color: rgba(255,255,255,0.7); font-size: 0.85rem;">
+            Risk Level: <strong style="color: ${this.getRiskColor(riskLevel)}">${riskLevel}</strong>
+          </p>
+          <p style="margin: 0; font-size: 0.85rem; color: rgba(255,255,255,0.6);">
+            ${this.getFatigueRecommendation(status, riskLevel)}
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  private createPerformanceTrendCard(perfAnalysis: any): string {
+    if (!perfAnalysis) return '';
+    
+    const trend = perfAnalysis.overallTrend || 'stable';
+    
+    return `
+      <div class="ai-insight-card">
+        <div class="insight-header">
+          <h4 class="insight-title">Performance Trend</h4>
+        </div>
+        <div class="insight-content">
+          <div class="performance-trend">
+            <span class="trend-indicator ${trend}">${this.getTrendIcon(trend)}</span>
+            <span class="trend-text">${trend}</span>
+          </div>
+          <p style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: rgba(255,255,255,0.6);">
+            ${this.getPerformanceInsight(trend)}
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  private getTrendIcon(trend: string): string {
+    switch (trend) {
+      case 'improving': return '📈';
+      case 'declining': return '📉';
+      case 'stable': return '➡️';
+      default: return '❓';
+    }
+  }
+
+  private getRiskColor(risk: string): string {
+    switch (risk) {
+      case 'low': return '#4CAF50';
+      case 'moderate': return '#2196F3';
+      case 'high': return '#FF9800';
+      case 'critical': return '#F44336';
+      default: return '#666';
+    }
+  }
+
+  private getFatigueRecommendation(status: string, risk: string): string {
+    if (risk === 'critical') return 'Consider taking a rest day';
+    if (status === 'overtrained') return 'Focus on recovery and light training';
+    if (status === 'fatigued') return 'Easy training recommended';
+    if (status === 'fresh') return 'Ready for quality training';
+    return 'Continue with planned training';
+  }
+
+  private getPerformanceInsight(trend: string): string {
+    switch (trend) {
+      case 'improving': return 'Your performance is trending upward - great work!';
+      case 'declining': return 'Consider adjusting training load or focus on recovery';
+      case 'stable': return 'Performance is consistent - maintain current approach';
+      default: return 'Keep training consistently for best results';
+    }
+  }
+
+  /**
+   * Refresh AI insights
+   */
+  private async refreshAIInsights(): Promise<void> {
+    try {
+      UIHelpers.showStatus('Refreshing AI insights...', 'info');
+      
+      // Force refresh dashboard data to get new AI insights
+      const dashboardData = await this.dashboardService.getDashboardData(true);
+      this.displayAIInsights(dashboardData.aiInsights);
+      
+      UIHelpers.showStatus('AI insights refreshed', 'success');
+    } catch (error) {
+      console.error('Failed to refresh AI insights:', error);
+      UIHelpers.showStatus('Failed to refresh AI insights', 'error');
+    }
+  }
+
+  /**
+   * Toggle AI insights on/off
+   */
+  private toggleAIInsights(): void {
+    const currentState = this.dashboardService.isAIInsightsEnabled();
+    this.dashboardService.setAIInsightsEnabled(!currentState);
+    
+    if (!currentState) {
+      // AI was enabled - refresh to show insights
+      this.refreshAIInsights();
+      UIHelpers.showStatus('AI insights enabled', 'success');
+    } else {
+      // AI was disabled - show disabled state
+      this.displayAIInsights(null);
+      UIHelpers.showStatus('AI insights disabled', 'info');
+    }
+    
+    // Update toggle button state
+    const toggleBtn = document.getElementById('toggle-ai-btn');
+    if (toggleBtn) {
+      toggleBtn.style.color = !currentState ? '#4CAF50' : 'rgba(255,255,255,0.8)';
+      toggleBtn.title = !currentState ? 'Disable AI Features' : 'Enable AI Features';
+    }
+  }
+
   private async handleLogout(): Promise<void> {
     try {
       // Use AuthService directly for logout
@@ -1417,7 +1668,309 @@ export class TrainingHub {
   }
 
   private showEditProfileModal(): void {
-    UIHelpers.showStatus('Edit profile functionality coming soon!', 'info');
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content profile-modal">
+        <div class="modal-header">
+          <h3>🏃‍♂️ Edit Training Profile</h3>
+          <button class="close-btn" id="close-profile-modal">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+          <form id="profile-form" class="profile-form">
+            <!-- Basic Information -->
+            <div class="form-section">
+              <h4>Basic Information</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="profile-age">Age</label>
+                  <input type="number" id="profile-age" min="13" max="100" value="${this.userProfileService.getTrainingProfile().age}" required>
+                  <small>Used for heart rate zone calculations and training recommendations</small>
+                </div>
+                <div class="form-group">
+                  <label for="profile-sex">Sex</label>
+                  <select id="profile-sex" required>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other/Prefer not to say</option>
+                  </select>
+                  <small>Used for TRIMP calculations and training load analysis</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Heart Rate Zones -->
+            <div class="form-section">
+              <h4>Heart Rate Data</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="profile-resting-hr">Resting Heart Rate (bpm)</label>
+                  <input type="number" id="profile-resting-hr" min="30" max="100" value="${this.userProfileService.getTrainingProfile().restingHR}" required>
+                  <small>Measure when you first wake up in the morning</small>
+                </div>
+                <div class="form-group">
+                  <label for="profile-max-hr">Maximum Heart Rate (bpm)</label>
+                  <input type="number" id="profile-max-hr" min="100" max="250" value="${this.userProfileService.getTrainingProfile().maxHR}" required>
+                  <small>Highest HR you've achieved in all-out effort</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Training Information -->
+            <div class="form-section">
+              <h4>Training Background</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="profile-fitness-level">Current Fitness Level</label>
+                  <select id="profile-fitness-level" required>
+                    <option value="beginner">Beginner (0-1 year experience)</option>
+                    <option value="intermediate" selected>Intermediate (1-5 years experience)</option>
+                    <option value="advanced">Advanced (5+ years experience)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="profile-weekly-hours">Weekly Training Hours</label>
+                  <input type="number" id="profile-weekly-hours" min="0" max="40" step="0.5" value="5">
+                  <small>Average hours per week you train</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sport Preferences -->
+            <div class="form-section">
+              <h4>Sport Preferences</h4>
+              <div class="form-group">
+                <label>Primary Sports (select all that apply)</label>
+                <div class="checkbox-grid">
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="sport" value="running" checked> Running
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="sport" value="cycling"> Cycling
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="sport" value="swimming"> Swimming
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="sport" value="triathlon"> Triathlon
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="sport" value="strength"> Strength Training
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="sport" value="other"> Other
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Training Goals -->
+            <div class="form-section">
+              <h4>Training Goals</h4>
+              <div class="form-group">
+                <label>What are your main training goals? (select all that apply)</label>
+                <div class="checkbox-grid">
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="goal" value="fitness" checked> General Fitness
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="goal" value="weight-loss"> Weight Loss
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="goal" value="endurance"> Endurance
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="goal" value="speed"> Speed/Performance
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="goal" value="race"> Race Preparation
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="goal" value="health"> Health/Recovery
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Training Schedule -->
+            <div class="form-section">
+              <h4>Training Schedule</h4>
+              <div class="form-group">
+                <label>Available Training Days</label>
+                <div class="checkbox-grid">
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="day" value="Monday" checked> Monday
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="day" value="Tuesday" checked> Tuesday
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="day" value="Wednesday" checked> Wednesday
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="day" value="Thursday" checked> Thursday
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="day" value="Friday" checked> Friday
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="day" value="Saturday" checked> Saturday
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="day" value="Sunday"> Sunday
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- AI Settings -->
+            <div class="form-section">
+              <h4>🤖 AI Insights Settings</h4>
+              <div class="form-group">
+                <label class="checkbox-item">
+                  <input type="checkbox" id="enable-ai-insights" checked>
+                  Enable AI-powered training insights and recommendations
+                </label>
+                <small>AI uses your profile data and training history to provide personalized recommendations</small>
+              </div>
+            </div>
+          </form>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancel-profile-edit">Cancel</button>
+          <button type="submit" form="profile-form" class="btn btn-primary" id="save-profile">Save Profile</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Set current values
+    const currentProfile = this.userProfileService.getTrainingProfile();
+    (document.getElementById('profile-fitness-level') as HTMLSelectElement).value = currentProfile.fitnessLevel;
+    
+    // Check current sports
+    const sports = currentProfile.preferredSports;
+    sports.forEach(sport => {
+      const checkbox = document.querySelector(`input[name="sport"][value="${sport}"]`) as HTMLInputElement;
+      if (checkbox) checkbox.checked = true;
+    });
+
+    // Event listeners
+    document.getElementById('close-profile-modal')?.addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+
+    document.getElementById('cancel-profile-edit')?.addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+
+    document.getElementById('profile-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.saveProfileData(modal);
+    });
+
+    // Close on overlay click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        document.body.removeChild(modal);
+      }
+    });
+  }
+
+  private async saveProfileData(modal: HTMLElement): Promise<void> {
+    try {
+      UIHelpers.showStatus('Saving profile...', 'info');
+
+      // Collect form data
+      const age = parseInt((document.getElementById('profile-age') as HTMLInputElement).value);
+      const sex = (document.getElementById('profile-sex') as HTMLSelectElement).value as 'male' | 'female' | 'other';
+      const restingHR = parseInt((document.getElementById('profile-resting-hr') as HTMLInputElement).value);
+      const maxHR = parseInt((document.getElementById('profile-max-hr') as HTMLInputElement).value);
+      const fitnessLevel = (document.getElementById('profile-fitness-level') as HTMLSelectElement).value as 'beginner' | 'intermediate' | 'advanced';
+      const weeklyHours = parseFloat((document.getElementById('profile-weekly-hours') as HTMLInputElement).value);
+      
+      // Collect selected sports
+      const sportsCheckboxes = document.querySelectorAll('input[name="sport"]:checked') as NodeListOf<HTMLInputElement>;
+      const sports = Array.from(sportsCheckboxes).map(cb => cb.value);
+      
+      // Collect selected goals
+      const goalsCheckboxes = document.querySelectorAll('input[name="goal"]:checked') as NodeListOf<HTMLInputElement>;
+      const goals = Array.from(goalsCheckboxes).map(cb => cb.value);
+      
+      // Collect available days
+      const daysCheckboxes = document.querySelectorAll('input[name="day"]:checked') as NodeListOf<HTMLInputElement>;
+      const availableDays = Array.from(daysCheckboxes).map(cb => cb.value);
+
+      // AI settings
+      const aiEnabled = (document.getElementById('enable-ai-insights') as HTMLInputElement).checked;
+
+      // Validate required fields
+      if (!age || age < 13 || age > 100) {
+        throw new Error('Please enter a valid age between 13 and 100');
+      }
+      if (!restingHR || restingHR < 30 || restingHR > 100) {
+        throw new Error('Please enter a valid resting heart rate between 30 and 100 bpm');
+      }
+      if (!maxHR || maxHR < 100 || maxHR > 250) {
+        throw new Error('Please enter a valid maximum heart rate between 100 and 250 bpm');
+      }
+      if (sports.length === 0) {
+        throw new Error('Please select at least one sport');
+      }
+      if (goals.length === 0) {
+        throw new Error('Please select at least one training goal');
+      }
+
+      // Update user profile
+      await this.userProfileService.updateProfile({
+        preferences: {
+          age,
+          sex,
+          restingHR,
+          maxHR,
+          fitnessLevel,
+          sports,
+          goals,
+          weeklyHours,
+          availableDays,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          units: 'metric',
+          hrZones: this.calculateHRZones(restingHR, maxHR)
+        }
+      });
+
+      // Update AI settings
+      this.dashboardService.setAIInsightsEnabled(aiEnabled);
+
+      // Close modal and refresh
+      document.body.removeChild(modal);
+      this.renderProfileView();
+      
+      UIHelpers.showStatus('Profile saved successfully!', 'success');
+
+      // Refresh AI insights if enabled
+      if (aiEnabled) {
+        await this.refreshAIInsights();
+      }
+
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      UIHelpers.showStatus(error instanceof Error ? error.message : 'Failed to save profile', 'error');
+    }
+  }
+
+  private calculateHRZones(restingHR: number, maxHR: number) {
+    const hrReserve = maxHR - restingHR;
+    return {
+      zone1: { min: restingHR + Math.round(hrReserve * 0.50), max: restingHR + Math.round(hrReserve * 0.60) },
+      zone2: { min: restingHR + Math.round(hrReserve * 0.60), max: restingHR + Math.round(hrReserve * 0.70) },
+      zone3: { min: restingHR + Math.round(hrReserve * 0.70), max: restingHR + Math.round(hrReserve * 0.80) },
+      zone4: { min: restingHR + Math.round(hrReserve * 0.80), max: restingHR + Math.round(hrReserve * 0.90) },
+      zone5: { min: restingHR + Math.round(hrReserve * 0.90), max: maxHR }
+    };
   }
 
   private showDeleteAccountModal(): void {

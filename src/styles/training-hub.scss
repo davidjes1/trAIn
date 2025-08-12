@@ -1161,3 +1161,407 @@
     opacity: 1;
   }
 }
+
+// AI Insights Section
+.ai-insights-section {
+  margin-bottom: 2rem;
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+
+    h2 {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .ai-controls {
+      display: flex;
+      gap: 0.5rem;
+
+      .btn-ghost {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.8);
+        padding: 0.5rem;
+        border-radius: $border-radius-small;
+        font-size: 1rem;
+        
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+          color: $white;
+        }
+
+        &.disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+
+  .ai-insights-content {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: $border-radius-medium;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .ai-loading {
+      color: rgba(255, 255, 255, 0.6);
+      text-align: center;
+      font-style: italic;
+    }
+  }
+
+  .ai-insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .ai-insight-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: $border-radius-small;
+    padding: 1rem;
+
+    .insight-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+
+      .insight-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.9);
+        margin: 0;
+      }
+
+      .insight-confidence {
+        background: rgba($accent-color, 0.2);
+        color: $accent-color;
+        padding: 0.25rem 0.5rem;
+        border-radius: $border-radius-small;
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+    }
+
+    .insight-content {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 0.9rem;
+      line-height: 1.4;
+
+      .workout-recommendation {
+        .workout-type {
+          font-weight: 600;
+          color: $accent-color;
+          text-transform: capitalize;
+          margin-bottom: 0.25rem;
+        }
+
+        .workout-description {
+          margin-bottom: 0.5rem;
+        }
+
+        .workout-stats {
+          display: flex;
+          gap: 1rem;
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.6);
+
+          .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+          }
+        }
+      }
+
+      .fatigue-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        
+        .status-indicator {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          
+          &.fresh { background-color: #4CAF50; }
+          &.normal { background-color: #2196F3; }
+          &.fatigued { background-color: #FF9800; }
+          &.overtrained { background-color: #F44336; }
+        }
+
+        .status-text {
+          font-weight: 500;
+          text-transform: capitalize;
+        }
+      }
+
+      .performance-trend {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        .trend-indicator {
+          font-size: 1.2rem;
+          
+          &.improving { color: #4CAF50; }
+          &.stable { color: #2196F3; }
+          &.declining { color: #FF9800; }
+        }
+
+        .trend-text {
+          font-weight: 500;
+          text-transform: capitalize;
+        }
+      }
+
+      .readiness-score {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 0.25rem;
+
+        .score-circle {
+          width: 60px;
+          height: 60px;
+          border: 3px solid $accent-color;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.2rem;
+          font-weight: 600;
+          color: $accent-color;
+          position: relative;
+
+          &::before {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            padding: 3px;
+            background: conic-gradient(from 0deg, $accent-color var(--progress), transparent 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: xor;
+          }
+        }
+
+        .score-label {
+          font-size: 0.8rem;
+          color: rgba(255, 255, 255, 0.6);
+        }
+      }
+    }
+
+    .insight-actions {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      gap: 0.5rem;
+
+      .btn {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+      }
+    }
+  }
+
+  .ai-error {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 2rem;
+    font-style: italic;
+
+    .error-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .retry-btn {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+  }
+
+  .ai-disabled {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 2rem;
+    font-style: italic;
+
+    .enable-btn {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+  }
+}
+
+// Profile Modal Styles
+.profile-modal {
+  max-width: 700px !important;
+  max-height: 90vh;
+  overflow-y: auto;
+
+  .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 1.5rem;
+  }
+
+  .profile-form {
+    .form-section {
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+      &:last-child {
+        border-bottom: none;
+        margin-bottom: 1rem;
+      }
+
+      h4 {
+        color: $accent-color;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+
+      label {
+        display: block;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+      }
+
+      input, select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: $border-radius-small;
+        background: rgba(255, 255, 255, 0.05);
+        color: $white;
+        font-size: 0.9rem;
+
+        &:focus {
+          outline: none;
+          border-color: $accent-color;
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        &::placeholder {
+          color: rgba(255, 255, 255, 0.5);
+        }
+      }
+
+      select {
+        cursor: pointer;
+        
+        option {
+          background: $background-primary;
+          color: $white;
+        }
+      }
+
+      small {
+        display: block;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.8rem;
+        margin-top: 0.25rem;
+        font-style: italic;
+      }
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .checkbox-item {
+      display: flex !important;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: $border-radius-small;
+      background: rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.85rem;
+      margin-bottom: 0 !important;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+
+      input[type="checkbox"] {
+        width: auto !important;
+        margin: 0;
+        accent-color: $accent-color;
+      }
+
+      input[type="checkbox"]:checked + label,
+      &:has(input[type="checkbox"]:checked) {
+        background: rgba($accent-color, 0.1);
+        border-color: $accent-color;
+        color: $accent-color;
+      }
+    }
+  }
+
+  .modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+
+    .btn {
+      min-width: 100px;
+    }
+  }
+}

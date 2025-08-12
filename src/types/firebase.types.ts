@@ -19,8 +19,11 @@ export interface UserPreferences {
   restingHR: number;
   maxHR: number;
   age: number;
+  sex?: 'male' | 'female' | 'other';
   sports: string[];
   goals: string[];
+  availableDays?: string[];
+  weeklyHours?: number;
 }
 
 export interface HRZoneConfig {
