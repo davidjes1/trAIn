@@ -3,6 +3,7 @@ import { PlanGenerator } from '../../services/PlanGenerator';
 import { PeriodizationService } from '../../services/PeriodizationService';
 import { PlanAdjustmentService } from '../../services/PlanAdjustmentService';
 import { WorkoutStorageService } from '../../services/WorkoutStorageService';
+import WorkoutPlanIntegration from '../../services/WorkoutPlanIntegration';
 import { TrainingTemplates } from '../../config/training-templates';
 import { 
   PlanOptions, 
@@ -142,7 +143,10 @@ export class TrainingPlanManager {
         };
       }
 
-      // Save the plan to Firebase
+      // Save the plan to unified WorkoutService (new approach)
+      await this.saveGeneratedPlanAsWorkouts();
+
+      // Also save to legacy storage system for backward compatibility
       await this.savePlanToStorage();
 
       this.displayGeneratedPlan();
@@ -1379,6 +1383,57 @@ export class TrainingPlanManager {
    */
   public async showSavedPlans(): Promise<void> {
     await this.showPlanSelectionModal();
+  }
+
+  /**
+   * Save generated plan using unified WorkoutService
+   */
+  private async saveGeneratedPlanAsWorkouts(): Promise<void> {
+    if (!this.currentPlan) {
+      console.warn('No current plan to save as workouts');
+      return;
+    }
+
+    try {
+      console.log('💾 Saving generated plan to unified WorkoutService...');
+      
+      // Use integration service to convert and save
+      const result = await WorkoutPlanIntegration.replaceGeneratedPlan(this.currentPlan);
+      
+      console.log(`✅ Successfully saved ${result.workouts.length} planned workouts`);
+      
+      if (result.failures.length > 0) {
+        console.warn(`⚠️ ${result.failures.length} workouts failed to save`);
+        result.failures.forEach(failure => {
+          console.error(`Failed to save workout for ${failure.trainingPlan.date}:`, failure.error);
+        });
+      }
+
+      // Trigger calendar refresh if present
+      this.notifyWorkoutCalendarUpdate();
+      
+    } catch (error) {
+      console.error('❌ Failed to save plan as workouts:', error);
+      UIHelpers.showStatus('Plan generated but failed to save to workout calendar', 'warning');
+    }
+  }
+
+  /**
+   * Notify other components that workouts have been updated
+   */
+  private notifyWorkoutCalendarUpdate(): void {
+    // Dispatch custom event for other components to listen to
+    const event = new CustomEvent('workouts-updated', {
+      detail: {
+        source: 'plan-generation',
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+    document.dispatchEvent(event);
+    
+    // Also trigger existing recovery metrics update for compatibility
+    window.dispatchEvent(new Event('recovery-metrics-updated'));
   }
 
   /**

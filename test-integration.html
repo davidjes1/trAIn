@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Test - trAIn Unified Workout System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .test-results {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .status-display {
+            padding: 10px 20px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+
+        .status-success { background-color: rgba(16, 185, 129, 0.3); }
+        .status-error { background-color: rgba(239, 68, 68, 0.3); }
+        .status-info { background-color: rgba(59, 130, 246, 0.3); }
+
+        .workout-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid;
+        }
+
+        .workout-card.planned { border-left-color: #6366f1; }
+        .workout-card.completed { border-left-color: #10b981; }
+        .workout-card.missed { border-left-color: #ef4444; }
+        .workout-card.unplanned { border-left-color: #f59e0b; }
+
+        .calendar-container {
+            margin-top: 20px;
+            min-height: 400px;
+        }
+
+        h1, h2, h3 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏋️ trAIn Integration Test</h1>
+        <p>Testing the complete integration between plan generation and unified workout system</p>
+        
+        <div id="status-display"></div>
+
+        <!-- Authentication Test -->
+        <div class="test-section">
+            <h3>🔑 Authentication Status</h3>
+            <button onclick="checkAuth()">Check Authentication</button>
+            <div id="auth-results" class="test-results"></div>
+        </div>
+
+        <!-- Plan Generation Test -->
+        <div class="test-section">
+            <h3>📋 Plan Generation Test</h3>
+            <p>Generate a sample training plan and verify it's saved to the unified WorkoutService</p>
+            
+            <button onclick="generateSamplePlan()">Generate Sample Plan</button>
+            <button onclick="clearTestData()">Clear Test Data</button>
+            <div id="plan-results" class="test-results"></div>
+        </div>
+
+        <!-- Workout Display Test -->
+        <div class="test-section">
+            <h3>📅 Calendar Display Test</h3>
+            <p>Load and display workouts from unified system</p>
+            
+            <button onclick="loadWorkoutsFromUnifiedService()">Load Workouts</button>
+            <button onclick="testCalendarDisplay()">Test Calendar Display</button>
+            <div id="workout-results" class="test-results"></div>
+            <div id="calendar-container" class="calendar-container"></div>
+        </div>
+
+        <!-- FIT File Upload Test -->
+        <div class="test-section">
+            <h3>📁 FIT File Processing Test</h3>
+            <p>Test workout completion workflow</p>
+            
+            <input type="file" id="fit-file-input" accept=".fit" style="display: none;" onchange="handleFitFileUpload(event)">
+            <button onclick="document.getElementById('fit-file-input').click()">Upload Test FIT File</button>
+            <button onclick="simulateWorkoutCompletion()">Simulate Workout Completion</button>
+            <div id="fit-results" class="test-results"></div>
+        </div>
+    </div>
+
+    <!-- Load test module -->
+    <script type="module" src="/src/test-integration.ts"></script>
+</body>
+</html>

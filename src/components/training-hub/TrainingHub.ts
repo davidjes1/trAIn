@@ -13,6 +13,7 @@ import { DashboardService, DashboardData } from '../../services/DashboardService
 import { FirestoreService } from '../../firebase/firestore';
 import { UIHelpers } from '../../utils/ui-helpers';
 import { EnhancedWorkoutCalendar } from './WorkoutCalendar-Enhanced';
+import { UnifiedWorkoutCalendar } from '../workout-calendar/UnifiedWorkoutCalendar';
 import { WorkoutComparison } from './WorkoutComparison';
 import { RecoveryMetricsTracker } from '../recovery/RecoveryMetricsTracker';
 import { AuthManager } from '../auth/AuthManager';
@@ -23,6 +24,7 @@ import { User } from 'firebase/auth';
 export class TrainingHub {
   private state: TrainingHubState;
   private workoutCalendar: EnhancedWorkoutCalendar;
+  private unifiedWorkoutCalendar: UnifiedWorkoutCalendar | null = null;
   private workoutComparison: WorkoutComparison;
   private recoveryTracker!: RecoveryMetricsTracker; // Initialized after authentication
   private authManager!: AuthManager; // Initialized in constructor
@@ -84,6 +86,7 @@ export class TrainingHub {
       
       // Initialize the app
       this.initializeEventListeners();
+      this.initializeUnifiedCalendar();
       this.loadInitialData();
     } else {
       // Disable real-time sync when user logs out
@@ -2188,6 +2191,200 @@ export class TrainingHub {
   }
 
   /**
+   * Initialize unified workout calendar
+   */
+  private initializeUnifiedCalendar(): void {
+    try {
+      // Find the calendar container
+      const calendarContainer = document.getElementById('workout-calendar');
+      if (!calendarContainer) {
+        console.warn('Workout calendar container not found, skipping unified calendar initialization');
+        return;
+      }
+
+      console.log('🗓️ Initializing unified workout calendar...');
+
+      // Create unified calendar configuration
+      const config = {
+        viewType: 'week' as const,
+        startDate: new Date().toISOString().split('T')[0],
+        highlightToday: true,
+        showStatusFilter: undefined, // Show all statuses
+        showSportFilter: undefined   // Show all sports
+      };
+
+      // Initialize unified calendar
+      this.unifiedWorkoutCalendar = new UnifiedWorkoutCalendar(
+        calendarContainer,
+        config,
+        {
+          onWorkoutClick: (workout) => this.onUnifiedWorkoutSelected(workout)
+        }
+      );
+
+      console.log('✅ Unified workout calendar initialized');
+
+    } catch (error) {
+      console.error('❌ Failed to initialize unified workout calendar:', error);
+    }
+  }
+
+  /**
+   * Handle workout selection from unified calendar
+   */
+  private onUnifiedWorkoutSelected(workout: any): void {
+    console.log('🎯 Workout selected from unified calendar:', workout.name);
+    
+    // Show workout detail panel
+    this.showWorkoutDetail(workout);
+    
+    // You can also trigger other actions here
+    // like showing a workout editing modal, etc.
+  }
+
+  /**
+   * Show workout detail panel
+   */
+  private showWorkoutDetail(workout: any): void {
+    const detailPanel = document.getElementById('workout-detail-panel');
+    const detailContent = document.getElementById('workout-detail-content');
+    
+    if (!detailPanel || !detailContent) {
+      console.warn('Workout detail panel not found');
+      return;
+    }
+
+    // Generate workout detail HTML
+    const detailHTML = this.generateWorkoutDetailHTML(workout);
+    detailContent.innerHTML = detailHTML;
+    
+    // Show the panel
+    detailPanel.style.display = 'block';
+    
+    // Update panel title
+    const titleElement = document.getElementById('workout-detail-title');
+    if (titleElement) {
+      titleElement.textContent = workout.name;
+    }
+  }
+
+  /**
+   * Generate workout detail HTML
+   */
+  private generateWorkoutDetailHTML(workout: any): string {
+    const sportIcon = this.getSportIcon(workout.sport);
+    const statusBadge = this.getStatusBadge(workout.status);
+    
+    return `
+      <div class="workout-detail-content">
+        <div class="workout-header">
+          <span class="sport-icon">${sportIcon}</span>
+          <div class="workout-info">
+            <h4>${workout.name}</h4>
+            <p class="workout-date">${new Date(workout.date).toLocaleDateString()}</p>
+            ${statusBadge}
+          </div>
+        </div>
+
+        ${workout.description ? `
+          <div class="workout-description">
+            <h5>Description</h5>
+            <p>${workout.description}</p>
+          </div>
+        ` : ''}
+
+        ${workout.planned ? `
+          <div class="planned-workout-section">
+            <h5>📋 Planned Workout</h5>
+            <div class="workout-metrics">
+              ${workout.planned.durationMin ? `<div class="metric"><strong>Duration:</strong> ${workout.planned.durationMin} min</div>` : ''}
+              ${workout.planned.distanceKm ? `<div class="metric"><strong>Distance:</strong> ${workout.planned.distanceKm} km</div>` : ''}
+              ${workout.planned.expectedFatigue ? `<div class="metric"><strong>Expected Effort:</strong> ${workout.planned.expectedFatigue}/100</div>` : ''}
+            </div>
+            ${workout.planned.tags && workout.planned.tags.length > 0 ? `
+              <div class="workout-tags">
+                <strong>Tags:</strong> ${workout.planned.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+              </div>
+            ` : ''}
+            ${workout.planned.notes ? `
+              <div class="workout-notes">
+                <strong>Notes:</strong> <p>${workout.planned.notes}</p>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+
+        ${workout.actual ? `
+          <div class="actual-workout-section">
+            <h5>✅ Completed Workout</h5>
+            <div class="workout-metrics">
+              <div class="metric"><strong>Duration:</strong> ${workout.actual.durationMin} min</div>
+              <div class="metric"><strong>Distance:</strong> ${workout.actual.distanceKm.toFixed(2)} km</div>
+              ${workout.actual.avgHR ? `<div class="metric"><strong>Avg HR:</strong> ${workout.actual.avgHR} bpm</div>` : ''}
+              ${workout.actual.maxHR ? `<div class="metric"><strong>Max HR:</strong> ${workout.actual.maxHR} bpm</div>` : ''}
+              ${workout.actual.avgPace ? `<div class="metric"><strong>Avg Pace:</strong> ${workout.actual.avgPace}/km</div>` : ''}
+              ${workout.actual.trainingLoad ? `<div class="metric"><strong>Training Load:</strong> ${workout.actual.trainingLoad}</div>` : ''}
+              ${workout.actual.calories ? `<div class="metric"><strong>Calories:</strong> ${workout.actual.calories}</div>` : ''}
+            </div>
+
+            ${workout.actual.zones && workout.actual.zones.length > 0 ? `
+              <div class="hr-zones">
+                <strong>Heart Rate Zones:</strong>
+                <div class="zones-chart">
+                  ${workout.actual.zones.map(zone => `
+                    <div class="zone-bar">
+                      <span class="zone-label">Z${zone.zone}</span>
+                      <div class="zone-time">${zone.minutes}min</div>
+                      ${zone.percentage ? `<div class="zone-percentage">${zone.percentage}%</div>` : ''}
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+
+        <div class="workout-actions">
+          ${workout.status === 'planned' ? `
+            <button class="btn btn-success" onclick="markWorkoutCompleted('${workout.id}')">Mark Completed</button>
+            <button class="btn btn-warning" onclick="markWorkoutMissed('${workout.id}')">Mark Missed</button>
+          ` : ''}
+          <button class="btn btn-secondary" onclick="editWorkout('${workout.id}')">Edit</button>
+          <button class="btn btn-danger" onclick="deleteWorkout('${workout.id}')">Delete</button>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Get sport icon
+   */
+  private getSportIcon(sport: string): string {
+    const iconMap: Record<string, string> = {
+      'run': '🏃',
+      'bike': '🚴',
+      'swim': '🏊',
+      'strength': '💪',
+      'yoga': '🧘',
+      'other': '⚽'
+    };
+    return iconMap[sport] || '⚽';
+  }
+
+  /**
+   * Get status badge
+   */
+  private getStatusBadge(status: string): string {
+    const badgeMap: Record<string, string> = {
+      'planned': '<span class="status-badge planned">📅 Planned</span>',
+      'completed': '<span class="status-badge completed">✅ Completed</span>',
+      'missed': '<span class="status-badge missed">❌ Missed</span>',
+      'unplanned': '<span class="status-badge unplanned">⚡ Unplanned</span>'
+    };
+    return badgeMap[status] || '<span class="status-badge">❓ Unknown</span>';
+  }
+
+  /**
    * Sync training data from Firebase
    */
   private async syncTrainingData(): Promise<void> {
@@ -2197,8 +2394,13 @@ export class TrainingHub {
       // Refresh dashboard data
       await this.loadDashboardData();
       
-      // Refresh calendar data
+      // Refresh legacy calendar data
       await this.workoutCalendar.refreshFromStorage();
+      
+      // Refresh unified calendar data
+      if (this.unifiedWorkoutCalendar) {
+        await this.unifiedWorkoutCalendar.refresh();
+      }
       
       // Refresh recovery metrics
       if (this.recoveryTracker) {
