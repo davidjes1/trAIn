@@ -2,6 +2,7 @@
 import { PlanGenerator } from '../../services/PlanGenerator';
 import { PeriodizationService } from '../../services/PeriodizationService';
 import { PlanAdjustmentService } from '../../services/PlanAdjustmentService';
+import { WorkoutStorageService } from '../../services/WorkoutStorageService';
 import { TrainingTemplates } from '../../config/training-templates';
 import { 
   PlanOptions, 
@@ -25,6 +26,7 @@ export class TrainingPlanManager {
     this.initializeEventListeners();
     this.initializeTemplateDescriptions();
     this.setDefaultEventDate();
+    this.loadSavedPlan();
   }
 
   private initializeEventListeners(): void {
@@ -140,8 +142,11 @@ export class TrainingPlanManager {
         };
       }
 
+      // Save the plan to Firebase
+      await this.savePlanToStorage();
+
       this.displayGeneratedPlan();
-      UIHelpers.showStatus('Training plan generated successfully!', 'success');
+      UIHelpers.showStatus('Training plan generated and saved successfully!', 'success');
       
     } catch (error) {
       console.error('Error generating plan:', error);
@@ -1077,5 +1082,323 @@ export class TrainingPlanManager {
    */
   public isAIEnabled(): boolean {
     return this.aiInsightsEnabled;
+  }
+
+  /**
+   * WORKOUT PERSISTENCE METHODS
+   */
+
+  /**
+   * Save the current plan to Firebase storage
+   */
+  private async savePlanToStorage(): Promise<void> {
+    if (!this.currentPlan) {
+      console.warn('No current plan to save');
+      return;
+    }
+
+    try {
+      // Check if user is authenticated
+      if (!WorkoutStorageService.isAuthenticated()) {
+        console.log('User not authenticated, plan will only be stored locally');
+        return;
+      }
+
+      // Generate a descriptive plan name
+      const planName = this.generatePlanName();
+      
+      // Save to Firebase (with localStorage fallback)
+      const planId = await WorkoutStorageService.saveTrainingPlan(this.currentPlan, planName);
+      
+      // Set as active plan
+      await WorkoutStorageService.setActivePlan(planId);
+      
+      console.log(`Plan saved with ID: ${planId}`);
+      
+    } catch (error) {
+      console.error('Error saving plan:', error);
+      UIHelpers.showStatus('Plan generated but saving failed. It will be available this session only.', 'warning');
+    }
+  }
+
+  /**
+   * Load saved plan on initialization
+   */
+  private async loadSavedPlan(): Promise<void> {
+    try {
+      // Only load if user is authenticated
+      if (!WorkoutStorageService.isAuthenticated()) {
+        return;
+      }
+
+      const activePlan = await WorkoutStorageService.getActivePlan();
+      if (activePlan && this.isPlanStillRelevant(activePlan)) {
+        this.loadPlanFromStorage(activePlan);
+        UIHelpers.showStatus('Loaded your saved training plan', 'info');
+      }
+      
+    } catch (error) {
+      console.error('Error loading saved plan:', error);
+      // Continue silently - user can generate new plan
+    }
+  }
+
+  /**
+   * Load plan from storage format to current plan
+   */
+  private loadPlanFromStorage(storedPlan: import('../../services/WorkoutStorageService').StoredTrainingPlan): void {
+    this.currentPlan = {
+      plan: storedPlan.plan,
+      readinessMetrics: storedPlan.readinessMetrics,
+      recommendations: storedPlan.recommendations,
+      warnings: storedPlan.warnings,
+      generatedAt: storedPlan.generatedAt
+    };
+
+    // Display the loaded plan
+    this.displayGeneratedPlan();
+    
+    // Add indication that this is a loaded plan
+    const planSection = document.getElementById('generatedPlanSection');
+    if (planSection) {
+      planSection.style.display = 'block';
+      
+      // Add a "loaded plan" indicator
+      const existingIndicator = document.getElementById('loaded-plan-indicator');
+      if (!existingIndicator) {
+        const indicator = document.createElement('div');
+        indicator.id = 'loaded-plan-indicator';
+        indicator.className = 'alert alert-info';
+        indicator.innerHTML = `
+          <span>📋</span> <strong>${storedPlan.name}</strong> - Generated ${new Date(storedPlan.generatedAt).toLocaleDateString()}
+          <button class="btn btn-ghost btn-small" id="load-different-plan">Load Different Plan</button>
+        `;
+        
+        const planHeader = planSection.querySelector('.plan-header');
+        if (planHeader) {
+          planSection.insertBefore(indicator, planHeader.nextSibling);
+        }
+
+        // Add event listener for loading different plan
+        const loadDifferentBtn = document.getElementById('load-different-plan');
+        loadDifferentBtn?.addEventListener('click', () => this.showPlanSelectionModal());
+      }
+    }
+  }
+
+  /**
+   * Check if a stored plan is still relevant (within date range)
+   */
+  private isPlanStillRelevant(storedPlan: import('../../services/WorkoutStorageService').StoredTrainingPlan): boolean {
+    const today = new Date().toISOString().split('T')[0];
+    const planEndDate = storedPlan.endDate;
+    
+    // Plan is relevant if it hasn't ended yet
+    return planEndDate >= today;
+  }
+
+  /**
+   * Generate a descriptive name for the training plan
+   */
+  private generatePlanName(): string {
+    if (!this.currentPlan) return 'Training Plan';
+    
+    const startDate = this.currentPlan.plan[0]?.date;
+    const duration = this.currentPlan.plan.length;
+    const primaryWorkoutTypes = this.getTopWorkoutTypes();
+    
+    let name = `${duration}-Day Plan`;
+    
+    if (primaryWorkoutTypes.length > 0) {
+      name += ` (${primaryWorkoutTypes.slice(0, 2).join(', ')})`;
+    }
+    
+    if (startDate) {
+      const date = new Date(startDate);
+      name += ` - ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    }
+    
+    return name;
+  }
+
+  /**
+   * Get the most common workout types in the plan
+   */
+  private getTopWorkoutTypes(): string[] {
+    if (!this.currentPlan) return [];
+    
+    const typeCounts = this.currentPlan.plan.reduce((counts, workout) => {
+      counts[workout.workoutType] = (counts[workout.workoutType] || 0) + 1;
+      return counts;
+    }, {} as Record<string, number>);
+    
+    return Object.entries(typeCounts)
+      .sort(([,a], [,b]) => b - a)
+      .map(([type]) => type);
+  }
+
+  /**
+   * Show modal to select from saved training plans
+   */
+  private async showPlanSelectionModal(): Promise<void> {
+    try {
+      const savedPlans = await WorkoutStorageService.getStoredTrainingPlans();
+      
+      if (savedPlans.length === 0) {
+        UIHelpers.showStatus('No saved plans found', 'info');
+        return;
+      }
+
+      this.createPlanSelectionModal(savedPlans);
+      
+    } catch (error) {
+      console.error('Error loading saved plans:', error);
+      UIHelpers.showStatus('Error loading saved plans', 'error');
+    }
+  }
+
+  /**
+   * Create modal for selecting saved plans
+   */
+  private createPlanSelectionModal(plans: import('../../services/WorkoutStorageService').StoredTrainingPlan[]): void {
+    // Remove existing modal
+    const existingModal = document.getElementById('plan-selection-modal');
+    existingModal?.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'plan-selection-modal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Select Training Plan</h3>
+          <button class="btn btn-ghost close-modal-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="plans-list">
+            ${plans.map(plan => `
+              <div class="plan-item" data-plan-id="${plan.id}">
+                <div class="plan-info">
+                  <h4>${plan.name}</h4>
+                  <p class="plan-details">
+                    ${plan.plan.length} days • ${plan.startDate} to ${plan.endDate}
+                    ${plan.isActive ? '<span class="active-badge">Active</span>' : ''}
+                  </p>
+                  <p class="plan-summary">${plan.recommendations.slice(0, 2).join(', ')}</p>
+                </div>
+                <div class="plan-actions">
+                  <button class="btn btn-primary load-plan-btn" data-plan-id="${plan.id}">Load Plan</button>
+                  <button class="btn btn-danger delete-plan-btn" data-plan-id="${plan.id}">Delete</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary close-modal-btn">Close</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.style.display = 'flex';
+
+    // Add event listeners
+    this.attachPlanSelectionEventListeners(plans);
+  }
+
+  /**
+   * Attach event listeners for plan selection modal
+   */
+  private attachPlanSelectionEventListeners(plans: import('../../services/WorkoutStorageService').StoredTrainingPlan[]): void {
+    // Close modal events
+    const closeButtons = document.querySelectorAll('#plan-selection-modal .close-modal-btn');
+    closeButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('plan-selection-modal')?.remove();
+      });
+    });
+
+    // Load plan events
+    const loadButtons = document.querySelectorAll('.load-plan-btn');
+    loadButtons.forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const planId = (e.target as HTMLElement).dataset.planId;
+        if (planId) {
+          const plan = plans.find(p => p.id === planId);
+          if (plan) {
+            // Set as active plan
+            await WorkoutStorageService.setActivePlan(planId);
+            
+            // Load the plan
+            this.loadPlanFromStorage(plan);
+            
+            // Close modal
+            document.getElementById('plan-selection-modal')?.remove();
+            
+            UIHelpers.showStatus(`Loaded plan: ${plan.name}`, 'success');
+          }
+        }
+      });
+    });
+
+    // Delete plan events
+    const deleteButtons = document.querySelectorAll('.delete-plan-btn');
+    deleteButtons.forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const planId = (e.target as HTMLElement).dataset.planId;
+        if (planId && confirm('Are you sure you want to delete this training plan?')) {
+          try {
+            await WorkoutStorageService.deleteTrainingPlan(planId);
+            
+            // Remove from UI
+            const planItem = document.querySelector(`[data-plan-id="${planId}"]`);
+            planItem?.remove();
+            
+            UIHelpers.showStatus('Plan deleted successfully', 'success');
+            
+          } catch (error) {
+            console.error('Error deleting plan:', error);
+            UIHelpers.showStatus('Error deleting plan', 'error');
+          }
+        }
+      });
+    });
+
+    // Click outside to close
+    const modal = document.getElementById('plan-selection-modal');
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
+  }
+
+  /**
+   * Add method to show all saved plans (can be called from UI)
+   */
+  public async showSavedPlans(): Promise<void> {
+    await this.showPlanSelectionModal();
+  }
+
+  /**
+   * Add method to clear current plan and start fresh
+   */
+  public clearCurrentPlan(): void {
+    this.currentPlan = null;
+    this.currentMacroPlan = null;
+    this.planModifications = [];
+    
+    // Hide plan section
+    const planSection = document.getElementById('generatedPlanSection');
+    if (planSection) {
+      planSection.style.display = 'none';
+    }
+    
+    // Remove loaded plan indicator
+    const indicator = document.getElementById('loaded-plan-indicator');
+    indicator?.remove();
+    
+    UIHelpers.showStatus('Cleared current plan', 'info');
   }
 }

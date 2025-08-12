@@ -34,11 +34,8 @@ class TrainingHubApp {
 
 // Initialize the application when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('🏃‍♂️ Initializing Training Hub...');
-  
   try {
     const app = new TrainingHubApp();
-    console.log('✅ Training Hub initialized successfully');
     
     // Make app globally accessible for debugging
     (window as any).app = app;

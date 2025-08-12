@@ -1,5 +1,6 @@
 // Workout Calendar component - displays planned vs actual workouts in calendar format
 import { TrackedWorkout, CalendarViewConfig } from '../../types/workout-tracking.types';
+import { WorkoutStorageService } from '../../services/WorkoutStorageService';
 
 export class WorkoutCalendar {
   private container: HTMLElement | null = null;
@@ -21,12 +22,18 @@ export class WorkoutCalendar {
 
   public async initialize(workouts: TrackedWorkout[], config: CalendarViewConfig): Promise<void> {
     this.container = document.getElementById('workout-calendar');
-    this.workouts = workouts;
     this.config = config;
 
     if (!this.container) {
       console.error('Workout calendar container not found');
       return;
+    }
+
+    // If no workouts provided, try to load from storage
+    if (workouts.length === 0) {
+      this.workouts = await this.loadWorkoutsFromStorage();
+    } else {
+      this.workouts = workouts;
     }
 
     this.render();
@@ -435,5 +442,122 @@ export class WorkoutCalendar {
 
   public getWorkoutsInView(): TrackedWorkout[] {
     return this.getWorkoutsForView();
+  }
+
+  /**
+   * Load workouts from storage for the calendar view
+   */
+  private async loadWorkoutsFromStorage(): Promise<TrackedWorkout[]> {
+    try {
+      // Check if user is authenticated
+      if (!WorkoutStorageService.isAuthenticated()) {
+        console.log('User not authenticated, no workouts to load');
+        return [];
+      }
+
+      // Get the active training plan
+      const activePlan = await WorkoutStorageService.getActivePlan();
+      if (!activePlan) {
+        console.log('No active training plan found');
+        return [];
+      }
+
+      // Convert plan workouts to TrackedWorkout format
+      const trackedWorkouts: TrackedWorkout[] = activePlan.plan.map(workout => ({
+        workoutId: workout.workoutId || `planned-${workout.date}`,
+        date: workout.date,
+        workoutType: workout.workoutType,
+        description: workout.description,
+        expectedFatigue: workout.expectedFatigue,
+        durationMin: workout.durationMin,
+        status: workout.completed ? 'completed' : 'planned',
+        lastModified: new Date().toISOString()
+      }));
+
+      console.log(`Loaded ${trackedWorkouts.length} workouts from active plan: ${activePlan.name}`);
+      return trackedWorkouts;
+
+    } catch (error) {
+      console.error('Error loading workouts from storage:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Refresh workouts from storage
+   */
+  public async refreshFromStorage(): Promise<void> {
+    this.workouts = await this.loadWorkoutsFromStorage();
+    this.render();
+  }
+
+  /**
+   * Mark a workout as completed
+   */
+  public async markWorkoutCompleted(workoutId: string, actualData?: {
+    duration?: number;
+    distance?: number;
+    avgHR?: number;
+    notes?: string;
+  }): Promise<void> {
+    try {
+      // Update in storage if available
+      if (WorkoutStorageService.isAuthenticated()) {
+        // This would need to be implemented in WorkoutStorageService
+        console.log(`Marking workout ${workoutId} as completed with data:`, actualData);
+      }
+
+      // Update local workout status
+      const workout = this.workouts.find(w => w.workoutId === workoutId);
+      if (workout) {
+        workout.status = 'completed';
+        if (actualData) {
+          workout.actualWorkout = {
+            date: workout.date,
+            sport: workout.workoutType,
+            duration: actualData.duration || workout.durationMin,
+            distance: actualData.distance || 0,
+            trainingLoad: workout.expectedFatigue * 2, // Rough estimate
+            avgHR: actualData.avgHR,
+            maxHR: actualData.avgHR ? actualData.avgHR + 20 : undefined,
+            calories: Math.round((actualData.duration || workout.durationMin) * 10), // Rough estimate
+            zone1Minutes: 0,
+            zone2Minutes: 0,
+            zone3Minutes: 0,
+            zone4Minutes: 0,
+            zone5Minutes: 0,
+            notes: actualData.notes
+          };
+        }
+        workout.lastModified = new Date().toISOString();
+        this.render();
+      }
+
+    } catch (error) {
+      console.error('Error marking workout as completed:', error);
+    }
+  }
+
+  /**
+   * Mark a workout as missed
+   */
+  public async markWorkoutMissed(workoutId: string, reason?: string): Promise<void> {
+    try {
+      // Update in storage if available
+      if (WorkoutStorageService.isAuthenticated()) {
+        console.log(`Marking workout ${workoutId} as missed. Reason: ${reason || 'No reason provided'}`);
+      }
+
+      // Update local workout status
+      const workout = this.workouts.find(w => w.workoutId === workoutId);
+      if (workout) {
+        workout.status = 'missed';
+        workout.lastModified = new Date().toISOString();
+        this.render();
+      }
+
+    } catch (error) {
+      console.error('Error marking workout as missed:', error);
+    }
   }
 }

@@ -48,9 +48,12 @@ export class TrainingHub {
     // Initialize other components (they will be shown after authentication)
     this.workoutCalendar = new EnhancedWorkoutCalendar(this.onWorkoutSelected.bind(this));
     this.workoutComparison = new WorkoutComparison();
+    
+    // Initialize event listeners
+    this.initializeEventListeners();
   }
 
-  private onAuthStateChanged(user: User | null): void {
+  private onAuthStateChanged(user: User | null, profile?: UserProfile | null): void {
     const isAuthenticated = user !== null;
 
     if (isAuthenticated) {
@@ -58,8 +61,12 @@ export class TrainingHub {
       const authContainer = document.getElementById('auth-container');
       const mainContent = document.getElementById('main-content');
       
-      if (authContainer) authContainer.style.display = 'none';
-      if (mainContent) mainContent.style.display = 'block';
+      if (authContainer) {
+        authContainer.style.display = 'none';
+      }
+      if (mainContent) {
+        mainContent.style.display = 'block';
+      }
       
       // Initialize router
       this.router = new Router((view: string) => this.onViewChange(view));
@@ -109,6 +116,14 @@ export class TrainingHub {
   }
 
   private initializeEventListeners(): void {
+    // Calendar refresh button
+    const refreshBtn = document.getElementById('refresh-calendar-btn');
+    refreshBtn?.addEventListener('click', () => this.refreshCalendar());
+
+    // Sync data button
+    const syncBtn = document.getElementById('sync-data-btn');
+    syncBtn?.addEventListener('click', () => this.syncTrainingData());
+    
     // Header controls
     document.getElementById('import-data-btn')?.addEventListener('click', () => {
       this.showImportDrawer();
@@ -270,7 +285,7 @@ export class TrainingHub {
             expectedFatigue: plan.expectedFatigue || 50,
             workoutZones: plan.workoutZones || [],
             workoutTags: plan.workoutTags || [],
-            hrTargetZone: plan.hrTargetZone,
+            hrTargetZone: plan.hrTargetZone || 'Zone 2', // Default to Zone 2 if undefined
             customParameters: plan.customParameters || {}
           }));
           
@@ -289,9 +304,9 @@ export class TrainingHub {
               return {
                 ...workout,
                 status: tracked.status,
-                userNotes: tracked.userNotes,
-                userRating: tracked.userRating,
-                comparison: tracked.comparison,
+                userNotes: tracked.userNotes || '', // Default to empty string if undefined
+                userRating: tracked.userRating || null, // Default to null if undefined
+                comparison: tracked.comparison || null, // Default to null if undefined
                 completedAt: tracked.lastUpdated.toISOString()
               };
             }
@@ -348,9 +363,9 @@ export class TrainingHub {
         const trackedWorkoutData = {
           date: workout.date,
           status: workout.status,
-          userNotes: workout.userNotes,
-          userRating: workout.userRating,
-          comparison: workout.comparison,
+          userNotes: workout.userNotes || '', // Default to empty string if undefined
+          userRating: workout.userRating || null, // Default to null if undefined
+          comparison: workout.comparison || null, // Default to null if undefined
           lastUpdated: new Date()
         };
         
@@ -864,7 +879,7 @@ export class TrainingHub {
             expectedFatigue: workout.expectedFatigue,
             workoutZones: workout.workoutZones || [],
             workoutTags: workout.workoutTags || [],
-            hrTargetZone: workout.hrTargetZone,
+            hrTargetZone: workout.hrTargetZone || 'Zone 2', // Default to Zone 2 if undefined
             customParameters: workout.customParameters || {},
             completed: false,
             generatedAt: new Date(),
@@ -2152,6 +2167,49 @@ export class TrainingHub {
   private showDeleteAccountModal(): void {
     if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
       UIHelpers.showStatus('Delete account functionality coming soon!', 'info');
+    }
+  }
+
+  /**
+   * Refresh calendar from saved training plan
+   */
+  private async refreshCalendar(): Promise<void> {
+    try {
+      UIHelpers.showStatus('Refreshing training calendar...', 'info');
+      
+      await this.workoutCalendar.refreshFromStorage();
+      
+      UIHelpers.showStatus('Calendar refreshed successfully', 'success');
+      
+    } catch (error) {
+      console.error('Error refreshing calendar:', error);
+      UIHelpers.showStatus('Failed to refresh calendar', 'error');
+    }
+  }
+
+  /**
+   * Sync training data from Firebase
+   */
+  private async syncTrainingData(): Promise<void> {
+    try {
+      UIHelpers.showStatus('Syncing training data...', 'info');
+      
+      // Refresh dashboard data
+      await this.loadDashboardData();
+      
+      // Refresh calendar data
+      await this.workoutCalendar.refreshFromStorage();
+      
+      // Refresh recovery metrics
+      if (this.recoveryTracker) {
+        await this.recoveryTracker.refreshData();
+      }
+      
+      UIHelpers.showStatus('Training data synchronized successfully', 'success');
+      
+    } catch (error) {
+      console.error('Error syncing training data:', error);
+      UIHelpers.showStatus('Failed to sync training data', 'error');
     }
   }
 }
