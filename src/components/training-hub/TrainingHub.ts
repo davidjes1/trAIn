@@ -1398,6 +1398,12 @@ export class TrainingHub {
 
   // FIT File Import
   private showImportModal(): void {
+    // Check if modal already exists and remove it first
+    const existingModal = document.getElementById('import-modal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+    
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.id = 'import-modal';
@@ -1596,15 +1602,32 @@ export class TrainingHub {
 
     let selectedFiles: File[] = [];
 
-    // Close modal events
-    closeBtn?.addEventListener('click', () => {
-      modal?.remove();
-    });
+    // Close modal events with better error handling
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Close button clicked');
+        modal?.remove();
+      });
+    }
 
     // Close on overlay click
-    modal?.addEventListener('click', (e) => {
-      if (e.target === modal) {
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          console.log('Overlay clicked');
+          modal.remove();
+        }
+      });
+    }
+
+    // Close on escape key
+    document.addEventListener('keydown', function handleEscape(e) {
+      if (e.key === 'Escape' && modal && modal.parentNode) {
+        console.log('Escape key pressed');
         modal.remove();
+        document.removeEventListener('keydown', handleEscape);
       }
     });
 
@@ -1643,17 +1666,57 @@ export class TrainingHub {
     // File input change
     fileInput?.addEventListener('change', (e) => {
       const files = Array.from((e.target as HTMLInputElement).files || []);
-      selectedFiles.push(...files);
+      console.log('Files selected via input:', files.map(f => ({ name: f.name, size: f.size, type: f.type })));
+      
+      if (files.length === 0) {
+        console.warn('No files selected from input');
+        return;
+      }
+      
+      const fitFiles = files.filter(file => file.name.toLowerCase().endsWith('.fit'));
+      if (fitFiles.length === 0) {
+        UIHelpers.showStatus('Please select .fit files only', 'warning');
+        return;
+      }
+      
+      if (fitFiles.length < files.length) {
+        UIHelpers.showStatus(`Selected ${fitFiles.length} .fit files (${files.length - fitFiles.length} non-.fit files ignored)`, 'info');
+      }
+      
+      selectedFiles.push(...fitFiles);
       this.updateFilesList(selectedFiles, filesList, processBtn);
     });
 
     // Process files
     processBtn?.addEventListener('click', async () => {
-      const autoSave = (document.getElementById('auto-save-firebase') as HTMLInputElement)?.checked ?? true;
-      await this.processFitFiles(selectedFiles, autoSave);
+      console.log('Process files button clicked');
+      console.log('Selected files count:', selectedFiles.length);
       
-      // Close modal after processing
-      modal?.remove();
+      if (selectedFiles.length === 0) {
+        UIHelpers.showStatus('No files selected to process', 'warning');
+        return;
+      }
+      
+      // Disable button during processing
+      processBtn.setAttribute('disabled', 'true');
+      processBtn.textContent = '⚡ Processing...';
+      
+      try {
+        const autoSave = (document.getElementById('auto-save-firebase') as HTMLInputElement)?.checked ?? true;
+        console.log('Processing with auto-save:', autoSave);
+        
+        await this.processFitFiles(selectedFiles, autoSave);
+        
+        // Close modal after successful processing
+        setTimeout(() => modal?.remove(), 2000); // Give time to see success message
+      } catch (error) {
+        console.error('Error in process button handler:', error);
+        UIHelpers.showStatus('Processing failed', 'error');
+      } finally {
+        // Re-enable button
+        processBtn.removeAttribute('disabled');
+        processBtn.innerHTML = '<span aria-hidden="true">⚡</span> Process Files';
+      }
     });
 
     // Clear files
@@ -1752,25 +1815,50 @@ export class TrainingHub {
   }
 
   private async processFitFiles(files: File[], saveToFirebase: boolean): Promise<void> {
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      console.warn('No files to process');
+      UIHelpers.showStatus('No files selected for processing', 'warning');
+      return;
+    }
+
+    console.log(`Starting to process ${files.length} files`, { saveToFirebase, files: files.map(f => f.name) });
+    UIHelpers.showStatus(`Processing ${files.length} files...`, 'info');
 
     try {
+      // Check if FileService exists and has the method
+      if (!FileService || typeof FileService.processBatchFiles !== 'function') {
+        console.error('FileService.processBatchFiles is not available');
+        throw new Error('File processing service is not available');
+      }
+
       const result = await FileService.processBatchFiles(files, {
         saveToFirebase,
         showProgress: true
       });
 
+      console.log('File processing completed:', result);
+
       // Refresh data after successful processing
       if (result.successful > 0) {
+        console.log('Refreshing data after successful processing');
         await this.syncData();
       }
 
       // Show detailed results
       console.log('Import results:', result);
-      console.log(`Processing complete! ✅ ${result.successful} successful, ❌ ${result.failed} failed`);
+      const successMsg = `Processing complete! ✅ ${result.successful} successful, ❌ ${result.failed} failed`;
+      console.log(successMsg);
+      
+      if (result.failed > 0) {
+        UIHelpers.showStatus(`${result.successful}/${files.length} files processed. ${result.failed} failed.`, 'warning');
+      } else {
+        UIHelpers.showStatus(`All ${result.successful} files processed successfully!`, 'success');
+      }
       
     } catch (error) {
       console.error('Batch processing error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      UIHelpers.showStatus(`Failed to process files: ${errorMessage}`, 'error');
       this.addError('Failed to process files');
     }
   }
