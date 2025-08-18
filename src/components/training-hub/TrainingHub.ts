@@ -2909,7 +2909,7 @@ export class TrainingHub {
   /**
    * Public method for TrainingPlanManager to get current plan
    */
-  public getCurrentPlan(): PlanGenerationResult | null {
+  public getCurrentPlan(): any | null {
     return this.currentPlan;
   }
 

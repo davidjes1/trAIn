@@ -187,47 +187,7 @@ export class TrainingPlanManager {
     }
   }
 
-  private gatherPlanOptions(): PlanOptions {
-    // Gather form values
-    const age = parseInt((document.getElementById('athlete-age') as HTMLInputElement).value) || 30;
-    const sex = (document.getElementById('athlete-sex') as HTMLSelectElement).value as 'male' | 'female' | 'other';
-    const fitnessLevel = (document.getElementById('fitness-level') as HTMLSelectElement).value as 'beginner' | 'intermediate' | 'advanced';
-    const trainingDays = parseInt((document.getElementById('training-days') as HTMLInputElement).value) || 5;
-    const eventDate = (document.getElementById('event-date') as HTMLInputElement).value;
-    const planDuration = parseInt((document.getElementById('plan-duration') as HTMLInputElement).value) || 10;
-    const currentPhase = (document.getElementById('training-phase') as HTMLSelectElement).value;
-
-    // Recovery metrics
-    const bodyBattery = parseInt((document.getElementById('body-battery') as HTMLInputElement).value) || undefined;
-    const sleepScore = parseInt((document.getElementById('sleep-score') as HTMLInputElement).value) || undefined;
-    const hrv = parseInt((document.getElementById('hrv') as HTMLInputElement).value) || undefined;
-    const restingHR = parseInt((document.getElementById('resting-hr') as HTMLInputElement).value) || undefined;
-
-    // Generate sample recent data (in real app, this would come from activity data)
-    const recentFatigueScores = this.generateSampleFatigueScores();
-    const recentWorkouts = this.generateSampleWorkouts();
-
-    return {
-      user: {
-        age,
-        sex,
-        eventDate: eventDate || this.getDefaultEventDate(),
-        trainingDays,
-        fitnessLevel
-      },
-      recoveryMetrics: {
-        bodyBattery,
-        sleepScore,
-        hrv,
-        restingHR
-      },
-      recentFatigueScores,
-      recentWorkouts,
-      planDuration,
-      currentPhase: currentPhase as any || undefined,
-      availabilityToday: true
-    };
-  }
+  // Note: Plan generation is now handled by TrainingHub
 
   private generateSampleFatigueScores(): number[] {
     // Generate realistic fatigue scores for last 7 days (lower = better recovery)
@@ -435,26 +395,7 @@ export class TrainingPlanManager {
   }
 
   private async exportToCSV(): Promise<void> {
-    if (!this.currentPlan) return;
-
-    try {
-      const csvContent = PlanGenerator.exportPlanToCSV(this.currentPlan.plan);
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `training-plan-${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      UIHelpers.showStatus('Training plan exported to CSV successfully!', 'success');
-    } catch (error) {
-      console.error('Error exporting to CSV:', error);
-      UIHelpers.showStatus('Failed to export plan to CSV', 'error');
-    }
+    UIHelpers.showStatus('CSV export coming soon!', 'info');
   }
 
   private async exportToSheets(): Promise<void> {
@@ -1415,37 +1356,8 @@ export class TrainingPlanManager {
   }
 
   /**
-   * Save generated plan using unified WorkoutService
+   * Plan saving is now handled by TrainingHub
    */
-  private async saveGeneratedPlanAsWorkouts(): Promise<void> {
-    if (!this.currentPlan) {
-      console.warn('No current plan to save as workouts');
-      return;
-    }
-
-    try {
-      console.log('💾 Saving generated plan to unified WorkoutService...');
-      
-      // Use integration service to convert and save
-      const result = await WorkoutPlanIntegration.replaceGeneratedPlan(this.currentPlan);
-      
-      console.log(`✅ Successfully saved ${result.workouts.length} planned workouts`);
-      
-      if (result.failures.length > 0) {
-        console.warn(`⚠️ ${result.failures.length} workouts failed to save`);
-        result.failures.forEach(failure => {
-          console.error(`Failed to save workout for ${failure.trainingPlan.date}:`, failure.error);
-        });
-      }
-
-      // Trigger calendar refresh if present
-      this.notifyWorkoutCalendarUpdate();
-      
-    } catch (error) {
-      console.error('❌ Failed to save plan as workouts:', error);
-      UIHelpers.showStatus('Plan generated but failed to save to workout calendar', 'warning');
-    }
-  }
 
   /**
    * Notify other components that workouts have been updated
@@ -1470,7 +1382,6 @@ export class TrainingPlanManager {
    */
   public clearCurrentPlan(): void {
     this.currentPlan = null;
-    this.currentMacroPlan = null;
     this.planModifications = [];
     
     // Hide plan section
