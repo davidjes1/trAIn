@@ -14,8 +14,10 @@ import { FirestoreService } from '../../firebase/firestore';
 import { UIHelpers } from '../../utils/ui-helpers';
 import { EnhancedWorkoutCalendar } from './WorkoutCalendar-Enhanced';
 import { UnifiedWorkoutCalendar } from '../workout-calendar/UnifiedWorkoutCalendar';
+import { SegmentDisplay } from '../segments/SegmentDisplay';
 import { WorkoutComparison } from './WorkoutComparison';
 import { RecoveryMetricsTracker } from '../recovery/RecoveryMetricsTracker';
+import { TrainingPlanManager } from '../training-plan/TrainingPlanManager';
 import { AuthManager } from '../auth/AuthManager';
 import { Router } from '../../services/Router';
 import { UserProfileService } from '../../services/UserProfileService';
@@ -27,6 +29,7 @@ export class TrainingHub {
   private unifiedWorkoutCalendar: UnifiedWorkoutCalendar | null = null;
   private workoutComparison: WorkoutComparison;
   private recoveryTracker!: RecoveryMetricsTracker; // Initialized after authentication
+  private trainingPlanManager!: TrainingPlanManager; // Initialized after authentication
   private authManager!: AuthManager; // Initialized in constructor
   private router!: Router; // Initialized after authentication
   private dashboardService: DashboardService;
@@ -79,6 +82,12 @@ export class TrainingHub {
         this.recoveryTracker = new RecoveryMetricsTracker(recoveryContainer);
       }
       
+      // Initialize training plan manager with reference to this hub
+      this.trainingPlanManager = new TrainingPlanManager(this);
+      
+      // Setup integration between training plan and other components
+      this.setupTrainingPlanIntegration();
+      
       // Update nav user info using centralized service
       const displayName = this.userProfileService.getDisplayName();
       const email = this.userProfileService.getEmail();
@@ -129,7 +138,7 @@ export class TrainingHub {
     
     // Header controls
     document.getElementById('import-data-btn')?.addEventListener('click', () => {
-      this.showImportDrawer();
+      this.showImportModal();
     });
 
     document.getElementById('sync-data-btn')?.addEventListener('click', () => {
@@ -164,9 +173,9 @@ export class TrainingHub {
       this.toggleAIInsights();
     });
 
-    // Import drawer - handled in showImportDrawer method
+    // Import modal - handled in showImportModal method
 
-    // File handling in import drawer
+    // File handling for legacy components (keeping for backward compatibility)
     this.setupFileHandling();
 
     // Global logout event listener
@@ -817,6 +826,15 @@ export class TrainingHub {
         eventDateInput.value = this.getDefaultEventDate();
       }
       
+      // Populate excluded exercises from saved preferences
+      const savedExcludedExercises = trainingProfile.excludedExercises || [];
+      savedExcludedExercises.forEach((exercise: string) => {
+        const checkbox = document.getElementById(`exclude-${exercise}`) as HTMLInputElement;
+        if (checkbox) {
+          checkbox.checked = true;
+        }
+      });
+      
       modal.style.display = 'flex';
     }
   }
@@ -938,9 +956,64 @@ export class TrainingHub {
     const bodyBattery = parseInt((document.getElementById('body-battery') as HTMLInputElement)?.value) || undefined;
     const sleepScore = parseInt((document.getElementById('sleep-score') as HTMLInputElement)?.value) || undefined;
 
+    // Collect excluded exercises from checkboxes
+    const excludedExercises: string[] = [];
+    document.querySelectorAll('input[name="excludedExercises"]:checked').forEach((checkbox) => {
+      const input = checkbox as HTMLInputElement;
+      excludedExercises.push(input.value);
+    });
+    console.log('🚫 Excluded exercises:', excludedExercises);
+
     // Use profile data as defaults, form data as overrides
     const age = ageInput ? parseInt(ageInput) : trainingProfile.age;
     const fitnessLevel = (fitnessInput as 'beginner' | 'intermediate' | 'advanced') || trainingProfile.fitnessLevel;
+
+    // Save excluded exercises to user preferences if they differ from saved preferences
+    const sortedExcluded = excludedExercises.sort();
+    const sortedSaved = trainingProfile.excludedExercises.sort();
+    
+    if (JSON.stringify(sortedExcluded) !== JSON.stringify(sortedSaved)) {
+      console.log('💾 Saving exercise exclusions to user preferences');
+      try {
+        // Update user preferences with excluded exercises
+        const currentProfile = userProfileService.getUserProfile();
+        const currentPreferences = currentProfile?.preferences;
+        
+        if (currentPreferences) {
+          await userProfileService.updateProfile({
+            preferences: {
+              ...currentPreferences,
+              excludedExercises: excludedExercises
+            }
+          });
+        } else {
+          // Create default preferences with excluded exercises
+          await userProfileService.updateProfile({
+            preferences: {
+              timezone: 'UTC',
+              units: 'metric' as const,
+              hrZones: {
+                zone1: { min: 50, max: 60 },
+                zone2: { min: 60, max: 70 },
+                zone3: { min: 70, max: 80 },
+                zone4: { min: 80, max: 90 },
+                zone5: { min: 90, max: 100 }
+              },
+              fitnessLevel: 'intermediate' as const,
+              restingHR: 60,
+              maxHR: 190,
+              age: 30,
+              sports: ['running'],
+              goals: ['general_fitness'],
+              excludedExercises: excludedExercises
+            }
+          });
+        }
+        console.log('✅ Exercise exclusions saved successfully');
+      } catch (error) {
+        console.warn('Failed to save exercise exclusions:', error);
+      }
+    }
 
     // Get historical activities from Firebase for enhanced analysis
     let historicalActivities: any[] = [];
@@ -1000,6 +1073,7 @@ export class TrainingHub {
       recentWorkouts,
       planDuration,
       availabilityToday: true,
+      excludedExercises, // Add excluded exercises to plan options
       // Enhanced plan options with historical data
       historicalActivities,
       completedWorkouts
@@ -1323,53 +1397,196 @@ export class TrainingHub {
   }
 
   // FIT File Import
-  private showImportDrawer(): void {
-    const drawer = document.createElement('div');
-    drawer.className = 'import-drawer';
-    drawer.innerHTML = `
-      <div class="drawer-overlay" id="drawer-overlay"></div>
-      <div class="drawer-content">
-        <div class="drawer-header">
-          <h3>📁 Import FIT Files</h3>
-          <button class="close-btn" id="close-import-drawer">&times;</button>
+  private showImportModal(): void {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'import-modal';
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    `;
+    modal.innerHTML = `
+      <div class="modal-content large-modal" style="
+        background: #FFFFFF;
+        border-radius: 12px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        width: 100%;
+        max-width: 800px;
+      ">
+        <div class="modal-header" style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 24px;
+          border-bottom: 1px solid #D0D7DE;
+        ">
+          <h3 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: #1A1A1A;">
+            📁 Import Training Data
+          </h3>
+          <button class="close-btn" id="close-import-modal" aria-label="Close import modal" style="
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #4D4D4D;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+          ">&times;</button>
         </div>
-        <div class="drawer-body">
-          <div class="import-options">
-            <div class="drop-zone" id="fit-drop-zone">
-              <p>Drop .fit files here or click to select</p>
+        <div class="modal-body" style="padding: 24px;">
+          <div class="import-options" style="display: flex; flex-direction: column; gap: 24px;">
+            <div class="drop-zone" id="fit-drop-zone" style="
+              border: 2px dashed #D0D7DE;
+              border-radius: 12px;
+              padding: 32px;
+              text-align: center;
+              background: #F7F9FB;
+              transition: all 0.3s ease;
+              cursor: pointer;
+            ">
+              <div class="drop-zone-content" style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 16px;
+              ">
+                <div class="drop-zone-icon" style="font-size: 3rem; opacity: 0.7;">📁</div>
+                <p class="drop-zone-text" style="
+                  font-size: 1.1rem;
+                  color: #4D4D4D;
+                  margin: 0;
+                ">Drop .fit files here or click to select</p>
+                <button class="btn btn-secondary" id="select-files-btn" style="
+                  background-color: #00B26F;
+                  color: white;
+                  border: none;
+                  padding: 8px 16px;
+                  border-radius: 6px;
+                  cursor: pointer;
+                  font-weight: 500;
+                ">
+                  <span aria-hidden="true">📂</span> Select Files
+                </button>
+              </div>
               <input type="file" id="fit-file-input" accept=".fit" multiple style="display: none;">
-              <button class="btn btn-secondary" id="select-files-btn">Select Files</button>
             </div>
             
-            <div class="import-settings">
-              <label>
-                <input type="checkbox" id="auto-save-firebase" checked>
-                Automatically save to Firebase
-              </label>
+            <div class="import-settings" style="background: #F7F9FB; padding: 20px; border-radius: 8px;">
+              <h4 style="margin: 0 0 16px 0; font-size: 1.1rem; color: #1A1A1A;">Import Settings</h4>
+              <div class="settings-grid" style="display: flex; flex-direction: column; gap: 12px;">
+                <label class="checkbox-label" style="
+                  display: flex;
+                  align-items: center;
+                  gap: 12px;
+                  cursor: pointer;
+                  padding: 8px;
+                  border-radius: 4px;
+                  transition: background-color 0.2s ease;
+                ">
+                  <input type="checkbox" id="auto-save-firebase" checked>
+                  <span>Automatically save to Firebase</span>
+                </label>
+                <label class="checkbox-label" style="
+                  display: flex;
+                  align-items: center;
+                  gap: 12px;
+                  cursor: pointer;
+                  padding: 8px;
+                  border-radius: 4px;
+                  transition: background-color 0.2s ease;
+                ">
+                  <input type="checkbox" id="auto-match-workouts" checked>
+                  <span>Auto-match with planned workouts</span>
+                </label>
+              </div>
             </div>
             
-            <div class="selected-files" id="selected-files-list"></div>
-            
-            <div class="import-actions">
-              <button class="btn btn-primary" id="process-files-btn" disabled>
-                Process Files
-              </button>
-              <button class="btn btn-ghost" id="clear-files-btn">
-                Clear All
-              </button>
+            <div class="selected-files" id="selected-files-list">
+              <div class="files-header" style="
+                display: none;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 16px;
+                padding-bottom: 8px;
+                border-bottom: 1px solid #D0D7DE;
+              ">
+                <h4 style="margin: 0; font-size: 1.1rem; color: #1A1A1A;">Selected Files</h4>
+                <span class="file-count" id="file-count" style="
+                  font-size: 0.9rem;
+                  color: #4D4D4D;
+                  background: #F7F9FB;
+                  padding: 4px 12px;
+                  border-radius: 12px;
+                ">0 files selected</span>
+              </div>
+              <div class="files-grid" id="files-grid" style="
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+              "></div>
             </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer" style="
+          padding: 24px;
+          border-top: 1px solid #D0D7DE;
+          background: #F7F9FB;
+          border-radius: 0 0 12px 12px;
+        ">
+          <div class="import-actions" style="
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            align-items: center;
+          ">
+            <button class="btn btn-ghost" id="clear-files-btn" disabled style="
+              background: none;
+              color: #4D4D4D;
+              border: 1px solid #D0D7DE;
+              padding: 8px 16px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-weight: 500;
+            ">
+              Clear All
+            </button>
+            <button class="btn btn-primary" id="process-files-btn" disabled style="
+              background-color: #0066CC;
+              color: white;
+              border: none;
+              padding: 8px 16px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-weight: 500;
+            ">
+              <span aria-hidden="true">⚡</span> Process Files
+            </button>
           </div>
         </div>
       </div>
     `;
 
-    document.body.appendChild(drawer);
-    this.initializeImportDrawerEvents();
+    document.body.appendChild(modal);
+    this.initializeImportModalEvents();
   }
 
-  private initializeImportDrawerEvents(): void {
-    const overlay = document.getElementById('drawer-overlay');
-    const closeBtn = document.getElementById('close-import-drawer');
+  private initializeImportModalEvents(): void {
+    const modal = document.getElementById('import-modal');
+    const closeBtn = document.getElementById('close-import-modal');
     const dropZone = document.getElementById('fit-drop-zone');
     const fileInput = document.getElementById('fit-file-input') as HTMLInputElement;
     const selectBtn = document.getElementById('select-files-btn');
@@ -1379,11 +1596,16 @@ export class TrainingHub {
 
     let selectedFiles: File[] = [];
 
-    // Close drawer events
-    [overlay, closeBtn].forEach(el => {
-      el?.addEventListener('click', () => {
-        document.querySelector('.import-drawer')?.remove();
-      });
+    // Close modal events
+    closeBtn?.addEventListener('click', () => {
+      modal?.remove();
+    });
+
+    // Close on overlay click
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
     });
 
     // File selection events
@@ -1430,8 +1652,8 @@ export class TrainingHub {
       const autoSave = (document.getElementById('auto-save-firebase') as HTMLInputElement)?.checked ?? true;
       await this.processFitFiles(selectedFiles, autoSave);
       
-      // Close drawer after processing
-      document.querySelector('.import-drawer')?.remove();
+      // Close modal after processing
+      modal?.remove();
     });
 
     // Clear files
@@ -1444,33 +1666,89 @@ export class TrainingHub {
   private updateFilesList(files: File[], listElement: HTMLElement | null, processBtn: HTMLElement | null): void {
     if (!listElement || !processBtn) return;
 
+    const filesHeader = document.querySelector('.files-header') as HTMLElement;
+    const filesGrid = document.getElementById('files-grid');
+    const fileCount = document.getElementById('file-count');
+    const clearBtn = document.getElementById('clear-files-btn') as HTMLButtonElement;
+
     if (files.length === 0) {
-      listElement.innerHTML = '';
+      if (filesHeader) filesHeader.style.display = 'none';
+      if (filesGrid) filesGrid.innerHTML = '';
       processBtn.setAttribute('disabled', 'true');
+      if (clearBtn) clearBtn.setAttribute('disabled', 'true');
       return;
     }
 
-    listElement.innerHTML = `
-      <h4>Selected Files (${files.length})</h4>
-      ${files.map((file, index) => `
-        <div class="file-item">
-          <span class="file-name">${file.name}</span>
-          <span class="file-size">${(file.size / 1024).toFixed(1)} KB</span>
-          <button class="remove-file" data-index="${index}">×</button>
+    if (filesHeader) filesHeader.style.display = 'flex';
+    if (fileCount) fileCount.textContent = `${files.length} ${files.length === 1 ? 'file' : 'files'} selected`;
+
+    if (filesGrid) {
+      filesGrid.innerHTML = files.map((file, index) => `
+        <div class="file-item" style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px;
+          background: #FFFFFF;
+          border-radius: 8px;
+          border: 1px solid #D0D7DE;
+          transition: all 0.2s ease;
+        ">
+          <div class="file-info" style="
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+          ">
+            <div class="file-icon" style="font-size: 1.5rem; opacity: 0.7;">📄</div>
+            <div class="file-details" style="
+              display: flex;
+              flex-direction: column;
+              min-width: 0;
+            ">
+              <span class="file-name" title="${file.name}" style="
+                font-weight: 500;
+                color: #1A1A1A;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              ">${file.name}</span>
+              <span class="file-size" style="
+                font-size: 0.85rem;
+                color: #4D4D4D;
+              ">${(file.size / 1024).toFixed(1)} KB</span>
+            </div>
+          </div>
+          <button class="remove-file btn-icon" data-index="${index}" title="Remove file" aria-label="Remove ${file.name}" style="
+            background: none;
+            border: none;
+            color: #4D4D4D;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+          " onmouseover="this.style.background='#FEF2F2'; this.style.color='#D93025';" onmouseout="this.style.background='none'; this.style.color='#4D4D4D';">
+            <span aria-hidden="true">×</span>
+          </button>
         </div>
-      `).join('')}
-    `;
+      `).join('');
+    }
 
     // Add remove file event listeners
-    listElement.querySelectorAll('.remove-file').forEach(btn => {
+    document.querySelectorAll('.remove-file').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const index = parseInt((e.target as HTMLElement).dataset.index || '0');
+        const target = e.target as HTMLElement;
+        const button = target.closest('.remove-file') as HTMLElement;
+        const index = parseInt(button.dataset.index || '0');
         files.splice(index, 1);
         this.updateFilesList(files, listElement, processBtn);
       });
     });
 
     processBtn.removeAttribute('disabled');
+    if (clearBtn) clearBtn.removeAttribute('disabled');
   }
 
   private async processFitFiles(files: File[], saveToFirebase: boolean): Promise<void> {
@@ -1547,6 +1825,10 @@ export class TrainingHub {
   private onViewChange(view: string): void {
     if (view === 'profile') {
       this.renderProfileView();
+    } else if (view === 'training-plan') {
+      this.showTrainingPlanView();
+    } else if (view === 'dashboard') {
+      this.hideTrainingPlanView();
     }
     // Dashboard view is handled by default HTML content
   }
@@ -1623,16 +1905,38 @@ export class TrainingHub {
    */
   private displayAIInsights(aiInsights?: any): void {
     const contentEl = document.getElementById('ai-insights-content');
-    if (!contentEl) return;
+    if (!contentEl) {
+      console.warn('🤖 AI Insights: Content element not found');
+      return;
+    }
+
+    console.log('🤖 AI Insights Debug:', {
+      aiEnabled: this.dashboardService.isAIInsightsEnabled(),
+      hasInsights: !!aiInsights,
+      insights: aiInsights
+    });
+
+    // Check if we have valid AI insights data first, regardless of enabled state
+    if (aiInsights && aiInsights.quickStats) {
+      // We have valid AI data - display it regardless of the toggle state
+      console.log('🤖 Displaying AI insights with valid data');
+      this.renderAIInsights(aiInsights, contentEl);
+      return;
+    }
 
     if (!this.dashboardService.isAIInsightsEnabled()) {
       contentEl.innerHTML = `
         <div class="ai-disabled">
           <span class="error-icon">🤖</span>
           <p>AI insights are disabled or unavailable</p>
-          <button class="btn btn-primary enable-btn" onclick="this.enableAI()">Enable AI Insights</button>
+          <button class="btn btn-primary enable-btn" id="enable-ai-btn">Enable AI Insights</button>
         </div>
       `;
+      
+      // Add event listener for enable button
+      document.getElementById('enable-ai-btn')?.addEventListener('click', () => {
+        this.toggleAIInsights();
+      });
       return;
     }
 
@@ -1641,15 +1945,30 @@ export class TrainingHub {
         <div class="ai-error">
           <span class="error-icon">⚠️</span>
           <p>Unable to load AI insights</p>
-          <button class="btn btn-secondary retry-btn" onclick="this.refreshAIInsights()">Retry</button>
+          <button class="btn btn-secondary retry-btn" id="ai-retry-btn">Retry</button>
         </div>
       `;
+      
+      // Add event listener for retry button
+      document.getElementById('ai-retry-btn')?.addEventListener('click', () => {
+        this.refreshAIInsights();
+      });
       return;
     }
 
+    // If we reach here, use the existing rendering logic
+    this.renderAIInsights(aiInsights, contentEl);
+  }
+
+  /**
+   * Render AI insights content
+   */
+  private renderAIInsights(aiInsights: any, contentEl: HTMLElement): void {
+    console.log('🎨 Rendering AI insights to DOM element:', contentEl);
+    
     // Create insights grid
     const insightsHTML = `
-      <div class="ai-insights-grid">
+      <div class="ai-insights-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; padding: 1rem;">
         ${this.createReadinessCard(aiInsights.quickStats)}
         ${this.createWorkoutRecommendationCard(aiInsights.workoutRecommendation)}
         ${this.createFatigueStatusCard(aiInsights.fatigueAssessment)}
@@ -1658,6 +1977,7 @@ export class TrainingHub {
     `;
 
     contentEl.innerHTML = insightsHTML;
+    console.log('✅ AI insights HTML set, element should now be visible');
   }
 
   private createReadinessCard(quickStats: any): string {
@@ -1667,20 +1987,44 @@ export class TrainingHub {
     const progressPercent = (score / 100) * 360;
     
     return `
-      <div class="ai-insight-card">
-        <div class="insight-header">
-          <h4 class="insight-title">Training Readiness</h4>
+      <div class="ai-insight-card" style="
+        background: #FFFFFF;
+        border: 1px solid #D0D7DE;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        min-height: 200px;
+      ">
+        <div class="insight-header" style="margin-bottom: 16px;">
+          <h4 class="insight-title" style="margin: 0; color: #1A1A1A; font-size: 1.1rem;">🎯 Training Readiness</h4>
         </div>
         <div class="insight-content">
-          <div class="readiness-score">
-            <div class="score-circle" style="--progress: ${progressPercent}deg">
+          <div class="readiness-score" style="text-align: center; margin: 20px 0;">
+            <div class="score-circle" style="
+              display: inline-block;
+              width: 80px;
+              height: 80px;
+              border-radius: 50%;
+              background: conic-gradient(#0066CC 0deg ${progressPercent}deg, #F0F0F0 ${progressPercent}deg 360deg);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 1.5rem;
+              font-weight: bold;
+              color: #1A1A1A;
+              margin: 0 auto;
+            ">
               ${score}
             </div>
-            <div class="score-label">Ready to Train</div>
+            <div class="score-label" style="margin-top: 8px; color: #4D4D4D; font-size: 0.9rem;">Ready to Train</div>
           </div>
-          <div class="performance-trend">
-            <span class="trend-indicator ${quickStats.trendDirection}">${this.getTrendIcon(quickStats.trendDirection)}</span>
-            <span class="trend-text">${quickStats.trendDirection}</span>
+          <div class="performance-trend" style="text-align: center; margin-top: 16px;">
+            <span class="trend-indicator" style="margin-right: 8px;">${this.getTrendIcon(quickStats.trendDirection)}</span>
+            <span class="trend-text" style="color: #4D4D4D; text-transform: capitalize;">${quickStats.trendDirection}</span>
+          </div>
+          <div style="margin-top: 16px; padding: 12px; background: #F7F9FB; border-radius: 8px;">
+            <strong style="color: #1A1A1A;">Recommendation:</strong>
+            <p style="margin: 8px 0 0 0; color: #4D4D4D; font-size: 0.9rem;">${quickStats.nextRecommendation}</p>
           </div>
         </div>
       </div>
@@ -1688,7 +2032,27 @@ export class TrainingHub {
   }
 
   private createWorkoutRecommendationCard(workoutRec: any): string {
-    if (!workoutRec || !workoutRec.recommendedWorkout) return '';
+    if (!workoutRec || !workoutRec.recommendedWorkout) {
+      return `
+        <div class="ai-insight-card" style="
+          background: #FFFFFF;
+          border: 1px solid #D0D7DE;
+          border-radius: 12px;
+          padding: 20px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          min-height: 200px;
+        ">
+          <div class="insight-header" style="margin-bottom: 16px;">
+            <h4 style="margin: 0; color: #1A1A1A; font-size: 1.1rem;">🏃 Tomorrow's Workout</h4>
+          </div>
+          <div style="text-align: center; color: #4D4D4D; padding: 40px 0;">
+            <div style="font-size: 2rem; margin-bottom: 16px;">💤</div>
+            <p>Let your body guide the workout</p>
+            <p style="font-size: 0.9rem; margin-top: 12px;">AI is analyzing your recent activities to provide personalized recommendations.</p>
+          </div>
+        </div>
+      `;
+    }
     
     const workout = workoutRec.recommendedWorkout;
     const confidence = workoutRec.confidence || 0;
@@ -1721,7 +2085,29 @@ export class TrainingHub {
   }
 
   private createFatigueStatusCard(fatigueAssessment: any): string {
-    if (!fatigueAssessment) return '';
+    if (!fatigueAssessment) {
+      return `
+        <div class="ai-insight-card" style="
+          background: #FFFFFF;
+          border: 1px solid #D0D7DE;
+          border-radius: 12px;
+          padding: 20px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          min-height: 200px;
+        ">
+          <div class="insight-header" style="margin-bottom: 16px;">
+            <h4 style="margin: 0; color: #1A1A1A; font-size: 1.1rem;">⚡ Recovery Status</h4>
+          </div>
+          <div style="text-align: center; color: #4D4D4D; padding: 40px 0;">
+            <div style="font-size: 2rem; margin-bottom: 16px;">💚</div>
+            <p>Feeling good and ready to train</p>
+            <div style="margin-top: 16px; padding: 12px; background: #F0FDF4; border-radius: 8px; color: #166534;">
+              <strong>Status:</strong> Low Risk
+            </div>
+          </div>
+        </div>
+      `;
+    }
     
     const status = fatigueAssessment.overallStatus || 'unknown';
     const riskLevel = fatigueAssessment.riskLevel || 'low';
@@ -1748,7 +2134,29 @@ export class TrainingHub {
   }
 
   private createPerformanceTrendCard(perfAnalysis: any): string {
-    if (!perfAnalysis) return '';
+    if (!perfAnalysis) {
+      return `
+        <div class="ai-insight-card" style="
+          background: #FFFFFF;
+          border: 1px solid #D0D7DE;
+          border-radius: 12px;
+          padding: 20px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          min-height: 200px;
+        ">
+          <div class="insight-header" style="margin-bottom: 16px;">
+            <h4 style="margin: 0; color: #1A1A1A; font-size: 1.1rem;">📈 Performance Trend</h4>
+          </div>
+          <div style="text-align: center; color: #4D4D4D; padding: 40px 0;">
+            <div style="font-size: 2rem; margin-bottom: 16px;">📊</div>
+            <p>Building fitness progressively</p>
+            <div style="margin-top: 16px; padding: 12px; background: #EFF6FF; border-radius: 8px; color: #1E40AF;">
+              <strong>Trend:</strong> Stable Progress
+            </div>
+          </div>
+        </div>
+      `;
+    }
     
     const trend = perfAnalysis.overallTrend || 'stable';
     
@@ -2234,23 +2642,29 @@ export class TrainingHub {
    */
   private onUnifiedWorkoutSelected(workout: any): void {
     console.log('🎯 Workout selected from unified calendar:', workout.name);
+    console.log('📊 Workout data:', workout);
     
-    // Show workout detail panel
-    this.showWorkoutDetail(workout);
+    // Show workout detail panel for unified workout
+    this.showUnifiedWorkoutDetail(workout);
     
     // You can also trigger other actions here
     // like showing a workout editing modal, etc.
   }
 
   /**
-   * Show workout detail panel
+   * Show workout detail panel for unified workouts
    */
-  private showWorkoutDetail(workout: any): void {
+  private showUnifiedWorkoutDetail(workout: any): void {
+    console.log('🔍 Attempting to show workout detail for:', workout.name);
+    
     const detailPanel = document.getElementById('workout-detail-panel');
     const detailContent = document.getElementById('workout-detail-content');
     
+    console.log('📋 Detail panel found:', !!detailPanel);
+    console.log('📋 Detail content found:', !!detailContent);
+    
     if (!detailPanel || !detailContent) {
-      console.warn('Workout detail panel not found');
+      console.warn('Workout detail panel not found - panel:', !!detailPanel, 'content:', !!detailContent);
       return;
     }
 
@@ -2258,13 +2672,19 @@ export class TrainingHub {
     const detailHTML = this.generateWorkoutDetailHTML(workout);
     detailContent.innerHTML = detailHTML;
     
-    // Show the panel
+    console.log('✅ Generated detail HTML, showing panel...');
+    
+    // Show the panel with proper CSS animation (same as existing method)
     detailPanel.style.display = 'block';
+    setTimeout(() => detailPanel.classList.add('visible'), 10);
+    
+    console.log('📋 Panel shown with visible class and animation');
     
     // Update panel title
     const titleElement = document.getElementById('workout-detail-title');
     if (titleElement) {
       titleElement.textContent = workout.name;
+      console.log('📋 Updated panel title to:', workout.name);
     }
   }
 
@@ -2311,6 +2731,13 @@ export class TrainingHub {
                 <strong>Notes:</strong> <p>${workout.planned.notes}</p>
               </div>
             ` : ''}
+          </div>
+        ` : ''}
+
+        ${workout.planned && (workout.planned.segments || workout.planned.segmentGroups) ? `
+          <div class="workout-segments-section">
+            <h5>📋 Workout Structure</h5>
+            ${SegmentDisplay.generateSegmentsHTML(workout.planned.segments || [], workout.planned.segmentGroups)}
           </div>
         ` : ''}
 
@@ -2413,5 +2840,83 @@ export class TrainingHub {
       console.error('Error syncing training data:', error);
       UIHelpers.showStatus('Failed to sync training data', 'error');
     }
+  }
+
+  /**
+   * TRAINING PLAN MANAGEMENT METHODS
+   */
+
+  private showTrainingPlanView(): void {
+    // Show training plan section
+    if (this.trainingPlanManager) {
+      this.trainingPlanManager.showSection();
+    }
+    
+    // Hide other sections
+    const dashboardSection = document.getElementById('dashboard-content');
+    if (dashboardSection) {
+      dashboardSection.style.display = 'none';
+    }
+  }
+
+  private hideTrainingPlanView(): void {
+    // Hide training plan section
+    if (this.trainingPlanManager) {
+      this.trainingPlanManager.hideSection();
+    }
+    
+    // Show dashboard section
+    const dashboardSection = document.getElementById('dashboard-content');
+    if (dashboardSection) {
+      dashboardSection.style.display = 'block';
+    }
+  }
+
+  /**
+   * Public API for TrainingPlanManager integration
+   */
+  public getTrainingPlanManager(): TrainingPlanManager | null {
+    return this.trainingPlanManager || null;
+  }
+
+  /**
+   * Listen for workout updates from TrainingPlanManager
+   */
+  private setupTrainingPlanIntegration(): void {
+    // Listen for workout updates from plan generation
+    document.addEventListener('workouts-updated', (event) => {
+      const detail = (event as CustomEvent).detail;
+      if (detail.source === 'plan-generation') {
+        console.log('🔄 Workouts updated from plan generation, refreshing calendar...');
+        
+        // Refresh the unified workout calendar
+        if (this.unifiedWorkoutCalendar) {
+          this.unifiedWorkoutCalendar.refreshData();
+        }
+        
+        // Refresh recovery metrics if they depend on workout data
+        if (this.recoveryTracker) {
+          // The recovery tracker will automatically pick up new workouts
+          console.log('🔄 Recovery metrics will reflect new workout data');
+        }
+        
+        // Show success message
+        UIHelpers.showStatus('Training plan integrated with workout calendar', 'success');
+      }
+    });
+  }
+
+  /**
+   * Public method for TrainingPlanManager to get current plan
+   */
+  public getCurrentPlan(): PlanGenerationResult | null {
+    return this.currentPlan;
+  }
+
+  /**
+   * Public method to check if user is authenticated
+   */
+  public isAuthenticated(): boolean {
+    return this.userProfileService.isAuthenticated();
   }
 }

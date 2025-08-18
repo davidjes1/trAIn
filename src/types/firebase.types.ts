@@ -24,6 +24,7 @@ export interface UserPreferences {
   goals: string[];
   availableDays?: string[];
   weeklyHours?: number;
+  excludedExercises?: string[]; // Exercises/activities to exclude from training plans
 }
 
 export interface HRZoneConfig {

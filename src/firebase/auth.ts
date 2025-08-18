@@ -115,6 +115,13 @@ export class AuthService {
   }
 
   /**
+   * Get current user ID
+   */
+  static getCurrentUserId(): string | null {
+    return this.currentUser?.uid || null;
+  }
+
+  /**
    * Check if user is authenticated
    */
   static isAuthenticated(): boolean {

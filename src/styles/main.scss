@@ -16,12 +16,16 @@
 @use 'components/alerts';
 @use 'components/navigation';
 
+// 3.1. Modal Components  
+@use 'import-modal';
+
 // 4. Legacy Components (to be migrated)
 // Keep existing styles for components not yet migrated
 @use 'modern-calendar';
 @use 'workout-popup';
 @use 'auth';
 @use 'recovery-metrics';
+@use 'segment-display';
 
 // 4b. Accessibility Overrides for Legacy Components
 @use 'accessible-calendar';

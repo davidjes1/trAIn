@@ -9,8 +9,10 @@ import {
   CreatePlannedWorkoutInput, 
   SportType, 
   WorkoutSegment,
+  SegmentGroup,
   TargetMetrics 
 } from '../types/workout.types';
+import { SegmentBuilder } from './SegmentBuilder';
 import { UIHelpers } from '../utils/ui-helpers';
 import { AuthService } from '../firebase/auth';
 
@@ -247,67 +249,151 @@ export class WorkoutPlanIntegration {
   }
 
   /**
-   * Create workout segments for structured workouts
+   * Create detailed workout segments for structured workouts
    */
   private static createWorkoutSegments(trainingPlan: TrainingPlan): WorkoutSegment[] {
     const segments: WorkoutSegment[] = [];
-
-    // Check if this is a structured workout (intervals, tempo, etc.)
     const workoutType = trainingPlan.workoutType?.toLowerCase();
+    const sport = trainingPlan.sport?.toLowerCase() || 'other';
     
-    if (workoutType?.includes('interval')) {
-      // Create interval structure
-      segments.push(
-        {
-          id: 'warmup',
-          name: 'Warmup',
-          durationMin: Math.round(trainingPlan.durationMin * 0.2), // 20% warmup
-          targetHR: this.extractTargetHR(trainingPlan.hrTargetZone) ? 
-            Math.round(this.extractTargetHR(trainingPlan.hrTargetZone)! * 0.7) : undefined,
-          description: 'Easy pace warmup'
-        },
-        {
-          id: 'main',
-          name: 'Intervals',
-          durationMin: Math.round(trainingPlan.durationMin * 0.6), // 60% main set
-          targetHR: this.extractTargetHR(trainingPlan.hrTargetZone),
-          description: 'Main interval set'
-        },
-        {
-          id: 'cooldown', 
-          name: 'Cooldown',
-          durationMin: Math.round(trainingPlan.durationMin * 0.2), // 20% cooldown
-          targetHR: this.extractTargetHR(trainingPlan.hrTargetZone) ?
-            Math.round(this.extractTargetHR(trainingPlan.hrTargetZone)! * 0.6) : undefined,
-          description: 'Easy pace cooldown'
-        }
-      );
-    } else if (workoutType?.includes('tempo')) {
-      // Create tempo structure
-      segments.push(
-        {
-          id: 'warmup',
-          name: 'Warmup',
-          durationMin: Math.round(trainingPlan.durationMin * 0.25),
-          description: 'Gradual warmup to tempo pace'
-        },
-        {
-          id: 'tempo',
-          name: 'Tempo',
-          durationMin: Math.round(trainingPlan.durationMin * 0.5),
-          targetHR: this.extractTargetHR(trainingPlan.hrTargetZone),
-          description: 'Comfortably hard tempo pace'
-        },
-        {
-          id: 'cooldown',
-          name: 'Cooldown', 
-          durationMin: Math.round(trainingPlan.durationMin * 0.25),
-          description: 'Easy pace cooldown'
-        }
-      );
+    if (!workoutType) return segments;
+
+    // Extract parameters for segment creation
+    const totalDuration = trainingPlan.durationMin;
+    const targetHR = this.extractTargetHR(trainingPlan.hrTargetZone);
+    const targetPace = this.extractTargetPace(trainingPlan.customParameters);
+    const targetPower = this.extractTargetPower(trainingPlan.customParameters);
+
+    if (workoutType.includes('interval')) {
+      // Create detailed interval workout
+      const warmupDuration = Math.round(totalDuration * 0.15);
+      const cooldownDuration = Math.round(totalDuration * 0.15);
+      
+      // Warmup
+      segments.push(...SegmentBuilder.createWarmupSequence(sport, warmupDuration));
+      
+      // Determine interval pattern from description or use default
+      const intervalCount = this.extractIntervalCount(trainingPlan.description) || 6;
+      const intervalDuration = this.extractIntervalDuration(trainingPlan.description) || 3;
+      const recoveryDuration = this.extractRecoveryDuration(trainingPlan.description) || 2;
+      
+      // Main intervals
+      const intervalSegments = SegmentBuilder.createIntervalPattern({
+        workDurationMin: intervalDuration,
+        restDurationMin: recoveryDuration,
+        intervals: intervalCount,
+        targetHRZone: this.extractHRZone(trainingPlan.hrTargetZone) || 4,
+        targetPace: targetPace,
+        targetPower: targetPower,
+        targetRPE: 8,
+        description: `${intervalDuration}min at Zone ${this.extractHRZone(trainingPlan.hrTargetZone) || 4}`
+      });
+      
+      segments.push(...intervalSegments);
+      
+      // Cooldown
+      segments.push(...SegmentBuilder.createCooldownSequence(sport, cooldownDuration));
+      
+    } else if (workoutType.includes('tempo')) {
+      // Create tempo workout structure
+      const warmupDuration = Math.round(totalDuration * 0.2);
+      const cooldownDuration = Math.round(totalDuration * 0.2);
+      const tempoDuration = totalDuration - warmupDuration - cooldownDuration;
+      
+      segments.push(...SegmentBuilder.createWarmupSequence(sport, warmupDuration));
+      
+      segments.push(SegmentBuilder.createTimeBasedSegment({
+        name: 'Tempo Main Set',
+        type: 'tempo',
+        durationMin: tempoDuration,
+        targetHR: targetHR,
+        targetHRZone: 3,
+        targetPace: targetPace,
+        targetPower: targetPower,
+        targetRPE: 7,
+        description: 'Comfortably hard tempo pace - sustainable but challenging',
+        order: 50
+      }));
+      
+      segments.push(...SegmentBuilder.createCooldownSequence(sport, cooldownDuration));
+      
+    } else if (workoutType.includes('strength')) {
+      // Create strength training workout
+      const exercises = this.extractStrengthExercises(trainingPlan.description, sport);
+      const sets = this.extractSetsCount(trainingPlan.description) || 3;
+      const reps = this.extractRepsCount(trainingPlan.description) || 10;
+      
+      // Warmup
+      segments.push(...SegmentBuilder.createWarmupSequence('strength', Math.round(totalDuration * 0.15)));
+      
+      if (exercises.length > 0) {
+        // Create circuit from exercises
+        const strengthSegments = SegmentBuilder.createStrengthCircuit({
+          exercises: exercises.map((exercise, index) => ({
+            name: exercise,
+            reps: reps,
+            equipment: this.inferEquipment(exercise),
+            muscleGroups: this.inferMuscleGroups(exercise)
+          })),
+          sets: sets,
+          restBetweenExercisesMin: 1,
+          restBetweenSetsMin: 2,
+          targetRPE: 7
+        });
+        
+        segments.push(...strengthSegments);
+      } else {
+        // Generic strength segment
+        segments.push(SegmentBuilder.createTimeBasedSegment({
+          name: 'Strength Training',
+          type: 'strength_set',
+          durationMin: Math.round(totalDuration * 0.7),
+          targetRPE: 7,
+          description: 'Structured strength training session',
+          notes: `${sets} sets of ${reps} reps for main exercises`,
+          order: 50
+        }));
+      }
+      
+      // Cool down with stretching
+      segments.push(...SegmentBuilder.createCooldownSequence('strength', Math.round(totalDuration * 0.15)));
+      
+    } else if (workoutType.includes('long') || workoutType.includes('endurance')) {
+      // Long/endurance workout - mostly steady state
+      const warmupDuration = Math.round(totalDuration * 0.1);
+      const cooldownDuration = Math.round(totalDuration * 0.1);
+      const mainDuration = totalDuration - warmupDuration - cooldownDuration;
+      
+      segments.push(...SegmentBuilder.createWarmupSequence(sport, warmupDuration));
+      
+      segments.push(SegmentBuilder.createTimeBasedSegment({
+        name: 'Endurance Main Set',
+        type: workoutType.includes('long') ? 'tempo' : 'interval',
+        durationMin: mainDuration,
+        targetHRZone: 2,
+        targetPace: targetPace,
+        targetPower: targetPower,
+        targetRPE: 5,
+        description: 'Steady endurance pace - conversational effort',
+        order: 50
+      }));
+      
+      segments.push(...SegmentBuilder.createCooldownSequence(sport, cooldownDuration));
+      
+    } else if (workoutType.includes('recovery') || workoutType.includes('easy')) {
+      // Easy/recovery workout
+      segments.push(SegmentBuilder.createTimeBasedSegment({
+        name: 'Easy Recovery',
+        type: 'recovery',
+        durationMin: totalDuration,
+        targetHRZone: 1,
+        targetRPE: 3,
+        description: 'Easy, comfortable pace for active recovery',
+        order: 0
+      }));
     }
 
-    return segments;
+    return SegmentBuilder.sortSegmentsByOrder(segments);
   }
 
   /**
@@ -385,6 +471,123 @@ export class WorkoutPlanIntegration {
   }
 
   /**
+   * Helper methods for extracting workout parameters from descriptions
+   */
+  
+  private static extractIntervalCount(description?: string): number | null {
+    if (!description) return null;
+    const match = description.match(/(\d+)\s*(x|times|intervals|rounds)/i);
+    return match ? parseInt(match[1]) : null;
+  }
+
+  private static extractIntervalDuration(description?: string): number | null {
+    if (!description) return null;
+    const match = description.match(/(\d+)\s*min.*?(work|interval|on)/i);
+    return match ? parseInt(match[1]) : null;
+  }
+
+  private static extractRecoveryDuration(description?: string): number | null {
+    if (!description) return null;
+    const match = description.match(/(\d+)\s*min.*?(rest|recovery|off)/i);
+    return match ? parseInt(match[1]) : null;
+  }
+
+  private static extractHRZone(hrTargetZone?: string): number | null {
+    if (!hrTargetZone) return null;
+    const match = hrTargetZone.match(/zone\s*(\d)/i);
+    return match ? parseInt(match[1]) : null;
+  }
+
+  private static extractSetsCount(description?: string): number | null {
+    if (!description) return null;
+    const match = description.match(/(\d+)\s*sets/i);
+    return match ? parseInt(match[1]) : null;
+  }
+
+  private static extractRepsCount(description?: string): number | null {
+    if (!description) return null;
+    const match = description.match(/(\d+)\s*(reps|repetitions)/i);
+    return match ? parseInt(match[1]) : null;
+  }
+
+  private static extractStrengthExercises(description?: string, sport?: string): string[] {
+    if (!description) {
+      // Default exercises based on sport
+      switch (sport?.toLowerCase()) {
+        case 'run':
+          return ['Squats', 'Lunges', 'Calf Raises', 'Glute Bridges'];
+        case 'bike':
+          return ['Leg Press', 'Hamstring Curls', 'Core Planks', 'Hip Flexors'];
+        default:
+          return ['Push-ups', 'Squats', 'Planks', 'Lunges'];
+      }
+    }
+
+    // Extract exercise names from description
+    const exerciseKeywords = [
+      'squat', 'lunge', 'deadlift', 'press', 'curl', 'row', 'pull',
+      'push', 'plank', 'bridge', 'raise', 'extension', 'flex'
+    ];
+
+    const foundExercises: string[] = [];
+    const words = description.toLowerCase().split(/\s+/);
+    
+    words.forEach((word, index) => {
+      exerciseKeywords.forEach(keyword => {
+        if (word.includes(keyword)) {
+          // Capitalize and add to list
+          const exerciseName = words[index - 1] 
+            ? `${words[index - 1]} ${word}` 
+            : word;
+          foundExercises.push(
+            exerciseName.split(' ')
+              .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(' ')
+          );
+        }
+      });
+    });
+
+    return [...new Set(foundExercises)]; // Remove duplicates
+  }
+
+  private static inferEquipment(exercise: string): string {
+    const exerciseLower = exercise.toLowerCase();
+    
+    if (exerciseLower.includes('push') || exerciseLower.includes('plank')) return 'bodyweight';
+    if (exerciseLower.includes('squat') || exerciseLower.includes('deadlift')) return 'barbell';
+    if (exerciseLower.includes('curl') || exerciseLower.includes('press')) return 'dumbbells';
+    if (exerciseLower.includes('row') || exerciseLower.includes('pull')) return 'cable';
+    
+    return 'bodyweight';
+  }
+
+  private static inferMuscleGroups(exercise: string): string[] {
+    const exerciseLower = exercise.toLowerCase();
+    
+    if (exerciseLower.includes('squat') || exerciseLower.includes('lunge')) {
+      return ['legs', 'glutes', 'core'];
+    }
+    if (exerciseLower.includes('deadlift')) {
+      return ['legs', 'glutes', 'back', 'core'];
+    }
+    if (exerciseLower.includes('push') || exerciseLower.includes('press')) {
+      return ['chest', 'shoulders', 'triceps'];
+    }
+    if (exerciseLower.includes('curl')) {
+      return ['biceps'];
+    }
+    if (exerciseLower.includes('row') || exerciseLower.includes('pull')) {
+      return ['back', 'biceps'];
+    }
+    if (exerciseLower.includes('plank')) {
+      return ['core', 'shoulders'];
+    }
+    
+    return ['full-body'];
+  }
+
+  /**
    * Get user's planned workouts from unified system
    */
   static async getUserPlannedWorkouts(
@@ -405,45 +608,134 @@ export class WorkoutPlanIntegration {
   }
 
   /**
+   * Smart cleanup: Only delete future planned workouts (preserve past workouts)
+   */
+  static async clearFuturePlannedWorkouts(
+    userId: string, 
+    startDate: string, 
+    endDate: string
+  ): Promise<void> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      console.log(`🗑️ Clearing future planned workouts from ${startDate} to ${endDate} (today: ${today})...`);
+
+      const existingWorkouts = await WorkoutService.getWorkoutsByDateRange(userId, startDate, endDate);
+      
+      // Only target planned workouts that are today or in the future
+      const futurePlannedWorkouts = existingWorkouts.filter(w => 
+        w.status === 'planned' && w.date >= today
+      );
+
+      if (futurePlannedWorkouts.length === 0) {
+        console.log('✅ No future planned workouts to clear');
+        return;
+      }
+
+      console.log(`📋 Found ${futurePlannedWorkouts.length} future planned workouts to replace`);
+      console.log(`🛡️ Preserving ${existingWorkouts.length - futurePlannedWorkouts.length} past/completed workouts`);
+
+      for (const workout of futurePlannedWorkouts) {
+        try {
+          await WorkoutService.deleteWorkout(workout.id);
+          console.log(`✅ Deleted future planned: ${workout.name} (${workout.date})`);
+        } catch (error) {
+          console.error(`❌ Failed to delete workout ${workout.id}:`, error);
+        }
+      }
+
+      console.log('✅ Future planned workouts cleared, past workouts preserved');
+
+    } catch (error) {
+      console.error('Failed to clear future planned workouts:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Delete existing planned workouts for date range (to avoid duplicates)
+   * @deprecated Use clearFuturePlannedWorkouts instead for smarter cleanup
    */
   static async clearExistingPlannedWorkouts(
     userId: string, 
     startDate: string, 
     endDate: string
   ): Promise<void> {
+    console.warn('⚠️ clearExistingPlannedWorkouts is deprecated, use clearFuturePlannedWorkouts instead');
+    return this.clearFuturePlannedWorkouts(userId, startDate, endDate);
+  }
+
+  /**
+   * Replace all future planned workouts with new plan
+   */
+  static async replaceAllFutureWorkouts(
+    planResult: PlanGenerationResult,
+    userId?: string
+  ): Promise<{ workouts: Workout[]; failures: any[], replacedCount: number }> {
     try {
-      console.log(`🗑️ Clearing existing planned workouts from ${startDate} to ${endDate}...`);
-
-      const existingWorkouts = await WorkoutService.getWorkoutsByDateRange(userId, startDate, endDate);
-      const plannedWorkouts = existingWorkouts.filter(w => w.status === 'planned');
-
-      if (plannedWorkouts.length === 0) {
-        console.log('✅ No existing planned workouts to clear');
-        return;
+      const currentUserId = userId || AuthService.getCurrentUserId();
+      if (!currentUserId) {
+        throw new Error('User not authenticated');
       }
 
-      console.log(`📋 Found ${plannedWorkouts.length} existing planned workouts to remove`);
-
-      for (const workout of plannedWorkouts) {
-        try {
-          await WorkoutService.deleteWorkout(workout.id);
-          console.log(`✅ Deleted: ${workout.name} (${workout.date})`);
-        } catch (error) {
-          console.error(`❌ Failed to delete workout ${workout.id}:`, error);
-        }
+      if (planResult.plan.length === 0) {
+        throw new Error('No workouts in generated plan');
       }
 
-      console.log('✅ Existing planned workouts cleared');
+      const today = new Date().toISOString().split('T')[0];
+      
+      console.log(`🔄 Replacing ALL future planned workouts starting from ${today}...`);
+
+      // Get all existing workouts from today forward
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 365); // Look ahead 1 year
+      const endDate = futureDate.toISOString().split('T')[0];
+      
+      const existingWorkouts = await WorkoutService.getWorkoutsByDateRange(currentUserId, today, endDate);
+      const futurePlannedWorkouts = existingWorkouts.filter(w => 
+        w.status === 'planned' && w.date >= today
+      );
+
+      console.log(`🛡️ Found ${futurePlannedWorkouts.length} future planned workouts to replace`);
+      console.log(`📅 Preserving ${existingWorkouts.length - futurePlannedWorkouts.length} past/completed workouts`);
+
+      // Delete all future planned workouts
+      const deletionPromises = futurePlannedWorkouts.map(workout => 
+        WorkoutService.deleteWorkout(workout.id).catch(error => 
+          console.error(`Failed to delete workout ${workout.id}:`, error)
+        )
+      );
+      await Promise.allSettled(deletionPromises);
+
+      // Save new generated plan
+      const result = await this.saveGeneratedPlanAsWorkouts(planResult, currentUserId);
+
+      // Show user feedback
+      if (result.failures.length === 0) {
+        UIHelpers.showStatus(
+          `✅ Replaced ${futurePlannedWorkouts.length} old workouts with ${result.workouts.length} new planned workouts`, 
+          'success'
+        );
+      } else {
+        UIHelpers.showStatus(
+          `⚠️ Replaced ${futurePlannedWorkouts.length} old workouts, generated ${result.workouts.length} new workouts (${result.failures.length} failed)`, 
+          'warning'
+        );
+      }
+
+      return {
+        ...result,
+        replacedCount: futurePlannedWorkouts.length
+      };
 
     } catch (error) {
-      console.error('Failed to clear existing planned workouts:', error);
+      console.error('❌ Failed to replace all future workouts:', error);
+      UIHelpers.showStatus('Failed to replace future workouts', 'error');
       throw error;
     }
   }
 
   /**
-   * Complete workflow: Clear existing + Save new plan
+   * Complete workflow: Smart replace future planned workouts + Save new plan
    */
   static async replaceGeneratedPlan(
     planResult: PlanGenerationResult,
@@ -464,10 +756,10 @@ export class WorkoutPlanIntegration {
       const startDate = dates[0];
       const endDate = dates[dates.length - 1];
 
-      console.log(`🔄 Replacing planned workouts from ${startDate} to ${endDate}...`);
+      console.log(`🔄 Smart replacing: future planned workouts from ${startDate} to ${endDate}...`);
 
-      // Clear existing planned workouts in date range
-      await this.clearExistingPlannedWorkouts(currentUserId, startDate, endDate);
+      // Smart cleanup: only clear future planned workouts (preserve past workouts)
+      await this.clearFuturePlannedWorkouts(currentUserId, startDate, endDate);
 
       // Save new generated plan
       const result = await this.saveGeneratedPlanAsWorkouts(planResult, currentUserId);

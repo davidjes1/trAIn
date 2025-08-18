@@ -19,9 +19,11 @@ $text-secondary: #6b7280;
   --secondary-color: #{$secondary-color};
   --success-color: #{$success-color};
   --error-color: #{$error-color};
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
+  --text-primary: rgba(255, 255, 255, 0.95);
+  --text-secondary: rgba(255, 255, 255, 0.7);
   --glass-bg: rgba(255, 255, 255, 0.95);
+  --accent-color: #{$accent-color};
+  --accent-color-rgb: 102, 126, 234; // For rgba() usage
 }
 
 // Glass/Transparency Variables

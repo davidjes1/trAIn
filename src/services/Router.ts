@@ -11,7 +11,7 @@ export class Router {
   private initialize(): void {
     // Check URL hash for initial view
     const hash = window.location.hash.substring(1);
-    if (hash === 'profile' || hash === 'dashboard') {
+    if (hash === 'profile' || hash === 'dashboard' || hash === 'training-plan') {
       this.currentView = hash;
     }
 
@@ -50,7 +50,7 @@ export class Router {
 
   private handleHashChange(): void {
     const hash = window.location.hash.substring(1);
-    if (hash && (hash === 'profile' || hash === 'dashboard')) {
+    if (hash && (hash === 'profile' || hash === 'dashboard' || hash === 'training-plan')) {
       this.showView(hash);
       this.currentView = hash;
       this.onViewChange(hash);

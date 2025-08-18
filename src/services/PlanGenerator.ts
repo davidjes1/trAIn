@@ -15,6 +15,7 @@ import { TrackedWorkout } from '../types/workout-tracking.types';
 export interface EnhancedPlanOptions extends PlanOptions {
   historicalActivities?: ActivityMetrics[];
   completedWorkouts?: TrackedWorkout[];
+  excludedExercises?: string[]; // Exercises to exclude from plan generation
 }
 
 // Activity pattern analysis
@@ -582,6 +583,24 @@ export class PlanGenerator {
 
     if (!baseWorkout) return null;
 
+    // Filter out excluded exercises
+    if (options.excludedExercises && options.excludedExercises.length > 0) {
+      if (this.isWorkoutExcluded(baseWorkout, options.excludedExercises)) {
+        // Find an alternative workout that's not excluded
+        const alternativeWorkout = this.findAlternativeWorkout(
+          baseWorkout, options.excludedExercises, readiness, targetDate
+        );
+        if (alternativeWorkout) {
+          recommendations.push(`Swapped ${baseWorkout.type} for ${alternativeWorkout.type} due to exercise restrictions`);
+          return alternativeWorkout;
+        } else {
+          // If no alternative found, suggest rest day
+          recommendations.push(`No suitable alternative found for ${baseWorkout.type}, suggesting rest day`);
+          return WorkoutLibrary.getWorkoutByTypeAndTag('rest', 'zone1') || null;
+        }
+      }
+    }
+
     // Enhance workout selection based on patterns
     const enhancedWorkout = this.enhanceWorkoutWithPattern(baseWorkout, pattern, isStrongDay);
 
@@ -791,5 +810,79 @@ export class PlanGenerator {
       .join('\n');
     
     return csvContent;
+  }
+
+  /**
+   * Check if a workout type is in the excluded list
+   */
+  private static isWorkoutExcluded(workout: WorkoutType, excludedExercises: string[]): boolean {
+    if (!workout || !excludedExercises || excludedExercises.length === 0) {
+      return false;
+    }
+
+    // Map workout types to their corresponding exercise categories
+    const exerciseMapping: Record<string, string[]> = {
+      'swimming': ['swim', 'easy_swim', 'tempo_swim', 'interval_swim'],
+      'running': ['run', 'easy_run', 'tempo_run', 'interval_run', 'long_run', 'recovery_run', 'fartlek', 'hill_repeats', 'track_workout'],
+      'cycling': ['bike', 'easy_bike', 'tempo_bike', 'interval_bike', 'endurance_bike', 'recovery_bike'],
+      'strength': ['strength', 'strength_training', 'resistance'],
+      'yoga': ['yoga', 'mobility', 'flexibility'],
+      'hiit': ['hiit', 'interval', 'crosstraining']
+    };
+
+    // Check if the workout type matches any excluded exercise category
+    for (const excludedExercise of excludedExercises) {
+      const workoutTypes = exerciseMapping[excludedExercise] || [];
+      if (workoutTypes.includes(workout.type)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Find an alternative workout that is not excluded
+   */
+  private static findAlternativeWorkout(
+    originalWorkout: WorkoutType,
+    excludedExercises: string[],
+    readiness: ReadinessMetrics,
+    targetDate: Date
+  ): WorkoutType | null {
+    // Get all available workouts from the library
+    const allWorkouts = WORKOUT_LIBRARY;
+    
+    // Filter out excluded workouts and find alternatives with similar characteristics
+    const suitableAlternatives = allWorkouts.filter(workout => {
+      // Skip excluded exercises
+      if (this.isWorkoutExcluded(workout, excludedExercises)) {
+        return false;
+      }
+      
+      // Try to match intensity and duration roughly
+      const intensityMatch = Math.abs(workout.fatigueScore - originalWorkout.fatigueScore) <= 20;
+      const durationMatch = Math.abs(workout.durationMin - originalWorkout.durationMin) <= 30;
+      
+      return intensityMatch && durationMatch;
+    });
+
+    if (suitableAlternatives.length === 0) {
+      // If no suitable alternatives, look for any non-excluded workout
+      const anyAlternatives = allWorkouts.filter(workout => 
+        !this.isWorkoutExcluded(workout, excludedExercises)
+      );
+      
+      // Pick a moderate intensity workout if available
+      const moderateWorkouts = anyAlternatives.filter(w => w.fatigueScore >= 30 && w.fatigueScore <= 50);
+      if (moderateWorkouts.length > 0) {
+        return moderateWorkouts[0];
+      }
+      
+      return anyAlternatives.length > 0 ? anyAlternatives[0] : null;
+    }
+
+    // Return the first suitable alternative
+    return suitableAlternatives[0];
   }
 }

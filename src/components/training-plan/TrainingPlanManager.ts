@@ -1,15 +1,9 @@
-// Training Plan Manager - handles the training plan UI and interactions
-import { PlanGenerator } from '../../services/PlanGenerator';
-import { PeriodizationService } from '../../services/PeriodizationService';
+// Training Plan Manager - handles the training plan tab UI and plan management
 import { PlanAdjustmentService } from '../../services/PlanAdjustmentService';
 import { WorkoutStorageService } from '../../services/WorkoutStorageService';
-import WorkoutPlanIntegration from '../../services/WorkoutPlanIntegration';
-import { TrainingTemplates } from '../../config/training-templates';
 import { 
-  PlanOptions, 
   TrainingPlan, 
   PlanGenerationResult,
-  MacroPlan,
   WorkoutModification,
   WorkoutModificationType,
   PlanAdjustmentResult
@@ -17,23 +11,46 @@ import {
 import { UIHelpers } from '../../utils/ui-helpers';
 import { AIService } from '../../ai/AIService';
 
+// Forward declaration for TrainingHub integration
+declare global {
+  interface Window {
+    trainingHub?: {
+      showPlanGenerationModal(): void;
+      getCurrentPlan(): PlanGenerationResult | null;
+      isAuthenticated(): boolean;
+    };
+  }
+}
+
 export class TrainingPlanManager {
   private currentPlan: PlanGenerationResult | null = null;
-  private currentMacroPlan: MacroPlan | null = null;
   private planModifications: WorkoutModification[] = [];
   private aiInsightsEnabled = true;
+  private trainingHubReference: any = null;
 
-  constructor() {
+  constructor(trainingHubReference?: any) {
+    this.trainingHubReference = trainingHubReference;
     this.initializeEventListeners();
-    this.initializeTemplateDescriptions();
-    this.setDefaultEventDate();
-    this.loadSavedPlan();
+    this.loadCurrentPlan();
   }
 
   private initializeEventListeners(): void {
-    // Generate plan button
-    const generateBtn = document.getElementById('generate-plan-btn');
-    generateBtn?.addEventListener('click', () => this.generatePlan());
+    // Unified generate plan button - delegates to TrainingHub modal
+    const unifiedGenerateBtn = document.getElementById('unified-generate-plan-btn');
+    unifiedGenerateBtn?.addEventListener('click', () => this.openPlanGenerationModal());
+
+    // Template selection buttons - quick select with modal
+    const templateButtons = document.querySelectorAll('.template-select-btn');
+    templateButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const template = (e.target as HTMLElement).dataset.template;
+        this.openPlanGenerationModalWithTemplate(template);
+      });
+    });
+
+    // Manage saved plans button
+    const managePlansBtn = document.getElementById('manage-saved-plans-btn');
+    managePlansBtn?.addEventListener('click', () => this.showSavedPlans());
 
     // Export buttons
     const exportCsvBtn = document.getElementById('export-csv-btn');
@@ -42,17 +59,21 @@ export class TrainingPlanManager {
     const exportSheetsBtn = document.getElementById('export-sheets-btn');
     exportSheetsBtn?.addEventListener('click', () => this.exportToSheets());
 
-    // Regenerate button
+    // Regenerate button - also delegates to TrainingHub
     const regenerateBtn = document.getElementById('regenerate-plan-btn');
-    regenerateBtn?.addEventListener('click', () => this.regeneratePlan());
+    regenerateBtn?.addEventListener('click', () => this.openPlanGenerationModal());
 
     // AI recommendation button
     const aiRecommendBtn = document.getElementById('ai-recommend-btn');
     aiRecommendBtn?.addEventListener('click', () => this.getAIRecommendation());
 
-    // Template selection change
-    const templateSelect = document.getElementById('plan-template') as HTMLSelectElement;
-    templateSelect?.addEventListener('change', () => this.updateTemplateDescription());
+    // Listen for plan updates from TrainingHub
+    document.addEventListener('workouts-updated', (event) => {
+      const detail = (event as CustomEvent).detail;
+      if (detail.source === 'plan-generation') {
+        this.refreshCurrentPlan();
+      }
+    });
 
     // Close modification modal
     document.addEventListener('click', (e) => {
@@ -70,91 +91,99 @@ export class TrainingPlanManager {
     });
   }
 
-  private initializeTemplateDescriptions(): void {
-    this.updateTemplateDescription();
-  }
-
-  private setDefaultEventDate(): void {
-    const eventDateInput = document.getElementById('event-date') as HTMLInputElement;
-    if (eventDateInput && !eventDateInput.value) {
-      // Set default to 12 weeks from now
-      const defaultDate = new Date();
-      defaultDate.setDate(defaultDate.getDate() + (12 * 7));
-      eventDateInput.value = defaultDate.toISOString().split('T')[0];
+  /**
+   * Delegate plan generation to TrainingHub modal
+   */
+  private openPlanGenerationModal(): void {
+    if (this.trainingHubReference) {
+      this.trainingHubReference.showPlanGenerationModal();
+    } else if (window.trainingHub) {
+      window.trainingHub.showPlanGenerationModal();
+    } else {
+      UIHelpers.showStatus('Plan generation not available', 'error');
     }
   }
 
-  private updateTemplateDescription(): void {
-    const templateSelect = document.getElementById('plan-template') as HTMLSelectElement;
-    const descriptionEl = document.getElementById('template-description');
+  /**
+   * Open plan generation modal with a pre-selected template
+   */
+  private openPlanGenerationModalWithTemplate(template?: string): void {
+    // For now, just open the modal - template pre-selection can be added later
+    this.openPlanGenerationModal();
     
-    if (!templateSelect || !descriptionEl) return;
-
-    const selectedTemplate = templateSelect.value;
-    
-    const descriptions: Record<string, string> = {
-      dynamic: 'Generates an adaptive plan based on your current fitness and recovery status',
-      sprintTriathlon: 'Complete 16-week plan for sprint distance triathlon (750m/20km/5km)',
-      olympicTriathlon: 'Comprehensive 26-week plan for Olympic distance triathlon (1500m/40km/10km)',
-      quickRacePrep: 'Rapid race preparation for short-notice events (8 weeks)',
-      offSeason: 'Off-season base building and recovery plan (18 weeks)'
-    };
-
-    descriptionEl.textContent = descriptions[selectedTemplate] || 'Custom training template';
+    if (template) {
+      // Could add template pre-selection logic here
+      console.log(`Template ${template} selected - opening modal`);
+    }
   }
 
-  private async generatePlan(): Promise<void> {
-    try {
-      UIHelpers.showStatus('Generating your personalized training plan...', 'info');
-      
-      const planOptions = this.gatherPlanOptions();
-      const templateType = (document.getElementById('plan-template') as HTMLSelectElement).value;
-
-      // Generate plan based on template type
-      if (templateType === 'dynamic') {
-        // Use dynamic plan generator
-        this.currentPlan = PlanGenerator.generatePlan(planOptions);
-        this.currentMacroPlan = null;
-      } else {
-        // Use structured periodization
-        this.currentMacroPlan = TrainingTemplates.createMacroPlanFromTemplate(
-          templateType,
-          new Date().toISOString().split('T')[0], // Start today
-          planOptions.user.eventDate,
-          planOptions.user.age,
-          planOptions.user.fitnessLevel
-        );
-        
-        const structuredPlan = PeriodizationService.generateStructuredPlan(this.currentMacroPlan);
-        
-        // Convert to dynamic plan format for display
-        this.currentPlan = {
-          plan: structuredPlan.slice(0, planOptions.planDuration), // Show only requested duration
-          readinessMetrics: {
-            score: 75, // Default score for structured plans
-            fatigue7DayAvg: 45,
-            recoveryScore: 70,
-            trainingLoad7Day: 250,
-            recentHardDays: 1
-          },
-          recommendations: [`Following ${templateType} training template`, 'Plan adapted for your fitness level'],
-          warnings: [],
-          generatedAt: new Date().toISOString()
-        };
-      }
-
-      // Save the plan to unified WorkoutService (new approach)
-      await this.saveGeneratedPlanAsWorkouts();
-
-      // Also save to legacy storage system for backward compatibility
-      await this.savePlanToStorage();
-
+  /**
+   * Load current plan from TrainingHub if available
+   */
+  private loadCurrentPlan(): void {
+    if (this.trainingHubReference) {
+      this.currentPlan = this.trainingHubReference.getCurrentPlan?.() || null;
+    } else if (window.trainingHub) {
+      this.currentPlan = window.trainingHub.getCurrentPlan?.() || null;
+    }
+    
+    if (this.currentPlan) {
       this.displayGeneratedPlan();
-      UIHelpers.showStatus('Training plan generated and saved successfully!', 'success');
+      this.updatePlanStatus();
+    } else {
+      this.updatePlanStatus();
+    }
+  }
+
+  /**
+   * Refresh current plan from TrainingHub when updates occur
+   */
+  private refreshCurrentPlan(): void {
+    this.loadCurrentPlan();
+  }
+
+  /**
+   * Update the plan status display in the overview card
+   */
+  private updatePlanStatus(): void {
+    const statusEl = document.getElementById('current-plan-status');
+    const statsEl = document.getElementById('plan-stats');
+    
+    if (!statusEl) return;
+    
+    if (this.currentPlan && this.currentPlan.plan.length > 0) {
+      const totalDays = this.currentPlan.plan.length;
+      const startDate = new Date(this.currentPlan.plan[0].date);
+      const endDate = new Date(this.currentPlan.plan[this.currentPlan.plan.length - 1].date);
+      const today = new Date();
       
-    } catch (error) {
-      console.error('Error generating plan:', error);
-      UIHelpers.showStatus('Failed to generate training plan. Please check your settings.', 'error');
+      // Calculate days remaining
+      const daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+      
+      // Calculate completion percentage
+      const daysElapsed = Math.max(0, Math.ceil((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+      const completionPct = Math.min(100, Math.round((daysElapsed / totalDays) * 100));
+      
+      // Update status text
+      statusEl.textContent = `Active plan: ${totalDays} days (${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()})`;
+      
+      // Update stats
+      if (statsEl) {
+        statsEl.style.display = 'flex';
+        
+        const daysRemainingEl = document.getElementById('plan-days-remaining');
+        const completionEl = document.getElementById('plan-completion');
+        const adherenceEl = document.getElementById('plan-adherence');
+        
+        if (daysRemainingEl) daysRemainingEl.textContent = daysRemaining.toString();
+        if (completionEl) completionEl.textContent = `${completionPct}%`;
+        if (adherenceEl) adherenceEl.textContent = '85%'; // TODO: Calculate actual adherence
+      }
+    } else {
+      statusEl.textContent = 'No active training plan';
+      if (statsEl) {
+        statsEl.style.display = 'none';
+      }
     }
   }
 

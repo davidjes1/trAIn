@@ -88,7 +88,7 @@ export class WorkoutStorageService {
         description: workout.description,
         expectedFatigue: workout.expectedFatigue,
         durationMin: workout.durationMin,
-        sport: workout.sport,
+        sport: workout.sport || this.inferSportFromWorkoutType(workout.workoutType),
         completed: false,
         actualFatigue: workout.actualFatigue,
         adherenceScore: 100, // Default score
@@ -757,5 +757,46 @@ export class WorkoutStorageService {
   static getCurrentUserId(): string | null {
     const user = AuthService.getCurrentUser();
     return user ? user.uid : null;
+  }
+
+  /**
+   * Infer sport type from workout type
+   */
+  private static inferSportFromWorkoutType(workoutType: string): string {
+    const workoutTypeMap: Record<string, string> = {
+      // Running workouts
+      'run': 'run',
+      'easy_run': 'run',
+      'tempo_run': 'run',
+      'interval_run': 'run',
+      'long_run': 'run',
+      'recovery_run': 'run',
+      'fartlek': 'run',
+      'hill_repeats': 'run',
+      'track_workout': 'run',
+      
+      // Cycling workouts
+      'bike': 'bike',
+      'easy_bike': 'bike',
+      'tempo_bike': 'bike',
+      'interval_bike': 'bike',
+      'endurance_bike': 'bike',
+      'recovery_bike': 'bike',
+      
+      // Strength workouts
+      'strength': 'strength',
+      'strength_training': 'strength',
+      'resistance': 'strength',
+      
+      // Other sports
+      'swim': 'swim',
+      'swimming': 'swim',
+      'yoga': 'yoga',
+      'mobility': 'other',
+      'rest': 'other',
+      'brick': 'other'
+    };
+
+    return workoutTypeMap[workoutType] || 'other';
   }
 }

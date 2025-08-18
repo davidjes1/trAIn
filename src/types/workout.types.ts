@@ -10,15 +10,115 @@ export interface HRZone {
   percentage?: number;
 }
 
-export interface WorkoutSegment {
+// Flexible segment type system for different workout activities
+export type SegmentType = 
+  | 'warmup'
+  | 'cooldown'
+  | 'interval'
+  | 'tempo'
+  | 'recovery'
+  | 'strength_set'
+  | 'stretch'
+  | 'rest'
+  | 'custom';
+
+export type SegmentMeasurement = 
+  | 'time'      // Duration-based (minutes/seconds)
+  | 'distance'  // Distance-based (km/miles)
+  | 'reps'      // Repetition-based (strength training)
+  | 'rounds'    // Round-based (circuits)
+  | 'calories'  // Calorie-based targets
+  | 'custom';   // Custom measurement
+
+// Base segment interface - all segments inherit from this
+export interface BaseWorkoutSegment {
   id: string;
   name: string;
-  durationMin?: number;
-  distanceKm?: number;
-  targetPace?: string; // MM:SS per km/mile
-  targetHR?: number;
-  targetPower?: number;
+  type: SegmentType;
+  measurement: SegmentMeasurement;
   description?: string;
+  notes?: string;
+  order: number; // Sequence in workout
+}
+
+// Time-based segments (running intervals, bike tempo, etc.)
+export interface TimeBasedSegment extends BaseWorkoutSegment {
+  measurement: 'time';
+  durationMin: number;
+  durationSec?: number; // For precise timing
+  targetHR?: number;
+  targetHRZone?: number; // 1-5
+  targetPace?: string; // MM:SS per km
+  targetPower?: number;
+  targetRPE?: number; // Rate of Perceived Exertion 1-10
+  restAfterMin?: number; // Rest period after this segment
+}
+
+// Distance-based segments
+export interface DistanceBasedSegment extends BaseWorkoutSegment {
+  measurement: 'distance';
+  distanceKm: number;
+  targetPace?: string;
+  targetHR?: number;
+  targetHRZone?: number;
+  targetPower?: number;
+  targetRPE?: number;
+  restAfterMin?: number;
+}
+
+// Repetition-based segments (strength training)
+export interface RepBasedSegment extends BaseWorkoutSegment {
+  measurement: 'reps';
+  reps: number;
+  sets?: number; // How many sets of these reps
+  weight?: number; // In kg or lbs
+  weightUnit?: 'kg' | 'lbs';
+  targetRPE?: number;
+  restBetweenSetsMin?: number;
+  restAfterMin?: number;
+  equipment?: string; // "barbell", "dumbbells", "bodyweight", etc.
+  exercise?: string; // "squat", "deadlift", "curl", etc.
+  muscleGroups?: string[]; // ["legs", "glutes", "core"]
+}
+
+// Round-based segments (circuits, boxing, etc.)
+export interface RoundBasedSegment extends BaseWorkoutSegment {
+  measurement: 'rounds';
+  rounds: number;
+  workTimeMin: number;
+  restTimeMin: number;
+  exercises?: string[]; // List of exercises in the round
+  targetHR?: number;
+  targetRPE?: number;
+  restAfterMin?: number;
+}
+
+// Custom segments for flexibility
+export interface CustomSegment extends BaseWorkoutSegment {
+  measurement: 'custom';
+  customMeasurement: string; // "laps", "calories", "points", etc.
+  customValue: number;
+  customInstructions: string;
+  targetMetrics?: Record<string, any>;
+  restAfterMin?: number;
+}
+
+// Union type for all segment types
+export type WorkoutSegment = 
+  | TimeBasedSegment 
+  | DistanceBasedSegment 
+  | RepBasedSegment 
+  | RoundBasedSegment 
+  | CustomSegment;
+
+// Segment group for organizing complex workouts
+export interface SegmentGroup {
+  id: string;
+  name: string;
+  description?: string;
+  segments: WorkoutSegment[];
+  repeatCount?: number; // How many times to repeat this group
+  restBetweenRepeatsMin?: number;
 }
 
 export interface TargetMetrics {
@@ -87,10 +187,15 @@ export interface Workout {
     durationMin?: number;
     distanceKm?: number;
     targetMetrics?: TargetMetrics;
-    segments?: WorkoutSegment[];
+    segments?: WorkoutSegment[]; // Individual segments
+    segmentGroups?: SegmentGroup[]; // Grouped segments for complex workouts
     tags?: string[];
     expectedFatigue?: number; // 1-100 scale
     notes?: string;
+    // Workout-level instructions
+    warmupInstructions?: string;
+    mainSetInstructions?: string;
+    cooldownInstructions?: string;
   };
   
   // Actual workout results (populated when completed)

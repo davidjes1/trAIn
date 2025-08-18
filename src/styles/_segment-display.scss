@@ -1,0 +1,482 @@
+// Workout Segments Display Styles
+@import 'variables';
+
+.workout-segments {
+  margin: 1rem 0;
+  
+  .no-segments {
+    text-align: center;
+    color: var(--text-secondary);
+    font-style: italic;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+  }
+
+  // Segment Groups
+  .segment-group {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+
+    .segment-group-header {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+      .segment-group-name {
+        margin: 0 0 0.5rem 0;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.1rem;
+
+        .group-icon {
+          font-size: 1.2rem;
+        }
+
+        .repeat-count {
+          background: var(--accent-color);
+          color: white;
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          margin-left: 0.5rem;
+        }
+      }
+
+      .segment-group-description {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+    }
+
+    .segment-group-segments {
+      padding: 0.5rem;
+
+      .segment {
+        margin-bottom: 0.5rem;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+
+    .group-rest-info {
+      background: rgba(106, 114, 128, 0.2);
+      color: var(--text-secondary);
+      padding: 0.75rem 1.5rem;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+      .rest-icon {
+        opacity: 0.8;
+      }
+    }
+  }
+
+  // Individual Segments
+  .segments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .segment {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: 4px solid var(--accent-color);
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateX(2px);
+    }
+
+    // Segment type specific colors (set via JS)
+    &.segment-warmup { border-left-color: #fbbf24; }
+    &.segment-cooldown { border-left-color: #60a5fa; }
+    &.segment-interval { border-left-color: #ef4444; }
+    &.segment-tempo { border-left-color: #f97316; }
+    &.segment-recovery { border-left-color: #22c55e; }
+    &.segment-strength_set { border-left-color: #8b5cf6; }
+    &.segment-stretch { border-left-color: #06b6d4; }
+    &.segment-rest { border-left-color: #6b7280; }
+    &.segment-custom { border-left-color: #ec4899; }
+
+    .segment-header {
+      margin-bottom: 1rem;
+
+      .segment-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.5rem;
+
+        .segment-number {
+          background: rgba(255, 255, 255, 0.1);
+          color: var(--text-primary);
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.75rem;
+          font-weight: 600;
+        }
+
+        .segment-icon {
+          font-size: 1.2rem;
+        }
+
+        .segment-name {
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          flex: 1;
+        }
+
+        .segment-type-badge {
+          background: rgba(255, 255, 255, 0.1);
+          color: var(--text-secondary);
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 0.7rem;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+
+          &.warmup { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+          &.cooldown { background: rgba(96, 165, 250, 0.2); color: #60a5fa; }
+          &.interval { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+          &.tempo { background: rgba(249, 115, 22, 0.2); color: #f97316; }
+          &.recovery { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+          &.strength_set { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+          &.stretch { background: rgba(6, 182, 212, 0.2); color: #06b6d4; }
+          &.rest { background: rgba(107, 114, 128, 0.2); color: #6b7280; }
+          &.custom { background: rgba(236, 72, 153, 0.2); color: #ec4899; }
+        }
+      }
+
+      .segment-description {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.4;
+        margin-left: 2.5rem;
+      }
+    }
+
+    .segment-content {
+      .segment-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+
+        .metric {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 6px;
+          font-size: 0.85rem;
+
+          .metric-icon {
+            opacity: 0.8;
+          }
+
+          .metric-value {
+            font-weight: 600;
+            color: var(--text-primary);
+          }
+
+          &.duration .metric-icon { color: #fbbf24; }
+          &.distance .metric-icon { color: #06b6d4; }
+          &.hr-zone .metric-icon,
+          &.hr-target .metric-icon { color: #ef4444; }
+          &.pace .metric-icon { color: #22c55e; }
+          &.power .metric-icon { color: #f59e0b; }
+          &.rpe .metric-icon { color: #8b5cf6; }
+          &.sets-reps .metric-icon,
+          &.reps .metric-icon { color: #06b6d4; }
+          &.weight .metric-icon { color: #6b7280; }
+          &.equipment .metric-icon { color: #f97316; }
+          &.rounds .metric-icon { color: #ec4899; }
+          &.work-time .metric-icon { color: #22c55e; }
+          &.rest-time .metric-icon { color: #6b7280; }
+        }
+      }
+
+      .exercise-details {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+        font-size: 0.85rem;
+
+        .exercise-name,
+        .muscle-groups {
+          margin-bottom: 0.25rem;
+          color: var(--text-secondary);
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+
+          strong {
+            color: var(--text-primary);
+          }
+        }
+      }
+
+      .round-exercises {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+
+        .exercises-label {
+          color: var(--text-primary);
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+          font-size: 0.85rem;
+        }
+
+        .exercises-list {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 0.25rem;
+
+          .exercise-item {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            padding: 0.25rem 0;
+            position: relative;
+
+            &:before {
+              content: "•";
+              color: var(--accent-color);
+              margin-right: 0.5rem;
+            }
+          }
+        }
+      }
+
+      .custom-instructions {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+
+        strong {
+          color: var(--text-primary);
+        }
+      }
+
+      .rest-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(107, 114, 128, 0.1);
+        color: var(--text-secondary);
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        margin-bottom: 0.75rem;
+
+        .rest-icon {
+          opacity: 0.8;
+        }
+      }
+    }
+
+    .segment-notes {
+      background: rgba(255, 255, 255, 0.03);
+      border-left: 3px solid var(--accent-color);
+      padding: 0.75rem;
+      margin-top: 1rem;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+
+      strong {
+        color: var(--text-primary);
+      }
+    }
+
+    .segment-rest {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(107, 114, 128, 0.15);
+      color: var(--text-secondary);
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      margin-top: 1rem;
+
+      .rest-icon {
+        opacity: 0.8;
+      }
+
+      .rest-duration {
+        font-weight: 500;
+      }
+    }
+  }
+
+  // Workout Summary
+  .workout-summary {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.1) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+
+    h5 {
+      margin: 0 0 1rem 0;
+      color: var(--text-primary);
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      &:before {
+        content: "📊";
+        font-size: 1.2rem;
+      }
+    }
+
+    .summary-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+
+      .summary-metric {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+
+        .summary-icon {
+          font-size: 1.1rem;
+          opacity: 0.9;
+        }
+
+        .summary-label {
+          color: var(--text-secondary);
+          font-size: 0.85rem;
+        }
+
+        .summary-value {
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-left: auto;
+        }
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .workout-segments {
+    .segment {
+      padding: 0.75rem;
+
+      .segment-header .segment-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+
+        .segment-number {
+          align-self: flex-start;
+        }
+      }
+
+      .segment-content .segment-metrics {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+      }
+    }
+
+    .segment-group {
+      .segment-group-header {
+        padding: 1rem;
+
+        .segment-group-name {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.25rem;
+        }
+      }
+    }
+
+    .workout-summary {
+      padding: 1rem;
+
+      .summary-metrics {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+
+        .summary-metric {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.25rem;
+
+          .summary-value {
+            margin-left: 0;
+            font-size: 1.1rem;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .workout-segments {
+    .segment {
+      break-inside: avoid;
+      border-left-width: 2px;
+
+      &:hover {
+        transform: none;
+        background: rgba(255, 255, 255, 0.05);
+      }
+    }
+
+    .segment-group {
+      break-inside: avoid;
+    }
+
+    .workout-summary {
+      break-inside: avoid;
+    }
+  }
+}

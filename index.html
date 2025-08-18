@@ -30,6 +30,7 @@
                     </div>
                     <nav class="nav-menu" id="nav-menu" role="navigation" aria-label="Main navigation">
                         <button class="nav-btn active" data-view="dashboard" aria-current="page">Dashboard</button>
+                        <button class="nav-btn" data-view="training-plan">Training Plans</button>
                         <button class="nav-btn" data-view="profile">Profile</button>
                     </nav>
                     <div class="nav-user" id="nav-user">
@@ -346,6 +347,67 @@
                                 <div class="form-help" id="sleep-help">Optional: Recent sleep quality score if available</div>
                             </div>
                         </fieldset>
+
+                        <!-- Exercise Exclusions -->
+                        <fieldset class="config-group">
+                            <legend>Exercise Restrictions</legend>
+                            <div class="form-help" style="margin-bottom: 16px;">Select any exercises you cannot or prefer not to do:</div>
+                            <div class="exercise-exclusions-grid">
+                                <label class="checkbox-card">
+                                    <input type="checkbox" id="exclude-swimming" name="excludedExercises" value="swimming">
+                                    <div class="checkbox-content">
+                                        <span class="exercise-icon">🏊</span>
+                                        <span class="exercise-name">Swimming</span>
+                                        <span class="exercise-description">Pool and open water swimming</span>
+                                    </div>
+                                </label>
+                                
+                                <label class="checkbox-card">
+                                    <input type="checkbox" id="exclude-running" name="excludedExercises" value="running">
+                                    <div class="checkbox-content">
+                                        <span class="exercise-icon">🏃</span>
+                                        <span class="exercise-name">Running</span>
+                                        <span class="exercise-description">Outdoor and treadmill running</span>
+                                    </div>
+                                </label>
+                                
+                                <label class="checkbox-card">
+                                    <input type="checkbox" id="exclude-cycling" name="excludedExercises" value="cycling">
+                                    <div class="checkbox-content">
+                                        <span class="exercise-icon">🚴</span>
+                                        <span class="exercise-name">Cycling</span>
+                                        <span class="exercise-description">Road, mountain, and indoor cycling</span>
+                                    </div>
+                                </label>
+                                
+                                <label class="checkbox-card">
+                                    <input type="checkbox" id="exclude-strength" name="excludedExercises" value="strength">
+                                    <div class="checkbox-content">
+                                        <span class="exercise-icon">🏋️</span>
+                                        <span class="exercise-name">Strength Training</span>
+                                        <span class="exercise-description">Weight lifting and resistance training</span>
+                                    </div>
+                                </label>
+                                
+                                <label class="checkbox-card">
+                                    <input type="checkbox" id="exclude-yoga" name="excludedExercises" value="yoga">
+                                    <div class="checkbox-content">
+                                        <span class="exercise-icon">🧘</span>
+                                        <span class="exercise-name">Yoga/Flexibility</span>
+                                        <span class="exercise-description">Yoga, stretching, and mobility work</span>
+                                    </div>
+                                </label>
+                                
+                                <label class="checkbox-card">
+                                    <input type="checkbox" id="exclude-hiit" name="excludedExercises" value="hiit">
+                                    <div class="checkbox-content">
+                                        <span class="exercise-icon">⚡</span>
+                                        <span class="exercise-name">HIIT</span>
+                                        <span class="exercise-description">High-intensity interval training</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </fieldset>
                     </form>
                 </div>
                 <footer class="modal-footer">
@@ -356,6 +418,122 @@
             </div>
         </div>
         </div> <!-- End Dashboard View -->
+
+        <!-- Training Plan View -->
+        <div id="training-plan-view" class="view-container">
+            <div class="training-plan-container">
+                <div id="trainingPlanSection" style="display: block;">
+                    <header class="plan-header">
+                        <h2>🎯 Training Plan Generator</h2>
+                        <p class="plan-subtitle">Create personalized training plans based on your goals and recovery metrics</p>
+                    </header>
+
+                    <!-- Unified Plan Generation -->
+                    <div class="plan-generation-unified">
+                        <div class="plan-overview">
+                            <div class="overview-card">
+                                <h4>📊 Current Plan Status</h4>
+                                <p id="current-plan-status">No active training plan</p>
+                                <div class="plan-stats" id="plan-stats" style="display: none;">
+                                    <div class="stat">
+                                        <span class="stat-value" id="plan-days-remaining">--</span>
+                                        <span class="stat-label">Days Remaining</span>
+                                    </div>
+                                    <div class="stat">
+                                        <span class="stat-value" id="plan-completion">--%</span>
+                                        <span class="stat-label">Completed</span>
+                                    </div>
+                                    <div class="stat">
+                                        <span class="stat-value" id="plan-adherence">--%</span>
+                                        <span class="stat-label">Adherence</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="overview-actions">
+                                <button id="unified-generate-plan-btn" class="btn btn-primary">
+                                    <span aria-hidden="true">🎯</span> Generate New Plan
+                                </button>
+                                <button id="manage-saved-plans-btn" class="btn btn-secondary">
+                                    <span aria-hidden="true">📋</span> Manage Saved Plans
+                                </button>
+                                <button id="ai-recommend-btn" class="btn btn-secondary">
+                                    <span aria-hidden="true">🤖</span> AI Recommendations
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="plan-templates-preview">
+                            <h4>📋 Quick Plan Templates</h4>
+                            <div class="template-cards">
+                                <div class="template-card" data-template="dynamic">
+                                    <h5>Dynamic Plan</h5>
+                                    <p>Adaptive plan based on your current fitness and recovery status</p>
+                                    <button class="btn btn-outline btn-small template-select-btn" data-template="dynamic">Select</button>
+                                </div>
+                                <div class="template-card" data-template="sprintTriathlon">
+                                    <h5>Sprint Triathlon</h5>
+                                    <p>Complete 16-week plan for sprint distance triathlon</p>
+                                    <button class="btn btn-outline btn-small template-select-btn" data-template="sprintTriathlon">Select</button>
+                                </div>
+                                <div class="template-card" data-template="quickRacePrep">
+                                    <h5>Quick Race Prep</h5>
+                                    <p>Rapid race preparation for short-notice events (8 weeks)</p>
+                                    <button class="btn btn-outline btn-small template-select-btn" data-template="quickRacePrep">Select</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Generated Plan Section -->
+                    <div id="generatedPlanSection" style="display: none;">
+                        <header class="plan-header">
+                            <h3>Generated Training Plan</h3>
+                            <div id="plan-meta" class="plan-meta"></div>
+                            <div class="plan-actions">
+                                <button id="regenerate-plan-btn" class="btn btn-secondary">Regenerate</button>
+                                <button id="export-csv-btn" class="btn btn-secondary" disabled>Export CSV</button>
+                                <button id="export-sheets-btn" class="btn btn-secondary" disabled>Export to Sheets</button>
+                            </div>
+                        </header>
+
+                        <!-- Readiness Summary -->
+                        <div class="readiness-summary">
+                            <div class="readiness-score">
+                                <div id="readiness-score-display" class="readiness-score-large">--/100</div>
+                                <div class="readiness-label">Readiness Score</div>
+                            </div>
+                            <div id="readiness-indicators" class="readiness-indicators"></div>
+                        </div>
+
+                        <!-- Recommendations and Warnings -->
+                        <div class="plan-insights">
+                            <div class="recommendations-card">
+                                <h4>Recommendations</h4>
+                                <ul id="recommendations-list"></ul>
+                            </div>
+                            <div id="warnings-card" class="warnings-card" style="display: none;">
+                                <h4>Warnings</h4>
+                                <ul id="warnings-list"></ul>
+                            </div>
+                        </div>
+
+                        <!-- Workout Calendar -->
+                        <div class="workout-calendar-section">
+                            <h4>Your Training Schedule</h4>
+                            <div id="workout-cards" class="workout-cards-grid">
+                                <!-- Workout cards will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results Display -->
+                    <div id="plan-results" class="results-container"></div>
+                    <div id="auth-results" class="results-container"></div>
+                    <div id="status-display" class="status-display"></div>
+                </div>
+            </div>
+        </div>
 
         <!-- Profile View -->
         <div id="profile-view" class="view-container">

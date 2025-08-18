@@ -86,6 +86,7 @@ export class UserProfileService {
     maxHR: number;
     preferredSports: string[];
     goals: string[];
+    excludedExercises: string[];
   } {
     const profile = this.userProfile;
     const defaultAge = this.calculateAgeFromEmail() || 30;
@@ -96,7 +97,8 @@ export class UserProfileService {
       restingHR: profile?.preferences?.restingHR || 60,
       maxHR: profile?.preferences?.maxHR || this.calculateMaxHR(profile?.preferences?.age || defaultAge),
       preferredSports: profile?.preferences?.sports || ['running'],
-      goals: profile?.preferences?.goals || ['general_fitness']
+      goals: profile?.preferences?.goals || ['general_fitness'],
+      excludedExercises: profile?.preferences?.excludedExercises || []
     };
   }
 
