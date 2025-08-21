@@ -324,34 +324,119 @@ export class UnifiedWorkoutCalendar {
   }
 
   /**
-   * Generate workout card
+   * Generate workout card with enhanced completed workout details
    */
   private generateWorkoutCard(workout: Workout, expanded = false): string {
     const sportIcon = this.getSportIcon(workout.sport);
     const statusClass = `status-${workout.status}`;
     const statusIcon = this.getStatusIcon(workout.status);
 
+    // Use actual data if available (completed/unplanned), otherwise use planned data
     const duration = workout.actual?.durationMin || workout.planned?.durationMin;
     const distance = workout.actual?.distanceKm || workout.planned?.distanceKm;
+    const isCompleted = workout.status === 'completed' || workout.status === 'unplanned';
+    
+    // Calculate completion vs planned comparison
+    const hasComparison = workout.actual && workout.planned;
+    const durationDiff = hasComparison ? 
+      ((workout.actual.durationMin - workout.planned.durationMin) / workout.planned.durationMin * 100) : null;
+    const distanceDiff = hasComparison && workout.planned.distanceKm ? 
+      ((workout.actual.distanceKm! - workout.planned.distanceKm) / workout.planned.distanceKm * 100) : null;
 
     return `
-      <div class="workout-card ${statusClass}" data-workout-id="${workout.id}">
+      <div class="workout-card ${statusClass} ${isCompleted ? 'completed-workout' : ''}" data-workout-id="${workout.id}">
         <div class="workout-header">
           <span class="sport-icon">${sportIcon}</span>
           <span class="workout-name">${workout.name}</span>
-          <span class="status-icon">${statusIcon}</span>
+          <div class="workout-status">
+            <span class="status-icon">${statusIcon}</span>
+            ${isCompleted ? '<span class="completion-badge">✓</span>' : ''}
+          </div>
         </div>
         
         ${expanded ? `
           <div class="workout-details">
             <div class="workout-description">${workout.description || ''}</div>
             
-            <div class="workout-metrics">
-              ${duration ? `<span class="metric"><span class="metric-label">Duration:</span> ${duration}min</span>` : ''}
-              ${distance ? `<span class="metric"><span class="metric-label">Distance:</span> ${distance.toFixed(1)}km</span>` : ''}
-              ${workout.actual?.avgHR ? `<span class="metric"><span class="metric-label">Avg HR:</span> ${workout.actual.avgHR} bpm</span>` : ''}
-              ${workout.actual?.trainingLoad ? `<span class="metric"><span class="metric-label">Load:</span> ${workout.actual.trainingLoad}</span>` : ''}
-            </div>
+            <!-- Actual Performance Metrics (if completed) -->
+            ${workout.actual ? `
+              <div class="actual-metrics">
+                <h5 class="metrics-title">
+                  <span class="actual-icon">📊</span> Actual Performance
+                  ${workout.actual.processedAt ? `<small>Uploaded ${new Date(workout.actual.processedAt).toLocaleDateString()}</small>` : ''}
+                </h5>
+                <div class="workout-metrics">
+                  ${workout.actual.durationMin ? `<span class="metric"><span class="metric-label">Duration:</span> ${workout.actual.durationMin}min</span>` : ''}
+                  ${workout.actual.distanceKm ? `<span class="metric"><span class="metric-label">Distance:</span> ${workout.actual.distanceKm.toFixed(2)}km</span>` : ''}
+                  ${workout.actual.avgHR ? `<span class="metric"><span class="metric-label">Avg HR:</span> ${workout.actual.avgHR} bpm</span>` : ''}
+                  ${workout.actual.maxHR ? `<span class="metric"><span class="metric-label">Max HR:</span> ${workout.actual.maxHR} bpm</span>` : ''}
+                  ${workout.actual.avgPace ? `<span class="metric"><span class="metric-label">Avg Pace:</span> ${workout.actual.avgPace}</span>` : ''}
+                  ${workout.actual.avgPower ? `<span class="metric"><span class="metric-label">Avg Power:</span> ${workout.actual.avgPower}W</span>` : ''}
+                  ${workout.actual.trainingLoad ? `<span class="metric"><span class="metric-label">Training Load:</span> ${workout.actual.trainingLoad}</span>` : ''}
+                  ${workout.actual.calories ? `<span class="metric"><span class="metric-label">Calories:</span> ${workout.actual.calories}</span>` : ''}
+                  ${workout.actual.ascentM ? `<span class="metric"><span class="metric-label">Elevation:</span> ↗${workout.actual.ascentM}m ↘${workout.actual.descentM || 0}m</span>` : ''}
+                </div>
+                
+                <!-- HR Zones Distribution -->
+                ${workout.actual.zones && workout.actual.zones.length > 0 ? `
+                  <div class="hr-zones">
+                    <h6>Heart Rate Zones</h6>
+                    <div class="zones-grid">
+                      ${workout.actual.zones.map((zone, index) => `
+                        <div class="zone zone-${index + 1}">
+                          <span class="zone-label">Z${index + 1}</span>
+                          <span class="zone-time">${Math.round(zone.timeMin || 0)}min</span>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+            ` : ''}
+
+            <!-- Planned vs Actual Comparison (if both available) -->
+            ${hasComparison ? `
+              <div class="planned-vs-actual">
+                <h5 class="comparison-title">
+                  <span class="comparison-icon">⚖️</span> Planned vs Actual
+                </h5>
+                <div class="comparison-metrics">
+                  ${durationDiff !== null ? `
+                    <div class="comparison-item ${Math.abs(durationDiff) > 10 ? (durationDiff > 0 ? 'over' : 'under') : 'on-target'}">
+                      <span class="comparison-label">Duration:</span>
+                      <span class="planned-value">${workout.planned!.durationMin}min</span>
+                      <span class="comparison-arrow">→</span>
+                      <span class="actual-value">${workout.actual!.durationMin}min</span>
+                      <span class="comparison-diff">(${durationDiff > 0 ? '+' : ''}${durationDiff.toFixed(1)}%)</span>
+                    </div>
+                  ` : ''}
+                  ${distanceDiff !== null ? `
+                    <div class="comparison-item ${Math.abs(distanceDiff) > 10 ? (distanceDiff > 0 ? 'over' : 'under') : 'on-target'}">
+                      <span class="comparison-label">Distance:</span>
+                      <span class="planned-value">${workout.planned!.distanceKm!.toFixed(1)}km</span>
+                      <span class="comparison-arrow">→</span>
+                      <span class="actual-value">${workout.actual!.distanceKm!.toFixed(1)}km</span>
+                      <span class="comparison-diff">(${distanceDiff > 0 ? '+' : ''}${distanceDiff.toFixed(1)}%)</span>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            ` : ''}
+            
+            <!-- Planned Metrics (if not completed or no actual data) -->
+            ${workout.planned && !workout.actual ? `
+              <div class="planned-metrics">
+                <h5 class="metrics-title">
+                  <span class="planned-icon">🎯</span> Planned Workout
+                </h5>
+                <div class="workout-metrics">
+                  ${workout.planned.durationMin ? `<span class="metric"><span class="metric-label">Duration:</span> ${workout.planned.durationMin}min</span>` : ''}
+                  ${workout.planned.distanceKm ? `<span class="metric"><span class="metric-label">Distance:</span> ${workout.planned.distanceKm}km</span>` : ''}
+                  ${workout.planned.targetMetrics?.expectedAvgHR ? `<span class="metric"><span class="metric-label">Target HR:</span> ${workout.planned.targetMetrics.expectedAvgHR} bpm</span>` : ''}
+                  ${workout.planned.expectedFatigue ? `<span class="metric"><span class="metric-label">Expected Fatigue:</span> ${workout.planned.expectedFatigue}/100</span>` : ''}
+                </div>
+              </div>
+            ` : ''}
 
             ${workout.planned?.tags && workout.planned.tags.length > 0 ? `
               <div class="workout-tags">
@@ -365,8 +450,19 @@ export class UnifiedWorkoutCalendar {
           </div>
         ` : `
           <div class="workout-summary">
-            ${duration ? `<span class="duration">${duration}min</span>` : ''}
-            ${distance ? `<span class="distance">${distance.toFixed(1)}km</span>` : ''}
+            <div class="workout-metrics-compact">
+              ${duration ? `<span class="metric-compact duration">${duration}min</span>` : ''}
+              ${distance ? `<span class="metric-compact distance">${distance.toFixed(1)}km</span>` : ''}
+              ${workout.actual?.avgHR ? `<span class="metric-compact hr">${workout.actual.avgHR}bpm</span>` : ''}
+              ${workout.actual?.trainingLoad ? `<span class="metric-compact load">Load: ${workout.actual.trainingLoad}</span>` : ''}
+            </div>
+            ${hasComparison && (Math.abs(durationDiff || 0) > 10 || Math.abs(distanceDiff || 0) > 10) ? `
+              <div class="quick-comparison">
+                ${durationDiff !== null && Math.abs(durationDiff) > 10 ? 
+                  `<span class="diff-indicator ${durationDiff > 0 ? 'over' : 'under'}">${durationDiff > 0 ? '+' : ''}${durationDiff.toFixed(0)}%</span>` : ''
+                }
+              </div>
+            ` : ''}
           </div>
         `}
       </div>

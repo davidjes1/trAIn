@@ -29,13 +29,27 @@ export class UserProfileService {
       this.currentUser = await AuthService.initialize();
       
       if (this.currentUser) {
-        this.userProfile = await AuthService.getUserProfile();
+        try {
+          this.userProfile = await AuthService.getUserProfile();
+        } catch (error) {
+          console.warn('Failed to get user profile in UserProfileService, continuing without it:', error);
+          this.userProfile = null;
+        }
       }
 
       // Set up auth state listener
       AuthService.addAuthStateListener(async (user) => {
         this.currentUser = user;
-        this.userProfile = user ? await AuthService.getUserProfile() : null;
+        if (user) {
+          try {
+            this.userProfile = await AuthService.getUserProfile();
+          } catch (error) {
+            console.warn('Failed to get user profile in auth state listener, continuing without it:', error);
+            this.userProfile = null;
+          }
+        } else {
+          this.userProfile = null;
+        }
         this.notifyListeners();
       });
 

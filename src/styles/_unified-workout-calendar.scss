@@ -203,6 +203,22 @@
       border-left: 3px solid #f59e0b; // Amber
     }
 
+    // Enhanced completed workout styling
+    &.completed-workout {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      
+      &:hover {
+        background: rgba(16, 185, 129, 0.15);
+      }
+      
+      .completion-badge {
+        color: #10b981;
+        font-weight: 600;
+        font-size: 0.8rem;
+      }
+    }
+
     .workout-header {
       display: flex;
       align-items: center;
@@ -301,6 +317,227 @@
         font-style: italic;
         line-height: 1.3;
         margin-top: 0.5rem;
+      }
+
+      // Actual Performance Metrics Section
+      .actual-metrics {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin: 0.5rem 0;
+
+        .metrics-title {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin: 0 0 0.75rem 0;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #10b981;
+
+          .actual-icon {
+            margin-right: 0.25rem;
+          }
+
+          small {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+          }
+        }
+
+        // HR Zones in workout card
+        .hr-zones {
+          margin-top: 0.75rem;
+
+          h6 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.75rem;
+            color: var(--text-primary);
+            font-weight: 600;
+          }
+
+          .zones-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.25rem;
+
+            .zone {
+              background: rgba(255, 255, 255, 0.1);
+              border-radius: 3px;
+              padding: 0.25rem;
+              text-align: center;
+              font-size: 0.65rem;
+
+              .zone-label {
+                display: block;
+                font-weight: 600;
+                color: var(--text-primary);
+                margin-bottom: 1px;
+              }
+
+              .zone-time {
+                color: var(--text-secondary);
+                font-size: 0.6rem;
+              }
+
+              // Zone colors
+              &.zone-1 { border-left: 2px solid #9CA3AF; }
+              &.zone-2 { border-left: 2px solid #60A5FA; }
+              &.zone-3 { border-left: 2px solid #34D399; }
+              &.zone-4 { border-left: 2px solid #FBBF24; }
+              &.zone-5 { border-left: 2px solid #F87171; }
+            }
+          }
+        }
+      }
+
+      // Planned vs Actual Comparison Section
+      .planned-vs-actual {
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin: 0.5rem 0;
+
+        .comparison-title {
+          display: flex;
+          align-items: center;
+          margin: 0 0 0.75rem 0;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #6366f1;
+
+          .comparison-icon {
+            margin-right: 0.25rem;
+          }
+        }
+
+        .comparison-metrics {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+
+          .comparison-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            padding: 0.4rem 0.6rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+
+            .comparison-label {
+              font-weight: 500;
+              color: var(--text-primary);
+              min-width: 55px;
+            }
+
+            .planned-value {
+              color: var(--text-secondary);
+            }
+
+            .comparison-arrow {
+              color: var(--accent-color);
+              font-weight: 600;
+            }
+
+            .actual-value {
+              color: var(--text-primary);
+              font-weight: 500;
+            }
+
+            .comparison-diff {
+              margin-left: auto;
+              font-weight: 600;
+              font-size: 0.7rem;
+              padding: 1px 4px;
+              border-radius: 2px;
+            }
+
+            // Comparison result styling
+            &.on-target .comparison-diff {
+              background: rgba(16, 185, 129, 0.2);
+              color: #10b981;
+            }
+
+            &.over .comparison-diff {
+              background: rgba(245, 158, 11, 0.2);
+              color: #f59e0b;
+            }
+
+            &.under .comparison-diff {
+              background: rgba(239, 68, 68, 0.2);
+              color: #ef4444;
+            }
+          }
+        }
+      }
+
+      // Planned Metrics Section
+      .planned-metrics {
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin: 0.5rem 0;
+
+        .metrics-title {
+          display: flex;
+          align-items: center;
+          margin: 0 0 0.75rem 0;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #6366f1;
+
+          .planned-icon {
+            margin-right: 0.25rem;
+          }
+        }
+      }
+
+      // Quick comparison for compact view
+      .workout-metrics-compact {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.25rem;
+
+        .metric-compact {
+          font-size: 0.7rem;
+          color: var(--text-secondary);
+          background: rgba(255, 255, 255, 0.1);
+          padding: 2px 6px;
+          border-radius: 3px;
+
+          &.duration::before { content: "⏱️ "; }
+          &.distance::before { content: "📏 "; }
+          &.hr::before { content: "💗 "; }
+          &.load::before { content: "⚡ "; }
+        }
+      }
+
+      .quick-comparison {
+        display: flex;
+        justify-content: flex-end;
+        
+        .diff-indicator {
+          font-size: 0.65rem;
+          font-weight: 600;
+          padding: 1px 4px;
+          border-radius: 2px;
+
+          &.over {
+            background: rgba(245, 158, 11, 0.3);
+            color: #f59e0b;
+          }
+
+          &.under {
+            background: rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+          }
+        }
       }
     }
   }
@@ -615,6 +852,61 @@
       .workout-summary {
         flex-direction: column;
         gap: 0.25rem;
+      }
+
+      // Mobile styles for enhanced workout details
+      .workout-details {
+        .actual-metrics,
+        .planned-vs-actual,
+        .planned-metrics {
+          padding: 0.5rem;
+          
+          .metrics-title {
+            font-size: 0.8rem;
+            
+            small {
+              font-size: 0.65rem;
+            }
+          }
+        }
+
+        .hr-zones .zones-grid {
+          grid-template-columns: repeat(5, 1fr);
+          gap: 0.2rem;
+          
+          .zone {
+            padding: 0.2rem;
+            font-size: 0.6rem;
+            
+            .zone-time {
+              font-size: 0.55rem;
+            }
+          }
+        }
+
+        .planned-vs-actual .comparison-metrics {
+          .comparison-item {
+            font-size: 0.7rem;
+            padding: 0.3rem 0.5rem;
+            
+            .comparison-label {
+              min-width: 50px;
+            }
+            
+            .comparison-diff {
+              font-size: 0.65rem;
+            }
+          }
+        }
+
+        .workout-metrics-compact {
+          gap: 0.3rem;
+          
+          .metric-compact {
+            font-size: 0.65rem;
+            padding: 1px 4px;
+          }
+        }
       }
     }
   }

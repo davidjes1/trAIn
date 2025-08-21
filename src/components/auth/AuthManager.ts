@@ -16,28 +16,44 @@ export class AuthManager {
   }
 
   private async initialize(): Promise<void> {
-    // Initialize Firebase Auth
-    this.currentUser = await AuthService.initialize();
-    
-    if (this.currentUser) {
-      this.userProfile = await AuthService.getUserProfile();
-      this.renderUserProfile();
-    } else {
-      this.renderAuthForms();
-    }
-
-    // Listen for auth state changes
-    AuthService.addAuthStateListener(async (user) => {
-      this.currentUser = user;
-      if (user) {
-        this.userProfile = await AuthService.getUserProfile();
+    try {
+      // Initialize Firebase Auth
+      this.currentUser = await AuthService.initialize();
+      
+      if (this.currentUser) {
+        try {
+          this.userProfile = await AuthService.getUserProfile();
+        } catch (error) {
+          console.warn('Failed to get user profile, continuing without it:', error);
+          this.userProfile = null;
+        }
         this.renderUserProfile();
       } else {
-        this.userProfile = null;
         this.renderAuthForms();
       }
-      this.onAuthStateChanged(user, this.userProfile);
-    });
+
+      // Listen for auth state changes
+      AuthService.addAuthStateListener(async (user) => {
+        this.currentUser = user;
+        if (user) {
+          try {
+            this.userProfile = await AuthService.getUserProfile();
+          } catch (error) {
+            console.warn('Failed to get user profile in auth state change, continuing without it:', error);
+            this.userProfile = null;
+          }
+          this.renderUserProfile();
+        } else {
+          this.userProfile = null;
+          this.renderAuthForms();
+        }
+        this.onAuthStateChanged(user, this.userProfile);
+      });
+    } catch (error) {
+      console.error('Failed to initialize AuthManager:', error);
+      // Still try to render something so the UI isn't completely broken
+      this.renderAuthForms();
+    }
   }
 
   private renderAuthForms(): void {

@@ -18,6 +18,7 @@ import { SegmentDisplay } from '../segments/SegmentDisplay';
 import { WorkoutComparison } from './WorkoutComparison';
 import { RecoveryMetricsTracker } from '../recovery/RecoveryMetricsTracker';
 import { TrainingPlanManager } from '../training-plan/TrainingPlanManager';
+import { RecentWorkoutDisplay } from '../recent-workout/RecentWorkoutDisplay';
 import { AuthManager } from '../auth/AuthManager';
 import { Router } from '../../services/Router';
 import { UserProfileService } from '../../services/UserProfileService';
@@ -29,6 +30,7 @@ export class TrainingHub {
   private unifiedWorkoutCalendar: UnifiedWorkoutCalendar | null = null;
   private workoutComparison: WorkoutComparison;
   private recoveryTracker!: RecoveryMetricsTracker; // Initialized after authentication
+  private recentWorkoutDisplay!: RecentWorkoutDisplay; // Initialized after authentication
   private trainingPlanManager!: TrainingPlanManager; // Initialized after authentication
   private authManager!: AuthManager; // Initialized in constructor
   private router!: Router; // Initialized after authentication
@@ -59,19 +61,29 @@ export class TrainingHub {
   }
 
   private onAuthStateChanged(user: User | null, profile?: UserProfile | null): void {
-    const isAuthenticated = user !== null;
+    try {
+      const isAuthenticated = user !== null;
 
-    if (isAuthenticated) {
-      // Hide auth container and show main app
-      const authContainer = document.getElementById('auth-container');
-      const mainContent = document.getElementById('main-content');
-      
-      if (authContainer) {
-        authContainer.style.display = 'none';
-      }
-      if (mainContent) {
-        mainContent.style.display = 'block';
-      }
+      console.log('🔄 Auth state changed:', { 
+        isAuthenticated, 
+        userId: user?.uid,
+        email: user?.email,
+        hasProfile: !!profile
+      });
+
+      if (isAuthenticated) {
+        // Hide auth container and show main app
+        const authContainer = document.getElementById('auth-container');
+        const mainContent = document.getElementById('main-content');
+        
+        if (authContainer) {
+          authContainer.style.display = 'none';
+        }
+        if (mainContent) {
+          mainContent.style.display = 'block';
+        }
+        
+        console.log('✅ Main content should now be visible');
       
       // Initialize router
       this.router = new Router((view: string) => this.onViewChange(view));
@@ -80,6 +92,12 @@ export class TrainingHub {
       const recoveryContainer = document.getElementById('recovery-metrics-container');
       if (recoveryContainer) {
         this.recoveryTracker = new RecoveryMetricsTracker(recoveryContainer);
+      }
+
+      // Initialize recent workout display
+      const recentWorkoutContainer = document.getElementById('recent-workout-container');
+      if (recentWorkoutContainer) {
+        this.recentWorkoutDisplay = new RecentWorkoutDisplay(recentWorkoutContainer);
       }
       
       // Initialize training plan manager with reference to this hub
@@ -93,20 +111,33 @@ export class TrainingHub {
       const email = this.userProfileService.getEmail();
       this.router.updateNavUser(displayName, email);
       
-      // Initialize the app
-      this.initializeEventListeners();
-      this.initializeUnifiedCalendar();
-      this.loadInitialData();
-    } else {
-      // Disable real-time sync when user logs out
-      this.dashboardService.disableRealtimeSync();
+        // Initialize the app
+        this.initializeEventListeners();
+        this.initializeUnifiedCalendar();
+        this.loadInitialData();
+      } else {
+        // Disable real-time sync when user logs out
+        this.dashboardService.disableRealtimeSync();
+        
+        // Show auth container and hide main app
+        const authContainer = document.getElementById('auth-container');
+        const mainContent = document.getElementById('main-content');
       
-      // Show auth container and hide main app
+        if (authContainer) authContainer.style.display = 'block';
+        if (mainContent) mainContent.style.display = 'none';
+      }
+    } catch (error) {
+      console.error('❌ Error in auth state change handler:', error);
+      // Try to show auth screen as fallback
       const authContainer = document.getElementById('auth-container');
       const mainContent = document.getElementById('main-content');
       
-      if (authContainer) authContainer.style.display = 'block';
-      if (mainContent) mainContent.style.display = 'none';
+      if (authContainer) {
+        authContainer.style.display = 'block';
+      }
+      if (mainContent) {
+        mainContent.style.display = 'none';
+      }
     }
   }
 
@@ -162,6 +193,19 @@ export class TrainingHub {
     window.addEventListener('recovery-metrics-updated', () => {
       // Refresh dashboard metrics when recovery data changes
       this.loadInitialData();
+    });
+
+    // Recent workout updates - refresh when new workouts are imported/synced
+    document.addEventListener('workouts-updated', () => {
+      console.log('📊 Workouts updated, refreshing recent workout display...');
+      if (this.recentWorkoutDisplay) {
+        this.recentWorkoutDisplay.refresh();
+      }
+    });
+
+    // Show import modal from recent workout empty state
+    document.addEventListener('show-import-modal', () => {
+      this.showImportModal();
     });
 
     // AI Insights controls
