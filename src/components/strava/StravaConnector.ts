@@ -31,9 +31,18 @@ export class StravaConnector {
     const userProfile = this.userProfileService.getUserProfile();
     this.connection = userProfile?.stravaConnection || null;
     
-    // Check for OAuth callback parameters only if they exist
+    // Check for OAuth callback parameters only if they exist and have Strava-related values
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('code') && urlParams.has('state')) {
+    const hasAuthCallback = urlParams.has('code') && urlParams.has('state') && urlParams.has('scope');
+    
+    console.log('🔍 Checking for OAuth callback:', { 
+      hasCode: urlParams.has('code'), 
+      hasState: urlParams.has('state'), 
+      hasScope: urlParams.has('scope'),
+      willHandle: hasAuthCallback 
+    });
+    
+    if (hasAuthCallback) {
       await this.handleOAuthCallback();
     }
     

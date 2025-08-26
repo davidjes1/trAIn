@@ -61,8 +61,9 @@ export class StravaAuthManager {
       redirectUri: this.config.redirectUri
     };
     
-    // Store in sessionStorage for callback validation
-    sessionStorage.setItem('strava_auth_state', JSON.stringify(this.authState));
+    // Store in localStorage for persistence across page reloads/redirects
+    localStorage.setItem('strava_auth_state', JSON.stringify(this.authState));
+    console.log('🔒 Stored auth state for validation:', state);
 
     // Build authorization URL
     const authUrl = this.buildAuthorizationUrl(state);
@@ -80,18 +81,23 @@ export class StravaAuthManager {
     scope: string
   ): Promise<StravaConnection> {
     // Validate state parameter
-    const storedState = sessionStorage.getItem('strava_auth_state');
+    const storedState = localStorage.getItem('strava_auth_state');
+    console.log('🔍 Checking stored auth state:', { storedState: !!storedState, receivedState: state });
+    
     if (!storedState) {
       throw new Error('No stored auth state found');
     }
 
     const authState: StravaAuthState = JSON.parse(storedState);
+    console.log('🔍 Validating state:', { stored: authState.state, received: state, match: authState.state === state });
+    
     if (authState.state !== state) {
       throw new Error('Invalid state parameter - possible CSRF attack');
     }
 
     // Clear stored state
-    sessionStorage.removeItem('strava_auth_state');
+    localStorage.removeItem('strava_auth_state');
+    console.log('✅ Auth state validated and cleared');
 
     // Exchange authorization code for tokens
     const tokenResponse = await this.exchangeCodeForTokens(code);
@@ -131,22 +137,32 @@ export class StravaAuthManager {
    * Refresh expired access token using refresh token
    */
   public async refreshAccessToken(refreshToken: string): Promise<StravaTokens> {
+    // Strava API expects form-encoded data, not JSON
+    const formData = new URLSearchParams({
+      client_id: this.config.clientId,
+      client_secret: this.config.clientSecret,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token'
+    });
+
     const response = await fetch('https://www.strava.com/oauth/token', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({
-        client_id: this.config.clientId,
-        client_secret: this.config.clientSecret,
-        refresh_token: refreshToken,
-        grant_type: 'refresh_token'
-      })
+      body: formData.toString()
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Token refresh failed: ${error.message || response.statusText}`);
+      const errorText = await response.text();
+      let errorMessage = response.statusText;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorJson.error_description || response.statusText;
+      } catch {
+        errorMessage = errorText || response.statusText;
+      }
+      throw new Error(`Token refresh failed: ${errorMessage}`);
     }
 
     const tokenResponse: StravaTokenResponse = await response.json();
@@ -230,22 +246,32 @@ export class StravaAuthManager {
    * Exchange authorization code for access and refresh tokens
    */
   private async exchangeCodeForTokens(code: string): Promise<StravaTokenResponse> {
+    // Strava API expects form-encoded data, not JSON
+    const formData = new URLSearchParams({
+      client_id: this.config.clientId,
+      client_secret: this.config.clientSecret,
+      code: code,
+      grant_type: 'authorization_code'
+    });
+
     const response = await fetch('https://www.strava.com/oauth/token', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({
-        client_id: this.config.clientId,
-        client_secret: this.config.clientSecret,
-        code: code,
-        grant_type: 'authorization_code'
-      })
+      body: formData.toString()
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Token exchange failed: ${error.message || response.statusText}`);
+      const errorText = await response.text();
+      let errorMessage = response.statusText;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorJson.error_description || response.statusText;
+      } catch {
+        errorMessage = errorText || response.statusText;
+      }
+      throw new Error(`Token exchange failed: ${errorMessage}`);
     }
 
     return await response.json();
