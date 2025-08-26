@@ -21,8 +21,11 @@ export class StravaAuthManager {
   private authState: StravaAuthState | null = null;
 
   private constructor() {
-    // Load configuration from secure config manager
+    // Initialize basic configuration
     this.loadConfiguration();
+    
+    // Asynchronously try to load from storage
+    this.initializeAsync();
   }
 
   private loadConfiguration(): void {
@@ -35,6 +38,30 @@ export class StravaAuthManager {
       redirectUri: window.location.origin,
       scope: 'read,activity:read'
     };
+  }
+
+  private async initializeAsync(): Promise<void> {
+    try {
+      const configManager = StravaConfigManager.getInstance();
+      
+      // Try to load from storage
+      const loaded = await configManager.loadFromStorage();
+      
+      if (loaded) {
+        // Reload configuration after loading from storage
+        this.loadConfiguration();
+      }
+      
+      console.log('🔧 Strava configuration initialized:', {
+        hasClientId: !!this.config.clientId,
+        hasClientSecret: !!this.config.clientSecret,
+        redirectUri: this.config.redirectUri,
+        scope: this.config.scope,
+        loadedFromStorage: loaded
+      });
+    } catch (error) {
+      console.error('Error initializing Strava configuration:', error);
+    }
   }
 
   public static getInstance(): StravaAuthManager {
@@ -246,6 +273,14 @@ export class StravaAuthManager {
    * Exchange authorization code for access and refresh tokens
    */
   private async exchangeCodeForTokens(code: string): Promise<StravaTokenResponse> {
+    // Log configuration state (without secrets)
+    console.log('🔍 Token exchange configuration:', {
+      clientId: this.config.clientId,
+      hasClientSecret: !!this.config.clientSecret,
+      redirectUri: this.config.redirectUri,
+      codeLength: code.length
+    });
+
     // Strava API expects form-encoded data, not JSON
     const formData = new URLSearchParams({
       client_id: this.config.clientId,
@@ -253,6 +288,8 @@ export class StravaAuthManager {
       code: code,
       grant_type: 'authorization_code'
     });
+
+    console.log('📤 Sending token exchange request to Strava...');
 
     const response = await fetch('https://www.strava.com/oauth/token', {
       method: 'POST',
@@ -262,19 +299,36 @@ export class StravaAuthManager {
       body: formData.toString()
     });
 
+    console.log('📥 Strava token response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('❌ Strava token exchange error response:', errorText);
+      
       let errorMessage = response.statusText;
       try {
         const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.message || errorJson.error_description || response.statusText;
+        errorMessage = errorJson.message || errorJson.error_description || errorJson.error || response.statusText;
+        console.error('❌ Parsed error details:', errorJson);
       } catch {
         errorMessage = errorText || response.statusText;
       }
       throw new Error(`Token exchange failed: ${errorMessage}`);
     }
 
-    return await response.json();
+    const tokenResponse = await response.json();
+    console.log('✅ Token exchange successful:', {
+      hasAccessToken: !!tokenResponse.access_token,
+      hasRefreshToken: !!tokenResponse.refresh_token,
+      expiresAt: tokenResponse.expires_at,
+      athleteId: tokenResponse.athlete?.id
+    });
+
+    return tokenResponse;
   }
 
   /**

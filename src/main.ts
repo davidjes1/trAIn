@@ -82,6 +82,18 @@ class TrainingHubApp {
           const authManager = StravaAuthManager.getInstance();
           const stravaService = StravaService.getInstance();
           const userProfileService = UserProfileService.getInstance();
+
+          // Check if Strava is configured before attempting OAuth
+          const config = authManager.getConfig();
+          console.log('🔍 Strava configuration check:', {
+            hasClientId: !!config.clientId,
+            redirectUri: config.redirectUri,
+            scope: config.scope
+          });
+
+          if (!config.clientId) {
+            throw new Error('Strava is not configured. Please configure your Strava API credentials first.');
+          }
           
           // Exchange code for tokens
           const connection = await authManager.handleOAuthCallback(code, state, scope);

@@ -11,7 +11,20 @@ export class StravaConfigManager {
   private static instance: StravaConfigManager;
   private config: StravaConfig | null = null;
 
-  private constructor() {}
+  private constructor() {
+    // Initialize with default configuration
+    this.initializeDefaultConfig();
+  }
+
+  private initializeDefaultConfig(): void {
+    // Use provided Strava app credentials
+    this.config = {
+      clientId: '174184',
+      clientSecret: 'e48b2bb9b1eaa5f55d04f8dcccaf3d6e94abdb35',
+      configured: true
+    };
+    console.log('✅ Strava configuration initialized with provided credentials');
+  }
 
   public static getInstance(): StravaConfigManager {
     if (!StravaConfigManager.instance) {
@@ -73,6 +86,7 @@ export class StravaConfigManager {
 
   /**
    * Load configuration from secure storage (if implemented)
+   * Only overrides defaults if user has explicitly saved custom credentials
    */
   public async loadFromStorage(): Promise<boolean> {
     try {
@@ -83,12 +97,18 @@ export class StravaConfigManager {
         // In production: decrypt the stored data
         // For demo: just parse (NOT SECURE - don't use for real credentials)
         const parsed = JSON.parse(stored);
-        this.configure(parsed.clientId, parsed.clientSecret);
-        return true;
+        
+        // Only override if it's different from defaults (user customization)
+        if (parsed.clientId !== '174184' || parsed.clientSecret !== 'e48b2bb9b1eaa5f55d04f8dcccaf3d6e94abdb35') {
+          this.configure(parsed.clientId, parsed.clientSecret);
+          console.log('✅ Custom Strava configuration loaded from storage');
+          return true;
+        }
       }
     } catch (error) {
       console.error('Error loading Strava config from storage:', error);
     }
+    console.log('📋 Using default Strava configuration');
     return false;
   }
 
