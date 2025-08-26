@@ -20,7 +20,7 @@ export class StravaConfigManager {
     // Use provided Strava app credentials
     this.config = {
       clientId: '174184',
-      clientSecret: 'e48b2bb9b1eaa5f55d04f8dcccaf3d6e94abdb35',
+      clientSecret: '3bfb5093e02798ed5180f032913c094e16ad926e',
       configured: true
     };
     console.log('✅ Strava configuration initialized with provided credentials');
@@ -99,7 +99,7 @@ export class StravaConfigManager {
         const parsed = JSON.parse(stored);
         
         // Only override if it's different from defaults (user customization)
-        if (parsed.clientId !== '174184' || parsed.clientSecret !== 'e48b2bb9b1eaa5f55d04f8dcccaf3d6e94abdb35') {
+        if (parsed.clientId !== '174184' || parsed.clientSecret !== '3bfb5093e02798ed5180f032913c094e16ad926e') {
           this.configure(parsed.clientId, parsed.clientSecret);
           console.log('✅ Custom Strava configuration loaded from storage');
           return true;
