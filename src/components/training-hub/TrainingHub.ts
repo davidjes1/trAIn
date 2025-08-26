@@ -186,9 +186,7 @@ export class TrainingHub {
       });
     }
 
-    document.getElementById('sync-data-btn')?.addEventListener('click', () => {
-      this.syncData();
-    });
+    // Note: sync-data-btn event listener already added above
 
     // Calendar controls
     document.getElementById('prev-week-btn')?.addEventListener('click', () => {
@@ -882,7 +880,11 @@ export class TrainingHub {
     // Save and refresh UI
     this.saveWorkouts();
     this.updateHeaderMetrics();
-    await this.workoutCalendar.updateWorkouts(this.state.trackedWorkouts);
+    if (this.workoutCalendar) {
+      if (this.workoutCalendar) {
+        await this.workoutCalendar.updateWorkouts(this.state.trackedWorkouts);
+      }
+    }
     this.updateAnalytics();
   }
 
@@ -1015,7 +1017,11 @@ export class TrainingHub {
       });
       
       this.saveWorkouts();
-      await this.workoutCalendar.updateWorkouts(this.state.trackedWorkouts);
+      if (this.workoutCalendar) {
+      if (this.workoutCalendar) {
+        await this.workoutCalendar.updateWorkouts(this.state.trackedWorkouts);
+      }
+    }
       this.updateHeaderMetrics();
       
       this.hidePlanGenerationModal();
@@ -1386,7 +1392,11 @@ export class TrainingHub {
       this.updateAnalytics();
       
       // Refresh calendar with merged workout data
-      await this.workoutCalendar.updateWorkouts(updatedWorkouts);
+      if (this.workoutCalendar) {
+        if (this.workoutCalendar) {
+        await this.workoutCalendar.updateWorkouts(updatedWorkouts);
+      }
+      }
       
       UIHelpers.showStatus(
         `Data synced! Loaded ${dashboardData.activities.length} activities from Firebase.`, 
@@ -1450,7 +1460,9 @@ export class TrainingHub {
       this.updateAnalytics();
       
       // Refresh calendar
-      await this.workoutCalendar.updateWorkouts(updatedWorkouts);
+      if (this.workoutCalendar) {
+        await this.workoutCalendar.updateWorkouts(updatedWorkouts);
+      }
       
       // Show subtle notification for real-time updates
       if (newFirebaseWorkouts.length > 0) {
@@ -2854,7 +2866,9 @@ export class TrainingHub {
     try {
       UIHelpers.showStatus('Refreshing training calendar...', 'info');
       
-      await this.workoutCalendar.refreshFromStorage();
+      if (this.workoutCalendar) {
+        await this.workoutCalendar.refreshFromStorage();
+      }
       
       UIHelpers.showStatus('Calendar refreshed successfully', 'success');
       
