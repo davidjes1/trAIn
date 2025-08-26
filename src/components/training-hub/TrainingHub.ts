@@ -126,12 +126,22 @@ export class TrainingHub {
         // Disable real-time sync when user logs out
         this.dashboardService.disableRealtimeSync();
         
-        // Show auth container and hide main app
-        const authContainer = document.getElementById('auth-container');
-        const mainContent = document.getElementById('main-content');
-      
-        if (authContainer) authContainer.style.display = 'block';
-        if (mainContent) mainContent.style.display = 'none';
+        // Add a small delay before showing auth screen to allow for Firebase auth restoration
+        setTimeout(() => {
+          // Double-check authentication state after delay
+          const currentUser = this.userProfileService.isAuthenticated();
+          if (!currentUser) {
+            // Show auth container and hide main app only if still not authenticated
+            const authContainer = document.getElementById('auth-container');
+            const mainContent = document.getElementById('main-content');
+          
+            console.log('🔐 No authentication found after delay, showing login screen');
+            if (authContainer) authContainer.style.display = 'block';
+            if (mainContent) mainContent.style.display = 'none';
+          } else {
+            console.log('🔐 Authentication restored during delay, staying logged in');
+          }
+        }, 500); // 500ms delay to allow Firebase to restore auth state
       }
     } catch (error) {
       console.error('❌ Error in auth state change handler:', error);

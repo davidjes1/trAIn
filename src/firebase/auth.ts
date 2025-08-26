@@ -20,15 +20,32 @@ export class AuthService {
 
   /**
    * Initialize authentication state listener
+   * Wait for Firebase to fully restore auth state before resolving
    */
   static initialize(): Promise<User | null> {
     return new Promise((resolve) => {
+      // Add a small delay to allow Firebase to restore auth state
+      let initialCheckComplete = false;
+      
       const unsubscribe = onAuthStateChanged(auth, (user) => {
+        console.log('🔐 Auth state changed during initialization:', { 
+          hasUser: !!user, 
+          userId: user?.uid,
+          initialCheck: !initialCheckComplete 
+        });
+        
         this.currentUser = user;
         this.authStateListeners.forEach(listener => listener(user));
-        unsubscribe();
-        resolve(user);
+        
+        if (!initialCheckComplete) {
+          initialCheckComplete = true;
+          // Don't unsubscribe immediately - keep listening for state changes
+          resolve(user);
+        }
       });
+      
+      // Keep the unsubscribe function for later cleanup if needed
+      (this as any).authUnsubscribe = unsubscribe;
     });
   }
 
