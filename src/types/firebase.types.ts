@@ -1,5 +1,6 @@
 // Firebase-specific type definitions for the training app
 import { WorkoutStatus, WorkoutComparison } from './workout-tracking.types';
+import { StravaConnection } from './strava.types';
 
 // User Profile and Authentication
 export interface UserProfile {
@@ -9,6 +10,7 @@ export interface UserProfile {
   createdAt: Date;
   preferences: UserPreferences;
   stats: UserStats;
+  stravaConnection?: StravaConnection; // Optional Strava integration
 }
 
 export interface UserPreferences {
@@ -67,6 +69,8 @@ export interface FirebaseActivity {
   avgPace?: number;
   notes?: string;
   fitFileUrl?: string; // Firebase Storage path
+  stravaActivityId?: number; // Strava activity ID if imported from Strava
+  dataSource: 'fit_file' | 'strava' | 'manual'; // Source of the activity data
   uploadedAt: Date;
   processed: boolean;
 }

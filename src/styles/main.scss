@@ -19,6 +19,9 @@
 // 3.1. Modal Components  
 @use 'import-modal';
 
+// 3.2. Page Components
+@use 'import-data-page';
+
 // 4. Legacy Components (to be migrated)
 // Keep existing styles for components not yet migrated
 @use 'modern-calendar';
@@ -27,9 +30,83 @@
 @use 'recovery-metrics';
 @use 'recent-workout';
 @use 'segment-display';
+@use 'strava-connector';
 
 // 4b. Accessibility Overrides for Legacy Components
 @use 'accessible-calendar';
+
+// 5. Logo and Branding Styles
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  .logo {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+    max-height: 32px;
+    width: auto;
+    
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+  
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-primary, #1a1a1a);
+  }
+}
+
+.hub-title {
+  h1 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px 0;
+    
+    .hub-logo {
+      flex-shrink: 0;
+      vertical-align: middle;
+      max-height: 24px;
+      width: auto;
+    }
+  }
+}
+
+// Loading state logo animation
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
+}
+
+.logo-loading {
+  animation: logoFloat 2s ease-in-out infinite;
+}
+
+// Loading state styling
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  
+  p {
+    margin: 0;
+    color: var(--color-text-secondary, #666);
+    font-size: 0.9rem;
+  }
+  
+  .logo {
+    opacity: 0.8;
+    max-height: 32px;
+    width: auto;
+  }
+}
 
 // 5. Application Layout
 .app-container {

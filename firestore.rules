@@ -1,67 +1,49 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only access their own data
+    // User profiles at root level with nested collections
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write, create, update, delete: if request.auth != null && request.auth.uid == userId;
       
       // User profile data
-      match /profile/{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+      match /profile/{profileDoc} {
+        allow read, write, create, update, delete: if request.auth != null && request.auth.uid == userId;
       }
       
-      // Activities - user can only access their own
+      // Nested user collections - all under users/{userId}/
       match /activities/{activityId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-        
-        // Activity validation
-        allow create: if request.auth != null 
-          && request.auth.uid == userId
-          && request.resource.data.userId == userId
-          && request.resource.data.date is string
-          && request.resource.data.sport is string
-          && request.resource.data.duration is number
-          && request.resource.data.distance is number;
+        allow read, write, create: if request.auth != null && request.auth.uid == userId;
       }
       
-      // Lap data - user can only access their own
       match /lapData/{lapId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-        
-        // Lap validation
-        allow create: if request.auth != null 
-          && request.auth.uid == userId
-          && request.resource.data.userId == userId
-          && request.resource.data.activityId is string
-          && request.resource.data.lapNumber is number;
+        allow read, write, create: if request.auth != null && request.auth.uid == userId;
       }
       
-      // Training plans - user can only access their own
       match /trainingPlans/{planId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-        
-        // Plan validation
-        allow create: if request.auth != null 
-          && request.auth.uid == userId
-          && request.resource.data.userId == userId
-          && request.resource.data.date is string
-          && request.resource.data.workoutType is string;
+        allow read, write, create: if request.auth != null && request.auth.uid == userId;
       }
       
-      // Tracked workouts - user can only access their own
       match /trackedWorkouts/{workoutId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write, create: if request.auth != null && request.auth.uid == userId;
       }
       
-      // Recovery metrics - user can only access their own
-      match /recoveryMetrics/{date} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+      match /recoveryMetrics/{metricId} {
+        allow read, write, create: if request.auth != null && request.auth.uid == userId;
       }
       
-      // Analytics - user can only access their own
-      match /analytics/{period} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+      match /generatedPlans/{planId} {
+        allow read, write, create: if request.auth != null && request.auth.uid == userId;
       }
+      
+      match /trainingCalendars/{calendarId} {
+        allow read, write, create: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Root-level collections with userId-based access
+    match /workouts/{workoutId} {
+      allow read, write, create, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
     }
     
     // Deny all other access

@@ -1,6 +1,7 @@
 // Centralized User Profile Management Service
 import { User } from 'firebase/auth';
 import { UserProfile } from '../types/firebase.types';
+import { StravaConnection } from '../types/strava.types';
 import { AuthService } from '../firebase/auth';
 
 export class UserProfileService {
@@ -229,6 +230,39 @@ export class UserProfileService {
     return Math.round(208 - (0.7 * age));
   }
 
+  // Strava connection management
+  public getStravaConnection(): StravaConnection | null {
+    return this.userProfile?.stravaConnection || null;
+  }
+
+  public async updateStravaConnection(connection: StravaConnection | undefined): Promise<void> {
+    await this.updateProfile({ stravaConnection: connection });
+  }
+
+  public isStravaConnected(): boolean {
+    return this.userProfile?.stravaConnection?.isConnected || false;
+  }
+
+  public getStravaAthleteInfo(): {
+    athleteId?: number;
+    username?: string;
+    fullName?: string;
+    lastSyncAt?: Date;
+  } {
+    const connection = this.userProfile?.stravaConnection;
+    if (!connection?.isConnected) {
+      return {};
+    }
+
+    return {
+      athleteId: connection.athleteId,
+      username: connection.username,
+      fullName: connection.firstname && connection.lastname ? 
+        `${connection.firstname} ${connection.lastname}` : undefined,
+      lastSyncAt: connection.lastSyncAt
+    };
+  }
+
   // Static convenience methods
   public static getCurrentUser(): User | null {
     return UserProfileService.getInstance().getCurrentUser();
@@ -244,5 +278,13 @@ export class UserProfileService {
 
   public static getTrainingProfile() {
     return UserProfileService.getInstance().getTrainingProfile();
+  }
+
+  public static getStravaConnection(): StravaConnection | null {
+    return UserProfileService.getInstance().getStravaConnection();
+  }
+
+  public static isStravaConnected(): boolean {
+    return UserProfileService.getInstance().isStravaConnected();
   }
 }

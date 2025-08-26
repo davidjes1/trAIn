@@ -3,13 +3,23 @@ import './styles/main.scss';
 import { UIHelpers } from './utils/ui-helpers';
 import { ExportService } from './services/ExportService';
 import { TrainingHub } from './components/training-hub/TrainingHub';
+import { ImportDataPage } from './components/import-data/ImportDataPage';
 
 class TrainingHubApp {
   private trainingHub: TrainingHub;
+  private importDataPage: ImportDataPage;
 
   constructor() {
     this.trainingHub = new TrainingHub();
+    this.initializeImportDataPage();
     this.setupLegacySupport();
+  }
+
+  private initializeImportDataPage(): void {
+    const importContainer = document.getElementById('import-data-view');
+    if (importContainer) {
+      this.importDataPage = new ImportDataPage(importContainer);
+    }
   }
 
   // Maintain backward compatibility for any existing integrations
@@ -24,6 +34,11 @@ class TrainingHubApp {
     
     // Make training hub globally accessible for debugging/integration
     (window as any).trainingHub = this.trainingHub;
+    
+    // Make import data page globally accessible
+    (window as any).app = {
+      importDataPage: this.importDataPage
+    };
   }
 
   // Public API for external access

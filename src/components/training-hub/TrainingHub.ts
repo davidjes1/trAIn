@@ -19,6 +19,7 @@ import { WorkoutComparison } from './WorkoutComparison';
 import { RecoveryMetricsTracker } from '../recovery/RecoveryMetricsTracker';
 import { TrainingPlanManager } from '../training-plan/TrainingPlanManager';
 import { RecentWorkoutDisplay } from '../recent-workout/RecentWorkoutDisplay';
+import { StravaConnector } from '../strava/StravaConnector';
 import { AuthManager } from '../auth/AuthManager';
 import { Router } from '../../services/Router';
 import { UserProfileService } from '../../services/UserProfileService';
@@ -36,6 +37,9 @@ export class TrainingHub {
   private router!: Router; // Initialized after authentication
   private dashboardService: DashboardService;
   private userProfileService: UserProfileService;
+  private stravaConnector: StravaConnector | null = null;
+  private isImportModalOpen: boolean = false;
+  private currentPlan: any | null = null;
 
   constructor() {
     this.state = this.initializeState();
@@ -84,6 +88,9 @@ export class TrainingHub {
         }
         
         console.log('✅ Main content should now be visible');
+        
+        // Update Strava footer badge visibility
+        this.updateStravaFooterBadge();
       
       // Initialize router
       this.router = new Router((view: string) => this.onViewChange(view));
@@ -167,10 +174,17 @@ export class TrainingHub {
     const syncBtn = document.getElementById('sync-data-btn');
     syncBtn?.addEventListener('click', () => this.syncTrainingData());
     
-    // Header controls
-    document.getElementById('import-data-btn')?.addEventListener('click', () => {
-      this.showImportModal();
-    });
+    // Header controls - ensure single event listener
+    const importBtn = document.getElementById('import-data-btn');
+    if (importBtn && !importBtn.hasAttribute('data-listener-added')) {
+      importBtn.setAttribute('data-listener-added', 'true');
+      importBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('📁 Import data button clicked');
+        this.navigateToImportPage();
+      });
+    }
 
     document.getElementById('sync-data-btn')?.addEventListener('click', () => {
       this.syncData();
@@ -204,8 +218,9 @@ export class TrainingHub {
     });
 
     // Show import modal from recent workout empty state
-    document.addEventListener('show-import-modal', () => {
-      this.showImportModal();
+    document.addEventListener('show-import-modal', (e) => {
+      console.log('📋 Custom show-import-modal event triggered');
+      this.navigateToImportPage();
     });
 
     // AI Insights controls
@@ -619,6 +634,35 @@ export class TrainingHub {
   }
 
   // Import Data Management (methods implemented later in the file)
+
+  private navigateToImportPage(): void {
+    // Hide current view
+    const currentView = document.querySelector('.view-container.active');
+    if (currentView) {
+      currentView.classList.remove('active');
+      (currentView as HTMLElement).style.display = 'none';
+    }
+
+    // Show import data view
+    const importView = document.getElementById('import-data-view');
+    if (importView) {
+      importView.style.display = 'block';
+      importView.classList.add('active');
+      
+      // Initialize the import page if not already done
+      const app = (window as any).app;
+      if (app && app.importDataPage) {
+        app.importDataPage.show();
+      }
+    }
+
+    // Update navigation state
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => item.classList.remove('active'));
+    
+    // No specific nav item for import page, so we leave all inactive
+    console.log('📁 Navigated to import data page');
+  }
 
   private setupFileHandling(): void {
     // Single file handling
@@ -1442,11 +1486,26 @@ export class TrainingHub {
 
   // FIT File Import
   private showImportModal(): void {
-    // Check if modal already exists and remove it first
-    const existingModal = document.getElementById('import-modal');
-    if (existingModal) {
-      existingModal.remove();
+    // Check if modal actually exists in DOM (in case flag is out of sync)
+    const currentModal = document.getElementById('import-modal');
+    if (currentModal) {
+      console.log('⚠️ Import modal already exists in DOM, removing it first');
+      currentModal.remove();
+      this.isImportModalOpen = false;
     }
+
+    // Prevent duplicate modal creation
+    if (this.isImportModalOpen) {
+      console.log('⚠️ Import modal already open, ignoring duplicate call');
+      return;
+    }
+
+    this.isImportModalOpen = true;
+    console.log('🔄 Opening import modal...');
+
+    // Also remove any Strava settings modals that might be open
+    const stravaModals = document.querySelectorAll('.strava-settings-modal');
+    stravaModals.forEach(modal => modal.remove());
     
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
@@ -1498,40 +1557,76 @@ export class TrainingHub {
         </div>
         <div class="modal-body" style="padding: 24px;">
           <div class="import-options" style="display: flex; flex-direction: column; gap: 24px;">
-            <div class="drop-zone" id="fit-drop-zone" style="
-              border: 2px dashed #D0D7DE;
-              border-radius: 12px;
-              padding: 32px;
-              text-align: center;
-              background: #F7F9FB;
-              transition: all 0.3s ease;
-              cursor: pointer;
-            ">
-              <div class="drop-zone-content" style="
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 16px;
+            
+            <!-- Import Method Selection -->
+            <div class="import-method-tabs" style="display: flex; border-bottom: 1px solid #D0D7DE; margin-bottom: 16px;">
+              <button class="import-tab active" data-method="fit" style="
+                padding: 12px 24px;
+                border: none;
+                background: none;
+                border-bottom: 2px solid #00B26F;
+                color: #00B26F;
+                font-weight: 600;
+                cursor: pointer;
+              ">📁 FIT Files</button>
+              <button class="import-tab" data-method="strava" style="
+                padding: 12px 24px;
+                border: none;
+                background: none;
+                border-bottom: 2px solid transparent;
+                color: #666;
+                font-weight: 500;
+                cursor: pointer;
+              ">🏃 Strava</button>
+            </div>
+
+            <!-- FIT File Import -->
+            <div class="import-method-content" id="fit-import-content">
+              <div class="drop-zone" id="fit-drop-zone" style="
+                border: 2px dashed #D0D7DE;
+                border-radius: 12px;
+                padding: 32px;
+                text-align: center;
+                background: #F7F9FB;
+                transition: all 0.3s ease;
+                cursor: pointer;
               ">
-                <div class="drop-zone-icon" style="font-size: 3rem; opacity: 0.7;">📁</div>
-                <p class="drop-zone-text" style="
-                  font-size: 1.1rem;
-                  color: #4D4D4D;
-                  margin: 0;
-                ">Drop .fit files here or click to select</p>
-                <button class="btn btn-secondary" id="select-files-btn" style="
-                  background-color: #00B26F;
-                  color: white;
-                  border: none;
-                  padding: 8px 16px;
-                  border-radius: 6px;
-                  cursor: pointer;
-                  font-weight: 500;
+                <div class="drop-zone-content" style="
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                  gap: 16px;
                 ">
-                  <span aria-hidden="true">📂</span> Select Files
-                </button>
+                  <div class="drop-zone-icon" style="font-size: 3rem; opacity: 0.7;">📁</div>
+                  <p class="drop-zone-text" style="
+                    font-size: 1.1rem;
+                    color: #4D4D4D;
+                    margin: 0;
+                  ">Drop .fit files here or click to select</p>
+                  <button class="btn btn-secondary" id="select-files-btn" style="
+                    background-color: #00B26F;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-weight: 500;
+                  ">
+                    <span aria-hidden="true">📂</span> Select Files
+                  </button>
+                </div>
+                <input type="file" id="fit-file-input" accept=".fit" multiple style="display: none;">
               </div>
-              <input type="file" id="fit-file-input" accept=".fit" multiple style="display: none;">
+            </div>
+
+            <!-- Strava Import -->
+            <div class="import-method-content" id="strava-import-content" style="display: none;">
+              <div id="strava-connector-container" style="
+                border: 2px solid #FC4C02;
+                border-radius: 12px;
+                padding: 24px;
+                background: #FFF8F6;
+              "></div>
             </div>
             
             <div class="import-settings" style="background: #F7F9FB; padding: 20px; border-radius: 8px;">
@@ -1631,6 +1726,12 @@ export class TrainingHub {
     `;
 
     document.body.appendChild(modal);
+    
+    // Debug: Log modal creation
+    console.log('📋 Import modal created and added to DOM');
+    console.log('🔍 Modal element:', modal);
+    console.log('🔍 Close button:', document.getElementById('close-import-modal'));
+    
     this.initializeImportModalEvents();
   }
 
@@ -1641,39 +1742,72 @@ export class TrainingHub {
     const fileInput = document.getElementById('fit-file-input') as HTMLInputElement;
     const selectBtn = document.getElementById('select-files-btn');
     const processBtn = document.getElementById('process-files-btn');
+    
+    // Tab switching
+    const importTabs = document.querySelectorAll('.import-tab');
+    const importContents = document.querySelectorAll('.import-method-content');
+    
+    importTabs.forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        const method = (e.target as HTMLElement).getAttribute('data-method');
+        this.switchImportMethod(method);
+      });
+    });
+
+    // Initialize Strava connector
+    try {
+      this.initializeStravaConnector();
+    } catch (error) {
+      console.error('❌ Error initializing Strava connector:', error);
+      // Continue without Strava connector - don't break the modal
+    }
     const clearBtn = document.getElementById('clear-files-btn');
     const filesList = document.getElementById('selected-files-list');
 
     let selectedFiles: File[] = [];
+
+    // Close modal function
+    const closeModal = () => {
+      console.log('🔄 Closing import modal');
+      const modalElement = document.getElementById('import-modal');
+      if (modalElement) {
+        modalElement.remove();
+        this.isImportModalOpen = false;
+        console.log('✅ Import modal closed');
+      }
+    };
 
     // Close modal events with better error handling
     if (closeBtn) {
       closeBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Close button clicked');
-        modal?.remove();
+        console.log('❌ Close button clicked');
+        closeModal();
       });
+    } else {
+      console.warn('⚠️ Close button not found');
     }
 
     // Close on overlay click
     if (modal) {
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
-          console.log('Overlay clicked');
-          modal.remove();
+          console.log('❌ Overlay clicked to close');
+          closeModal();
         }
       });
     }
 
     // Close on escape key
-    document.addEventListener('keydown', function handleEscape(e) {
-      if (e.key === 'Escape' && modal && modal.parentNode) {
-        console.log('Escape key pressed');
-        modal.remove();
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && document.getElementById('import-modal')) {
+        console.log('❌ Escape key pressed to close');
+        closeModal();
         document.removeEventListener('keydown', handleEscape);
       }
-    });
+    };
+    document.addEventListener('keydown', handleEscape);
 
     // File selection events
     selectBtn?.addEventListener('click', () => {
@@ -2951,20 +3085,23 @@ export class TrainingHub {
       UIHelpers.showStatus('Syncing training data...', 'info');
       
       // Refresh dashboard data
-      await this.loadDashboardData();
+      if (this.recentWorkoutDisplay) {
+        await this.recentWorkoutDisplay.refresh();
+      }
       
-      // Refresh legacy calendar data
-      await this.workoutCalendar.refreshFromStorage();
-      
-      // Refresh unified calendar data
+      // Refresh calendar data
       if (this.unifiedWorkoutCalendar) {
-        await this.unifiedWorkoutCalendar.refresh();
+        // Use existing refresh methods if available
+        try {
+          await this.unifiedWorkoutCalendar.refreshFromStorage?.() || 
+                this.unifiedWorkoutCalendar.refresh?.();
+        } catch (error) {
+          console.warn('Calendar refresh failed:', error);
+        }
       }
       
-      // Refresh recovery metrics
-      if (this.recoveryTracker) {
-        await this.recoveryTracker.refreshData();
-      }
+      // Trigger global workout update event
+      document.dispatchEvent(new CustomEvent('workouts-updated'));
       
       UIHelpers.showStatus('Training data synchronized successfully', 'success');
       
@@ -3050,5 +3187,67 @@ export class TrainingHub {
    */
   public isAuthenticated(): boolean {
     return this.userProfileService.isAuthenticated();
+  }
+
+  // Strava import methods
+  private switchImportMethod(method: string | null): void {
+    const tabs = document.querySelectorAll('.import-tab');
+    const contents = document.querySelectorAll('.import-method-content');
+    
+    tabs.forEach(tab => {
+      const tabMethod = tab.getAttribute('data-method');
+      if (tabMethod === method) {
+        tab.classList.add('active');
+        (tab as HTMLElement).style.borderBottomColor = '#00B26F';
+        (tab as HTMLElement).style.color = '#00B26F';
+        (tab as HTMLElement).style.fontWeight = '600';
+      } else {
+        tab.classList.remove('active');
+        (tab as HTMLElement).style.borderBottomColor = 'transparent';
+        (tab as HTMLElement).style.color = '#666';
+        (tab as HTMLElement).style.fontWeight = '500';
+      }
+    });
+
+    contents.forEach(content => {
+      const contentId = content.id;
+      if ((method === 'fit' && contentId === 'fit-import-content') ||
+          (method === 'strava' && contentId === 'strava-import-content')) {
+        (content as HTMLElement).style.display = 'block';
+      } else {
+        (content as HTMLElement).style.display = 'none';
+      }
+    });
+  }
+
+  private initializeStravaConnector(): void {
+    const container = document.getElementById('strava-connector-container');
+    if (!container) return;
+
+    // Create Strava connector instance
+    this.stravaConnector = new StravaConnector(container, (connected) => {
+      if (connected) {
+        console.log('✅ Strava connected successfully');
+        this.updateStravaFooterBadge();
+      } else {
+        console.log('❌ Strava disconnected');
+        this.updateStravaFooterBadge();
+      }
+    });
+  }
+
+  private updateStravaFooterBadge(): void {
+    const footerBadge = document.getElementById('strava-footer-badge');
+    if (!footerBadge) return;
+
+    const isStravaConnected = this.userProfileService.isStravaConnected();
+    
+    if (isStravaConnected) {
+      footerBadge.style.display = 'block';
+      console.log('🏷️ Showing Strava footer badge');
+    } else {
+      footerBadge.style.display = 'none';
+      console.log('🏷️ Hiding Strava footer badge');
+    }
   }
 }

@@ -36,7 +36,7 @@ export class RecentWorkoutDisplay {
       console.log('📊 Loading recent workout...');
       
       // Run Firebase data test for debugging (only in development)
-      if (import.meta.env.DEV) {
+      if ((import.meta as any).env?.DEV) {
         console.log('🔍 Running Firebase data test...');
         try {
           await testFirebaseWorkoutData(userId);
@@ -85,6 +85,10 @@ export class RecentWorkoutDisplay {
 
     const workout = this.recentWorkout;
     const actual = workout.actual;
+    if (!actual) {
+      console.warn('No actual workout data available');
+      return;
+    }
     const uploadDate = actual.processedAt ? new Date(actual.processedAt) : new Date(workout.updatedAt);
     
     this.container.innerHTML = `
@@ -254,7 +258,8 @@ export class RecentWorkoutDisplay {
                 Planned vs Actual
               </h5>
               <div class="comparison-grid">
-                ${this.renderComparison('Duration', workout.planned.durationMin, actual.durationMin, 'min')}
+                ${workout.planned.durationMin && actual.durationMin ? 
+                  this.renderComparison('Duration', workout.planned.durationMin, actual.durationMin, 'min') : ''}
                 ${workout.planned.distanceKm && actual.distanceKm ? 
                   this.renderComparison('Distance', workout.planned.distanceKm, actual.distanceKm, 'km', 1) : ''}
               </div>
@@ -293,7 +298,7 @@ export class RecentWorkoutDisplay {
             <button class="btn btn-secondary" id="go-to-import">
               <span aria-hidden="true">📁</span> Import Workout Data
             </button>
-            ${import.meta.env.DEV ? `
+            ${(import.meta as any).env?.DEV ? `
               <button class="btn btn-outline" id="create-sample-data">
                 <span aria-hidden="true">🧪</span> Create Sample Data
               </button>

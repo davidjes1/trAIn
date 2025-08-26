@@ -1,0 +1,834 @@
+// Strava Connector Styles
+// Compliant with Strava brand guidelines
+
+.strava-connector {
+  background: white;
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e1e5e9;
+
+  .strava-info {
+    padding: 24px;
+    text-align: center;
+    border-bottom: 1px solid #e1e5e9;
+
+    .strava-logo {
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: center;
+
+      svg {
+        width: 40px;
+        height: 40px;
+      }
+    }
+
+    h3 {
+      margin: 0 0 12px 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    p {
+      margin: 0 0 20px 0;
+      color: #666;
+      line-height: 1.5;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .benefits-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      text-align: left;
+      max-width: 300px;
+      margin: 0 auto;
+
+      li {
+        padding: 4px 0;
+        color: #555;
+        font-size: 0.9rem;
+      }
+    }
+  }
+
+  .strava-actions {
+    padding: 24px;
+    text-align: center;
+
+    .strava-connect-btn {
+      background-color: #fc4c02;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+
+      &:hover {
+        background-color: #e6420b;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(252, 76, 2, 0.3);
+      }
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .strava-disclaimer {
+      margin-top: 16px;
+
+      p {
+        font-size: 0.85rem;
+        color: #666;
+        margin: 0;
+        line-height: 1.4;
+      }
+    }
+  }
+
+  .strava-branding {
+    padding: 16px 24px;
+    border-top: 1px solid #e1e5e9;
+    background: #f8f9fa;
+    border-radius: 0 0 12px 12px;
+    text-align: center;
+
+    .powered-by-strava {
+      height: 20px;
+      opacity: 0.7;
+    }
+  }
+
+  // Connected state
+  &.connected {
+    .connection-status {
+      padding: 24px;
+      border-bottom: 1px solid #e1e5e9;
+
+      .status-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .athlete-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .athlete-avatar {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid #fc4c02;
+        }
+
+        .athlete-avatar-placeholder {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #fc4c02, #ff6b35);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: 600;
+          font-size: 18px;
+        }
+
+        .athlete-details {
+          h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1a1a1a;
+          }
+
+          p {
+            margin: 2px 0 0 0;
+            font-size: 0.9rem;
+            color: #666;
+          }
+        }
+      }
+
+      .connection-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #059669;
+
+        .status-indicator {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background-color: #10b981;
+
+          &.connected {
+            background-color: #10b981;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+          }
+        }
+      }
+
+      .sync-info {
+        p {
+          margin: 4px 0;
+          font-size: 0.85rem;
+          color: #666;
+
+          strong {
+            color: #374151;
+          }
+        }
+      }
+    }
+
+    .strava-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+
+      .btn-primary {
+        background-color: #0066cc;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background-color: #0052a3;
+          transform: translateY(-1px);
+        }
+      }
+
+      .btn-secondary {
+        background-color: #f3f4f6;
+        color: #374151;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background-color: #e5e7eb;
+        }
+      }
+
+      .btn-danger-outline {
+        background-color: transparent;
+        color: #dc2626;
+        border: 1px solid #dc2626;
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background-color: #dc2626;
+          color: white;
+        }
+      }
+    }
+
+    .rate-limit-info {
+      padding: 16px 24px;
+      border-bottom: 1px solid #e1e5e9;
+
+      .rate-limit-indicator {
+        .rate-limit-label {
+          font-size: 0.8rem;
+          color: #666;
+          display: block;
+          margin-bottom: 4px;
+        }
+
+        .rate-limit-bar {
+          width: 100%;
+          height: 4px;
+          background-color: #e5e7eb;
+          border-radius: 2px;
+          overflow: hidden;
+
+          .rate-limit-fill {
+            height: 100%;
+            background-color: #6bcf7f;
+            border-radius: 2px;
+            transition: width 0.3s ease, background-color 0.3s ease;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Strava Configuration Modal
+.strava-config-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3000;
+
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  }
+
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e1e5e9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: #666;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: #f3f4f6;
+      }
+    }
+  }
+
+  .modal-body {
+    padding: 24px;
+  }
+
+  .config-info {
+    margin-bottom: 32px;
+
+    .info-section {
+      margin-bottom: 24px;
+
+      h4 {
+        margin: 0 0 12px 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1a1a1a;
+      }
+
+      ol {
+        margin: 0;
+        padding-left: 20px;
+        color: #555;
+        line-height: 1.6;
+
+        li {
+          margin-bottom: 8px;
+        }
+
+        a {
+          color: #fc4c02;
+          text-decoration: none;
+
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+
+        code {
+          background: #f3f4f6;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-family: 'Monaco', 'Consolas', monospace;
+          font-size: 0.85em;
+        }
+      }
+    }
+
+    .security-warning {
+      display: flex;
+      gap: 12px;
+      padding: 16px;
+      background: #fff8e1;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      color: #8a6914;
+
+      .warning-icon {
+        font-size: 1.2rem;
+        flex-shrink: 0;
+      }
+
+      strong {
+        color: #6b5b00;
+      }
+    }
+  }
+
+  .config-form {
+    .form-group {
+      margin-bottom: 20px;
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #374151;
+
+        &.checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          font-weight: 400;
+
+          input[type="checkbox"] {
+            margin: 0;
+          }
+        }
+      }
+
+      input[type="text"],
+      input[type="password"] {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+        &:focus {
+          outline: none;
+          border-color: #fc4c02;
+          box-shadow: 0 0 0 3px rgba(252, 76, 2, 0.1);
+        }
+
+        &::placeholder {
+          color: #9ca3af;
+        }
+      }
+
+      .help-text {
+        display: block;
+        margin-top: 4px;
+        font-size: 0.8rem;
+        color: #6b7280;
+      }
+    }
+  }
+
+  .modal-footer {
+    padding: 20px 24px;
+    border-top: 1px solid #e1e5e9;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+
+    .btn-primary {
+      background-color: #fc4c02;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover:not(:disabled) {
+        background-color: #e6420b;
+        transform: translateY(-1px);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+    }
+
+    .btn-secondary {
+      background-color: #f3f4f6;
+      color: #374151;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background-color: #e5e7eb;
+      }
+    }
+  }
+}
+
+// Success message
+.config-success-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 3000;
+  background: #d1fae5;
+  color: #065f46;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #6ee7b7;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  animation: slideInRight 0.3s ease-out;
+
+  .success-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .success-icon {
+    font-size: 1.1rem;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+// Strava Settings Modal
+.strava-settings-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+
+  .modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  }
+
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e1e5e9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: #666;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: #f3f4f6;
+      }
+    }
+  }
+
+  .modal-body {
+    padding: 24px;
+
+    .setting-group {
+      margin-bottom: 20px;
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #374151;
+        cursor: pointer;
+
+        input[type="checkbox"] {
+          margin-right: 8px;
+        }
+      }
+
+      input[type="number"],
+      select {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        margin-top: 4px;
+
+        &:focus {
+          outline: none;
+          border-color: #fc4c02;
+          box-shadow: 0 0 0 3px rgba(252, 76, 2, 0.1);
+        }
+      }
+    }
+  }
+
+  .modal-footer {
+    padding: 20px 24px;
+    border-top: 1px solid #e1e5e9;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+
+    .btn-primary {
+      background-color: #fc4c02;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: #e6420b;
+      }
+    }
+
+    .btn-secondary {
+      background-color: #f3f4f6;
+      color: #374151;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background-color: #e5e7eb;
+      }
+    }
+  }
+}
+
+// Status Messages
+.status-message {
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin: 16px 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+
+  &.info {
+    background-color: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+  }
+
+  &.success {
+    background-color: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+  }
+
+  &.error {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+  }
+}
+
+// Import Modal Tab Styles
+.import-method-tabs {
+  .import-tab {
+    transition: all 0.2s ease;
+    position: relative;
+
+    &:hover {
+      background-color: #f9fafb;
+    }
+
+    &.active {
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #fc4c02;
+      }
+    }
+  }
+}
+
+// Strava-specific import content
+#strava-import-content {
+  .strava-connector {
+    margin: 0;
+    border: none;
+    box-shadow: none;
+    border-radius: 8px;
+  }
+}
+
+// Sync progress indicator
+.sync-progress {
+  padding: 8px 16px;
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  text-align: center;
+  margin: 8px 0;
+}
+
+// App Footer Strava Branding
+.app-footer {
+  background: #f8f9fa;
+  border-top: 1px solid #e1e5e9;
+  padding: 16px 24px;
+  margin-top: auto;
+
+  .footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+
+    .footer-left {
+      p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #666;
+      }
+    }
+
+    .footer-right {
+      .strava-footer-badge {
+        .powered-by-strava-footer {
+          height: 18px;
+          opacity: 0.8;
+          transition: opacity 0.2s ease;
+
+          &:hover {
+            opacity: 1;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .strava-connector {
+    .connection-status .status-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    &.connected .strava-actions {
+      flex-direction: column;
+      align-items: center;
+
+      button {
+        width: 100%;
+        max-width: 200px;
+      }
+    }
+  }
+
+  .strava-settings-modal {
+    padding: 0.5rem;
+
+    .modal-content {
+      margin: 0.5rem;
+    }
+  }
+
+  .app-footer {
+    padding: 12px 16px;
+
+    .footer-content {
+      flex-direction: column;
+      gap: 8px;
+      text-align: center;
+    }
+  }
+}
