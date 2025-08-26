@@ -115,10 +115,10 @@ class TrainingHubApp {
           // Clean up URL
           window.history.replaceState({}, document.title, window.location.pathname);
           
-          // Navigate to import page to show connection status
+          // Stay on current page or navigate back to dashboard
           setTimeout(() => {
-            this.navigateToImportPage();
-          }, 2000);
+            this.navigateToDashboard();
+          }, 1000);
           
         } catch (error) {
           console.error('Strava OAuth callback error:', error);
@@ -137,6 +137,40 @@ class TrainingHubApp {
       // Trigger navigation through the training hub's router
       const event = new CustomEvent('navigate', { detail: { view: 'import-data' } });
       document.dispatchEvent(event);
+    }
+  }
+
+  private navigateToDashboard(): void {
+    // Navigate back to dashboard
+    console.log('🏠 Navigating back to dashboard after Strava connection');
+    
+    // Make sure dashboard view is visible
+    const dashboardView = document.getElementById('dashboard-view');
+    if (dashboardView) {
+      dashboardView.style.display = 'block';
+      dashboardView.classList.add('active');
+    }
+    
+    // Hide any other views that might be open
+    const otherViews = document.querySelectorAll('.view-container:not(#dashboard-view)');
+    otherViews.forEach(view => {
+      (view as HTMLElement).style.display = 'none';
+      view.classList.remove('active');
+    });
+    
+    // Update navigation state
+    const navItems = document.querySelectorAll('.nav-btn');
+    navItems.forEach(item => item.classList.remove('active'));
+    
+    const dashboardNav = document.querySelector('.nav-btn[data-view="dashboard"]');
+    if (dashboardNav) {
+      dashboardNav.classList.add('active');
+      dashboardNav.setAttribute('aria-current', 'page');
+    }
+    
+    // Update browser URL if needed
+    if (window.location.pathname !== '/') {
+      window.history.pushState({}, 'Dashboard', '/');
     }
   }
 
