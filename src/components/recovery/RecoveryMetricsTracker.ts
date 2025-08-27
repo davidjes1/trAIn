@@ -414,4 +414,15 @@ export class RecoveryMetricsTracker {
   public getReadinessScore(): number {
     return this.calculateReadinessScore();
   }
+
+  /**
+   * Public method to refresh recovery data (used by TrainingHub)
+   */
+  public async refreshData(): Promise<void> {
+    console.log('🔄 Refreshing recovery metrics data...');
+    await this.loadTodaysMetrics();
+    this.render();
+    this.attachEventListeners();
+    console.log('✅ Recovery metrics data refreshed');
+  }
 }
