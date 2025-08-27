@@ -3296,15 +3296,18 @@ export class TrainingHub {
     console.log('🔄 Refreshing TrainingHub after successful authentication');
     
     try {
+      // First ensure all components are initialized
+      await this.ensureComponentsInitialized();
+      
       // Add a small delay to ensure components are fully initialized
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       // Refresh all dashboard components
       console.log('🔄 Loading initial data...');
       await this.loadInitialData();
       
       // Add delay before refreshing individual components
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       // Refresh individual components
       console.log('🔄 Refreshing individual components...');
@@ -3341,5 +3344,42 @@ export class TrainingHub {
       console.error('❌ Error refreshing TrainingHub:', error);
       throw error; // Re-throw to allow proper error handling upstream
     }
+  }
+
+  /**
+   * Ensure all components are properly initialized
+   */
+  private async ensureComponentsInitialized(): Promise<void> {
+    console.log('🔧 Ensuring all components are initialized...');
+    
+    // Initialize recovery metrics tracker if not already done
+    if (!this.recoveryTracker) {
+      const recoveryContainer = document.getElementById('recovery-metrics-container');
+      if (recoveryContainer) {
+        console.log('🔧 Initializing recovery tracker...');
+        this.recoveryTracker = new RecoveryMetricsTracker(recoveryContainer);
+      } else {
+        console.warn('⚠️ Recovery container not found in DOM');
+      }
+    }
+
+    // Initialize recent workout display if not already done  
+    if (!this.recentWorkoutDisplay) {
+      const recentWorkoutContainer = document.getElementById('recent-workout-container');
+      if (recentWorkoutContainer) {
+        console.log('🔧 Initializing recent workout display...');
+        this.recentWorkoutDisplay = new RecentWorkoutDisplay(recentWorkoutContainer);
+      } else {
+        console.warn('⚠️ Recent workout container not found in DOM');
+      }
+    }
+    
+    // Initialize unified calendar if not already done
+    if (!this.unifiedWorkoutCalendar) {
+      console.log('🔧 Initializing unified workout calendar...');
+      this.initializeUnifiedCalendar();
+    }
+    
+    console.log('✅ Component initialization check completed');
   }
 }
