@@ -119,8 +119,7 @@ export class StravaAutoSync {
    */
   private async getStravaConnection(): Promise<StravaConnection | null> {
     try {
-      const profile = await this.userProfileService.getProfile();
-      return profile?.stravaConnection || null;
+      return this.userProfileService.getStravaConnection();
     } catch (error) {
       console.error('Error getting Strava connection:', error);
       return null;
