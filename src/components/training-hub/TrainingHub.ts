@@ -68,11 +68,12 @@ export class TrainingHub {
     try {
       const isAuthenticated = user !== null;
 
-      console.log('🔄 Auth state changed:', { 
+      console.log('🔄 Auth state changed (TrainingHub):', { 
         isAuthenticated, 
         userId: user?.uid,
         email: user?.email,
-        hasProfile: !!profile
+        hasProfile: !!profile,
+        timestamp: new Date().toISOString()
       });
 
       if (isAuthenticated) {
@@ -80,11 +81,25 @@ export class TrainingHub {
         const authContainer = document.getElementById('auth-container');
         const mainContent = document.getElementById('main-content');
         
+        console.log('🔍 DOM elements check:', {
+          hasAuthContainer: !!authContainer,
+          hasMainContent: !!mainContent,
+          authDisplay: authContainer?.style.display,
+          mainDisplay: mainContent?.style.display
+        });
+        
         if (authContainer) {
           authContainer.style.display = 'none';
+          console.log('✅ Auth container hidden');
+        } else {
+          console.warn('⚠️ Auth container not found');
         }
+        
         if (mainContent) {
           mainContent.style.display = 'block';
+          console.log('✅ Main content set to block');
+        } else {
+          console.warn('⚠️ Main content element not found');
         }
         
         console.log('✅ Main content should now be visible');
@@ -3272,6 +3287,59 @@ export class TrainingHub {
     } else {
       footerBadge.style.display = 'none';
       console.log('🏷️ Hiding Strava footer badge');
+    }
+  }
+
+  // Public methods for external access
+
+  public async refreshAfterAuth(): Promise<void> {
+    console.log('🔄 Refreshing TrainingHub after successful authentication');
+    
+    try {
+      // Add a small delay to ensure components are fully initialized
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Refresh all dashboard components
+      console.log('🔄 Loading initial data...');
+      await this.loadInitialData();
+      
+      // Add delay before refreshing individual components
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Refresh individual components
+      console.log('🔄 Refreshing individual components...');
+      if (this.recentWorkoutDisplay) {
+        console.log('🔄 Refreshing recent workout display...');
+        await this.recentWorkoutDisplay.refresh();
+        console.log('✅ Recent workout display refreshed');
+      } else {
+        console.warn('⚠️ Recent workout display not found');
+      }
+      
+      if (this.recoveryTracker) {
+        console.log('🔄 Refreshing recovery tracker...');
+        await this.recoveryTracker.refreshData();
+        console.log('✅ Recovery tracker refreshed');
+      } else {
+        console.warn('⚠️ Recovery tracker not found');
+      }
+      
+      if (this.unifiedWorkoutCalendar) {
+        console.log('🔄 Refreshing unified workout calendar...');
+        if (this.unifiedWorkoutCalendar.refresh) {
+          await this.unifiedWorkoutCalendar.refresh();
+        } else if (this.unifiedWorkoutCalendar.refreshFromStorage) {
+          await this.unifiedWorkoutCalendar.refreshFromStorage();
+        }
+        console.log('✅ Unified workout calendar refreshed');
+      } else {
+        console.warn('⚠️ Unified workout calendar not found');
+      }
+      
+      console.log('✅ TrainingHub refresh completed successfully');
+    } catch (error) {
+      console.error('❌ Error refreshing TrainingHub:', error);
+      throw error; // Re-throw to allow proper error handling upstream
     }
   }
 }

@@ -115,6 +115,9 @@ class TrainingHubApp {
           // Clean up URL
           window.history.replaceState({}, document.title, window.location.pathname);
           
+          // Ensure TrainingHub is properly initialized after successful auth
+          this.ensureTrainingHubInitialized();
+          
           // Stay on current page or navigate back to dashboard
           setTimeout(() => {
             this.navigateToDashboard();
@@ -140,15 +143,76 @@ class TrainingHubApp {
     }
   }
 
+  private async ensureTrainingHubInitialized(): Promise<void> {
+    console.log('🔄 Ensuring TrainingHub is properly initialized after OAuth');
+    
+    if (this.trainingHub) {
+      // Add a delay to ensure authentication is fully processed
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      if (this.trainingHub.isAuthenticated()) {
+        console.log('✅ TrainingHub authenticated, triggering refresh');
+        
+        try {
+          await this.trainingHub.refreshAfterAuth();
+          console.log('✅ TrainingHub refresh after OAuth completed successfully');
+        } catch (error) {
+          console.error('❌ Error refreshing TrainingHub after OAuth:', error);
+          this.showStatus(`Failed to refresh dashboard: ${error instanceof Error ? error.message : String(error)}`, 'error');
+        }
+      } else {
+        console.log('⚠️ TrainingHub not authenticated yet, will retry...');
+        // Try again after a short delay
+        setTimeout(() => {
+          if (this.trainingHub?.isAuthenticated()) {
+            console.log('🔄 Retrying TrainingHub refresh...');
+            this.trainingHub.refreshAfterAuth().catch(error => {
+              console.error('❌ Retry error refreshing TrainingHub:', error);
+            });
+          }
+        }, 500);
+      }
+    } else {
+      console.log('⚠️ TrainingHub not ready');
+    }
+  }
+
   private navigateToDashboard(): void {
     // Navigate back to dashboard
     console.log('🏠 Navigating back to dashboard after Strava connection');
+    
+    // First ensure main content is visible (in case it's hidden)
+    const authContainer = document.getElementById('auth-container');
+    const mainContent = document.getElementById('main-content');
+    
+    console.log('🔍 Navigation DOM check:', {
+      hasAuthContainer: !!authContainer,
+      hasMainContent: !!mainContent,
+      authDisplay: authContainer?.style.display,
+      mainDisplay: mainContent?.style.display
+    });
+    
+    if (authContainer) {
+      authContainer.style.display = 'none';
+      console.log('✅ Hidden auth container for navigation');
+    }
+    
+    if (mainContent) {
+      mainContent.style.display = 'block';
+      console.log('✅ Shown main content for navigation');
+    } else {
+      console.error('❌ Main content not found during navigation');
+      return;
+    }
     
     // Make sure dashboard view is visible
     const dashboardView = document.getElementById('dashboard-view');
     if (dashboardView) {
       dashboardView.style.display = 'block';
       dashboardView.classList.add('active');
+      console.log('✅ Dashboard view activated');
+    } else {
+      console.log('⚠️ Dashboard view not found, might be part of main content');
     }
     
     // Hide any other views that might be open
@@ -166,12 +230,17 @@ class TrainingHubApp {
     if (dashboardNav) {
       dashboardNav.classList.add('active');
       dashboardNav.setAttribute('aria-current', 'page');
+      console.log('✅ Dashboard nav button activated');
+    } else {
+      console.warn('⚠️ Dashboard nav button not found');
     }
     
     // Update browser URL if needed
     if (window.location.pathname !== '/') {
       window.history.pushState({}, 'Dashboard', '/');
     }
+    
+    console.log('🎯 Dashboard navigation completed');
   }
 
   private showStatus(message: string, type: 'info' | 'success' | 'error'): void {
