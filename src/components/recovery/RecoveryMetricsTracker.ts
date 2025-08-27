@@ -22,15 +22,36 @@ export class RecoveryMetricsTracker {
 
   private async loadTodaysMetrics(): Promise<void> {
     try {
+      console.log('🔍 Loading recovery metrics for date:', this.currentDate);
       const metrics = await FirestoreService.getRecoveryMetrics();
+      console.log('📊 Retrieved recovery metrics:', { 
+        totalCount: metrics.length, 
+        dates: metrics.map(m => m.date),
+        targetDate: this.currentDate 
+      });
+      
       this.todaysMetrics = metrics.find(m => m.date === this.currentDate) || null;
+      
+      if (this.todaysMetrics) {
+        console.log('✅ Found today\'s recovery metrics:', this.todaysMetrics);
+      } else {
+        console.log('ℹ️ No recovery metrics found for today:', this.currentDate);
+      }
     } catch (error) {
-      console.error('Error loading today\'s recovery metrics:', error);
+      console.error('❌ Error loading today\'s recovery metrics:', error);
     }
   }
 
   private render(): void {
     const hasDataToday = this.todaysMetrics !== null;
+    console.log('🎨 Rendering recovery metrics UI:', { 
+      hasDataToday, 
+      currentDate: this.currentDate,
+      containerExists: !!this.container,
+      containerInDOM: this.container ? document.contains(this.container) : false,
+      containerParent: this.container?.parentElement?.tagName,
+      metricsData: this.todaysMetrics ? 'Present' : 'None'
+    });
     
     this.container.innerHTML = `
       <div class="recovery-metrics-tracker">
@@ -227,6 +248,16 @@ export class RecoveryMetricsTracker {
         </ul>
       </div>
     `;
+    
+    // Debug DOM state after rendering
+    console.log('🔍 DOM state after innerHTML set:', {
+      containerHTML: this.container.innerHTML.substring(0, 200) + '...',
+      containerVisible: this.container.style.display !== 'none',
+      containerHeight: this.container.offsetHeight,
+      containerWidth: this.container.offsetWidth,
+      childElementCount: this.container.children.length,
+      firstChildClass: this.container.firstElementChild?.className
+    });
   }
 
   private calculateReadinessScore(): number {
@@ -420,9 +451,15 @@ export class RecoveryMetricsTracker {
    */
   public async refreshData(): Promise<void> {
     console.log('🔄 Refreshing recovery metrics data...');
-    await this.loadTodaysMetrics();
-    this.render();
-    this.attachEventListeners();
-    console.log('✅ Recovery metrics data refreshed');
+    try {
+      await this.loadTodaysMetrics();
+      console.log('🎨 About to re-render after data load...');
+      this.render();
+      console.log('🔗 Reattaching event listeners...');
+      this.attachEventListeners();
+      console.log('✅ Recovery metrics data refreshed successfully');
+    } catch (error) {
+      console.error('❌ Error during recovery metrics refresh:', error);
+    }
   }
 }

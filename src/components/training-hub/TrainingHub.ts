@@ -23,6 +23,7 @@ import { StravaConnector } from '../strava/StravaConnector';
 import { AuthManager } from '../auth/AuthManager';
 import { Router } from '../../services/Router';
 import { UserProfileService } from '../../services/UserProfileService';
+import { StravaAutoSync } from '../../services/StravaAutoSync';
 import { User } from 'firebase/auth';
 
 export class TrainingHub {
@@ -37,6 +38,7 @@ export class TrainingHub {
   private router!: Router; // Initialized after authentication
   private dashboardService: DashboardService;
   private userProfileService: UserProfileService;
+  private stravaAutoSync: StravaAutoSync;
   private stravaConnector: StravaConnector | null = null;
   private isImportModalOpen: boolean = false;
   private currentPlan: any | null = null;
@@ -47,6 +49,7 @@ export class TrainingHub {
     // Initialize services
     this.dashboardService = new DashboardService();
     this.userProfileService = UserProfileService.getInstance();
+    this.stravaAutoSync = StravaAutoSync.getInstance();
     
     // Initialize authentication first
     const authContainer = document.getElementById('auth-container');
@@ -336,6 +339,9 @@ export class TrainingHub {
       }
       
       console.log(`Loaded ${dashboardData.activities.length} activities from Firebase`);
+      
+      // Auto-sync recent Strava activities (run in background)
+      this.runStravaAutoSync();
       
     } catch (error) {
       console.error('Error loading initial data:', error);
@@ -3292,6 +3298,45 @@ export class TrainingHub {
 
   // Public methods for external access
 
+  /**
+   * Run Strava auto-sync in the background
+   */
+  private async runStravaAutoSync(): Promise<void> {
+    if (!this.stravaAutoSync.shouldRunSync()) {
+      console.log('🔄 Skipping Strava auto-sync (not ready or already running)');
+      return;
+    }
+
+    try {
+      console.log('🚀 Running automatic Strava sync...');
+      const result = await this.stravaAutoSync.syncRecentActivities();
+      
+      if (result.synced > 0) {
+        console.log(`🎉 Successfully synced ${result.synced} new Strava activities!`);
+        
+        // Refresh dashboard data to show new activities
+        const dashboardData = await this.dashboardService.getDashboardData();
+        this.updateHeaderMetricsFromDashboard(dashboardData);
+        
+        // Refresh components to show new data
+        if (this.recentWorkoutDisplay) {
+          await this.recentWorkoutDisplay.refresh();
+        }
+        
+        // Show user notification
+        if (result.synced === 1) {
+          this.addNotification(`✅ Synced 1 new activity from Strava`, 'success');
+        } else {
+          this.addNotification(`✅ Synced ${result.synced} new activities from Strava`, 'success');
+        }
+      } else if (result.errors > 0) {
+        console.warn(`⚠️ Strava sync completed with ${result.errors} errors`);
+      }
+    } catch (error) {
+      console.error('❌ Error during automatic Strava sync:', error);
+    }
+  }
+
   public async refreshAfterAuth(): Promise<void> {
     console.log('🔄 Refreshing TrainingHub after successful authentication');
     
@@ -3340,6 +3385,10 @@ export class TrainingHub {
       }
       
       console.log('✅ TrainingHub refresh completed successfully');
+      
+      // Run Strava auto-sync after successful OAuth (in background)
+      this.runStravaAutoSync();
+      
     } catch (error) {
       console.error('❌ Error refreshing TrainingHub:', error);
       throw error; // Re-throw to allow proper error handling upstream
