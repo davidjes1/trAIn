@@ -17,13 +17,22 @@ export class StravaConfigManager {
   }
 
   private initializeDefaultConfig(): void {
-    // Use provided Strava app credentials
+    // Load from environment variables (secure)
+    const clientId = (import.meta as any).env?.VITE_STRAVA_CLIENT_ID || '';
+    const clientSecret = (import.meta as any).env?.VITE_STRAVA_CLIENT_SECRET || '';
+    
     this.config = {
-      clientId: '174184',
-      clientSecret: '3bfb5093e02798ed5180f032913c094e16ad926e',
-      configured: true
+      clientId,
+      clientSecret,
+      configured: !!(clientId && clientSecret)
     };
-    console.log('✅ Strava configuration initialized with provided credentials');
+    
+    if (this.config.configured) {
+      console.log('✅ Strava configuration initialized from environment variables');
+    } else {
+      console.warn('⚠️ Strava configuration not found in environment variables');
+      console.log('Please set VITE_STRAVA_CLIENT_ID and VITE_STRAVA_CLIENT_SECRET in your .env file');
+    }
   }
 
   public static getInstance(): StravaConfigManager {
@@ -98,8 +107,11 @@ export class StravaConfigManager {
         // For demo: just parse (NOT SECURE - don't use for real credentials)
         const parsed = JSON.parse(stored);
         
-        // Only override if it's different from defaults (user customization)
-        if (parsed.clientId !== '174184' || parsed.clientSecret !== '3bfb5093e02798ed5180f032913c094e16ad926e') {
+        // Only override if user has explicitly saved custom credentials
+        const envClientId = (import.meta as any).env?.VITE_STRAVA_CLIENT_ID || '';
+        const envClientSecret = (import.meta as any).env?.VITE_STRAVA_CLIENT_SECRET || '';
+        
+        if (parsed.clientId !== envClientId || parsed.clientSecret !== envClientSecret) {
           this.configure(parsed.clientId, parsed.clientSecret);
           console.log('✅ Custom Strava configuration loaded from storage');
           return true;
