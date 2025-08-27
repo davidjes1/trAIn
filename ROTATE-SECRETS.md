@@ -1,17 +1,16 @@
 # Secret Rotation Instructions
 
-## ⚠️ IMMEDIATE ACTION REQUIRED
+## ✅ COMPLETED - Secret Rotation Done
 
-Your Strava API secrets were accidentally committed to git history. Follow these steps **immediately**:
+~~Your Strava API secrets were accidentally committed to git history.~~ **This has been resolved!**
 
-## 1. Rotate Strava API Credentials
+**Status**: New Strava client secret has been generated and configured.
 
-1. Go to [Strava API Settings](https://www.strava.com/settings/api)
-2. **Regenerate your Client Secret** (this will invalidate the old one)
-3. Update your `.env` file with the new secret:
-   ```bash
-   VITE_STRAVA_CLIENT_SECRET=your-new-secret-here
-   ```
+## 1. ✅ Rotate Strava API Credentials - COMPLETED
+
+1. ~~Go to [Strava API Settings](https://www.strava.com/settings/api)~~ ✅ Done
+2. ~~**Regenerate your Client Secret** (this will invalidate the old one)~~ ✅ Done  
+3. ~~Update your `.env` file with the new secret~~ ✅ Done
 
 ## 2. Update Environment Variables
 
