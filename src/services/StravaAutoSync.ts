@@ -90,8 +90,17 @@ export class StravaAutoSync {
             continue;
           }
 
-          // Convert and save to Firebase
-          const firebaseActivity = this.dataMapper.mapStravaActivityToFirebase(stravaActivity);
+          // Get user profile for HR zone configuration
+          const userProfile = this.userProfileService.getUserProfile();
+          const trainingProfile = this.userProfileService.getTrainingProfile();
+          
+          // Convert and save to Firebase with proper configuration
+          const firebaseActivity = this.dataMapper.mapStravaActivityToFirebase(
+            stravaActivity,
+            this.userProfileService.getUserId(),
+            trainingProfile.hrZones,
+            userProfile?.preferences?.restingHR || 60
+          );
           const activityId = await FirestoreService.addActivity(firebaseActivity);
           
           console.log(`✅ Synced activity: ${stravaActivity.name} (Strava ID: ${stravaActivity.id}, Firebase ID: ${activityId})`);
