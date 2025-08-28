@@ -211,6 +211,54 @@ export class StravaService {
           
           if (!exists) {
             // Map Strava activity to Workout format using the newer structure
+            // Create actual workout data, filtering out undefined values for Firebase compatibility
+            const actualData: any = {
+              dataSource: 'Strava',
+              processedAt: new Date()
+            };
+
+            // Only add fields that have valid values (not null/undefined)
+            if (activity.moving_time) {
+              actualData.durationMin = Math.round(activity.moving_time / 60);
+            }
+            if (activity.distance) {
+              actualData.distanceKm = Number((activity.distance / 1000).toFixed(2));
+            }
+            if (activity.average_heartrate) {
+              actualData.avgHR = activity.average_heartrate;
+            }
+            if (activity.max_heartrate) {
+              actualData.maxHR = activity.max_heartrate;
+            }
+            if (activity.average_speed) {
+              actualData.avgSpeed = Number((activity.average_speed * 3.6).toFixed(1));
+            }
+            if (activity.average_watts) {
+              actualData.avgPower = activity.average_watts;
+            }
+            if (activity.max_watts) {
+              actualData.maxPower = activity.max_watts;
+            }
+            if (activity.average_cadence) {
+              actualData.avgCadence = activity.average_cadence;
+            }
+            if (activity.total_elevation_gain) {
+              actualData.ascentM = activity.total_elevation_gain;
+            }
+            if (activity.calories) {
+              actualData.calories = activity.calories;
+            }
+
+            const trainingLoad = this.calculateSimpleTrainingLoad(activity);
+            if (trainingLoad) {
+              actualData.trainingLoad = trainingLoad;
+            }
+
+            const pace = this.calculatePace(activity);
+            if (pace) {
+              actualData.avgPace = pace;
+            }
+
             const workout = {
               id: `strava-${activity.id}`,
               userId: userId,
@@ -222,23 +270,8 @@ export class StravaService {
               createdAt: new Date(),
               updatedAt: new Date(),
               
-              // Map actual workout data
-              actual: {
-                durationMin: activity.moving_time ? Math.round(activity.moving_time / 60) : undefined,
-                distanceKm: activity.distance ? Number((activity.distance / 1000).toFixed(2)) : undefined,
-                avgHR: activity.average_heartrate || undefined,
-                maxHR: activity.max_heartrate || undefined,
-                avgSpeed: activity.average_speed ? Number((activity.average_speed * 3.6).toFixed(1)) : undefined,
-                avgPower: activity.average_watts || undefined,
-                maxPower: activity.max_watts || undefined,
-                avgCadence: activity.average_cadence || undefined,
-                ascentM: activity.total_elevation_gain || undefined,
-                calories: activity.calories || undefined,
-                trainingLoad: this.calculateSimpleTrainingLoad(activity),
-                dataSource: 'Strava',
-                processedAt: new Date(),
-                avgPace: this.calculatePace(activity)
-              },
+              // Map actual workout data (no undefined values)
+              actual: actualData,
               
               // Metadata
               metadata: {

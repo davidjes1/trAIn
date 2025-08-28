@@ -22,6 +22,56 @@
   }
 }
 
+// Multiple Workouts Container
+.recent-workouts-container {
+  .recent-workouts-header {
+    display: flex;
+    align-items: center;
+    justify-content: between;
+    margin-bottom: 1.5rem;
+    padding: 1rem 0;
+
+    .section-title {
+      margin: 0;
+      color: $primary-color;
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      .section-icon {
+        font-size: 1.8rem;
+      }
+    }
+
+    .refresh-btn {
+      min-width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.1);
+      transition: all $transition-fast;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: $accent-color;
+        transform: scale(1.05);
+      }
+
+      &.loading {
+        animation: spin 1s linear infinite;
+      }
+    }
+  }
+
+  .recent-workouts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+}
+
 .recent-workout-card {
   background: $glass-opacity-1;
   backdrop-filter: blur(10px);

@@ -62,36 +62,59 @@ export class StravaDataMapper {
     const avgPace = this.isRunningActivity(sport) && avgSpeed ? 
       Math.round(60 / avgSpeed * 100) / 100 : undefined;
 
-    return {
+    // Create the activity object and filter out undefined values for Firestore
+    const activityData: any = {
       id: `strava-${stravaActivity.id}`, // Prefix to avoid conflicts
       userId,
       date,
       sport,
-      subSport: stravaActivity.sport_type !== stravaActivity.type ? stravaActivity.sport_type : undefined,
       duration,
       distance,
-      avgHR: stravaActivity.average_heartrate || undefined,
-      maxHR: stravaActivity.max_heartrate || undefined,
-      hrDrift: this.calculateHRDrift(stravaActivity),
       zone1Minutes: hrData.zone1Minutes,
       zone2Minutes: hrData.zone2Minutes,
       zone3Minutes: hrData.zone3Minutes,
       zone4Minutes: hrData.zone4Minutes,
       zone5Minutes: hrData.zone5Minutes,
       trainingLoad,
-      calories: stravaActivity.calories || undefined,
-      totalAscent: stravaActivity.total_elevation_gain || undefined,
-      totalDescent: undefined, // Strava doesn't provide total descent
-      avgSpeed,
-      maxSpeed,
-      avgPace,
-      notes: stravaActivity.description || undefined,
-      fitFileUrl: undefined, // No FIT file from Strava
       stravaActivityId: stravaActivity.id,
       dataSource: 'strava',
       uploadedAt: new Date(),
       processed: true // Strava data comes pre-processed
     };
+
+    // Only add optional fields if they have values (Firestore doesn't allow undefined)
+    if (stravaActivity.sport_type !== stravaActivity.type && stravaActivity.sport_type) {
+      activityData.subSport = stravaActivity.sport_type;
+    }
+    if (stravaActivity.average_heartrate) {
+      activityData.avgHR = stravaActivity.average_heartrate;
+    }
+    if (stravaActivity.max_heartrate) {
+      activityData.maxHR = stravaActivity.max_heartrate;
+    }
+    if (this.calculateHRDrift(stravaActivity) !== undefined) {
+      activityData.hrDrift = this.calculateHRDrift(stravaActivity);
+    }
+    if (stravaActivity.calories) {
+      activityData.calories = stravaActivity.calories;
+    }
+    if (stravaActivity.total_elevation_gain) {
+      activityData.totalAscent = stravaActivity.total_elevation_gain;
+    }
+    if (avgSpeed) {
+      activityData.avgSpeed = avgSpeed;
+    }
+    if (maxSpeed) {
+      activityData.maxSpeed = maxSpeed;
+    }
+    if (avgPace) {
+      activityData.avgPace = avgPace;
+    }
+    if (stravaActivity.description && stravaActivity.description.trim()) {
+      activityData.notes = stravaActivity.description.trim();
+    }
+
+    return activityData as FirebaseActivity;
   }
 
   /**

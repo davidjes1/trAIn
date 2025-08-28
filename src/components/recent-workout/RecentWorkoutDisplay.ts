@@ -9,7 +9,7 @@ import '../../utils/firestore-debug';
 
 export class RecentWorkoutDisplay {
   private container: HTMLElement;
-  private recentWorkout: Workout | null = null;
+  private recentWorkouts: Workout[] = [];
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -17,23 +17,23 @@ export class RecentWorkoutDisplay {
   }
 
   private async initialize(): Promise<void> {
-    await this.loadRecentWorkout();
+    await this.loadRecentWorkouts();
     this.render();
     this.setupEventListeners();
   }
 
   /**
-   * Load the most recent completed or unplanned workout
+   * Load the most recent completed or unplanned workouts (last 3)
    */
-  private async loadRecentWorkout(): Promise<void> {
+  private async loadRecentWorkouts(): Promise<void> {
     try {
       const userId = AuthService.getCurrentUserId();
       if (!userId) {
-        console.log('User not authenticated, cannot load recent workout');
+        console.log('User not authenticated, cannot load recent workouts');
         return;
       }
 
-      console.log('📊 Loading recent workout...');
+      console.log('📊 Loading recent workouts...');
       
       // Run Firebase data test for debugging (only in development)
       if ((import.meta as any).env?.DEV) {
@@ -45,7 +45,7 @@ export class RecentWorkoutDisplay {
         }
       }
       
-      // Get all user workouts and find the most recent completed/unplanned one
+      // Get all user workouts and find the most recent completed/unplanned ones
       const allWorkouts = await WorkoutService.getUserWorkouts(userId, 50); // Get recent 50
       
       // Filter for completed or unplanned workouts (those with actual data)
@@ -61,37 +61,66 @@ export class RecentWorkoutDisplay {
           return dateB.getTime() - dateA.getTime();
         });
 
-        this.recentWorkout = completedWorkouts[0];
-        console.log(`✅ Found recent workout: ${this.recentWorkout.name} from ${this.recentWorkout.date}`);
+        // Take the last 3 workouts
+        this.recentWorkouts = completedWorkouts.slice(0, 3);
+        console.log(`✅ Found ${this.recentWorkouts.length} recent workouts`);
       } else {
         console.log('📊 No recent completed workouts found');
-        this.recentWorkout = null;
+        this.recentWorkouts = [];
       }
       
     } catch (error) {
-      console.error('❌ Error loading recent workout:', error);
-      this.recentWorkout = null;
+      console.error('❌ Error loading recent workouts:', error);
+      this.recentWorkouts = [];
     }
   }
 
   /**
-   * Render the recent workout display
+   * Render the recent workouts display
    */
   public render(): void {
-    if (!this.recentWorkout || !this.recentWorkout.actual) {
+    if (!this.recentWorkouts || this.recentWorkouts.length === 0) {
       this.showEmptyState();
       return;
     }
 
-    const workout = this.recentWorkout;
+    const workoutsHtml = this.recentWorkouts.map(workout => this.renderSingleWorkout(workout)).join('');
+    
+    this.container.innerHTML = `
+      <div class="recent-workouts-container">
+        <div class="recent-workouts-header">
+          <h3 class="section-title">
+            <span class="section-icon">📊</span>
+            Recent Workouts (${this.recentWorkouts.length})
+          </h3>
+          <button class="btn btn-ghost refresh-btn" id="refresh-recent-workout" aria-label="Refresh recent workouts">
+            <span aria-hidden="true">🔄</span>
+          </button>
+        </div>
+        <div class="recent-workouts-list">
+          ${workoutsHtml}
+        </div>
+      </div>
+    `;
+
+    // Dispatch event to notify that component has rendered
+    this.container.dispatchEvent(new CustomEvent('recent-workouts-rendered', {
+      detail: { workouts: this.recentWorkouts }
+    }));
+  }
+
+  /**
+   * Render a single workout card
+   */
+  private renderSingleWorkout(workout: Workout): string {
     const actual = workout.actual;
     if (!actual) {
       console.warn('No actual workout data available');
-      return;
+      return '';
     }
     const uploadDate = actual.processedAt ? new Date(actual.processedAt) : new Date(workout.updatedAt);
     
-    this.container.innerHTML = `
+    return `
       <div class="recent-workout-card">
         <div class="workout-header">
           <div class="workout-title">
@@ -277,15 +306,10 @@ export class RecentWorkoutDisplay {
         </div>
       </div>
     `;
-
-    // Dispatch event to notify that component has rendered
-    this.container.dispatchEvent(new CustomEvent('recent-workout-rendered', {
-      detail: { workout: this.recentWorkout }
-    }));
   }
 
   /**
-   * Show empty state when no recent workout
+   * Show empty state when no recent workouts
    */
   private showEmptyState(): void {
     this.container.innerHTML = `
@@ -293,7 +317,7 @@ export class RecentWorkoutDisplay {
         <div class="empty-state">
           <div class="empty-icon">📊</div>
           <h4>No Recent Workouts</h4>
-          <p>Upload your first FIT file to see detailed workout information here.</p>
+          <p>Upload your first FIT file or connect Strava to see detailed workout information here.</p>
           <div class="empty-actions">
             <button class="btn btn-secondary" id="go-to-import">
               <span aria-hidden="true">📁</span> Import Workout Data
@@ -438,7 +462,7 @@ export class RecentWorkoutDisplay {
   }
 
   /**
-   * Refresh recent workout data
+   * Refresh recent workouts data
    */
   public async refresh(): Promise<void> {
     const refreshBtn = this.container.querySelector('#refresh-recent-workout');
@@ -446,7 +470,7 @@ export class RecentWorkoutDisplay {
       refreshBtn.classList.add('loading');
     }
     
-    await this.loadRecentWorkout();
+    await this.loadRecentWorkouts();
     this.render();
     
     if (refreshBtn) {
@@ -455,10 +479,10 @@ export class RecentWorkoutDisplay {
   }
 
   /**
-   * Get current recent workout
+   * Get current recent workouts
    */
-  public getRecentWorkout(): Workout | null {
-    return this.recentWorkout;
+  public getRecentWorkouts(): Workout[] {
+    return this.recentWorkouts;
   }
 }
 

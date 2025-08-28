@@ -1,6 +1,6 @@
 // Centralized User Profile Management Service
 import { User } from 'firebase/auth';
-import { UserProfile } from '../types/firebase.types';
+import { UserProfile, HRZoneConfig } from '../types/firebase.types';
 import { StravaConnection } from '../types/strava.types';
 import { AuthService } from '../firebase/auth';
 
@@ -102,18 +102,21 @@ export class UserProfileService {
     preferredSports: string[];
     goals: string[];
     excludedExercises: string[];
+    hrZones: HRZoneConfig;
   } {
     const profile = this.userProfile;
     const defaultAge = this.calculateAgeFromEmail() || 30;
+    const maxHR = profile?.preferences?.maxHR || this.calculateMaxHR(profile?.preferences?.age || defaultAge);
     
     return {
       age: profile?.preferences?.age || defaultAge,
       fitnessLevel: profile?.preferences?.fitnessLevel || 'intermediate',
       restingHR: profile?.preferences?.restingHR || 60,
-      maxHR: profile?.preferences?.maxHR || this.calculateMaxHR(profile?.preferences?.age || defaultAge),
+      maxHR,
       preferredSports: profile?.preferences?.sports || ['running'],
       goals: profile?.preferences?.goals || ['general_fitness'],
-      excludedExercises: profile?.preferences?.excludedExercises || []
+      excludedExercises: profile?.preferences?.excludedExercises || [],
+      hrZones: profile?.preferences?.hrZones || this.calculateDefaultHRZones(maxHR)
     };
   }
 
@@ -228,6 +231,17 @@ export class UserProfileService {
   private calculateMaxHR(age: number): number {
     // Tanaka formula: 208 - (0.7 × age)
     return Math.round(208 - (0.7 * age));
+  }
+
+  private calculateDefaultHRZones(maxHR: number): HRZoneConfig {
+    // Standard HR zones based on % of max HR
+    return {
+      zone1: { min: Math.round(maxHR * 0.50), max: Math.round(maxHR * 0.60) }, // 50-60%
+      zone2: { min: Math.round(maxHR * 0.60), max: Math.round(maxHR * 0.70) }, // 60-70%
+      zone3: { min: Math.round(maxHR * 0.70), max: Math.round(maxHR * 0.80) }, // 70-80%
+      zone4: { min: Math.round(maxHR * 0.80), max: Math.round(maxHR * 0.90) }, // 80-90%
+      zone5: { min: Math.round(maxHR * 0.90), max: Math.round(maxHR * 1.00) }  // 90-100%
+    };
   }
 
   // Strava connection management
