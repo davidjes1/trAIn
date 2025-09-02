@@ -179,7 +179,7 @@ export class TrainingHub {
   private initializeState(): TrainingHubState {
     return {
       calendar: {
-        viewType: 'week',
+        viewType: 'month',
         startDate: new Date().toISOString().split('T')[0],
         showPlannedOnly: false,
         showActualOnly: false,
@@ -2925,7 +2925,7 @@ export class TrainingHub {
 
       // Create unified calendar configuration
       const config = {
-        viewType: 'week' as const,
+        viewType: this.state.calendar.viewType as 'day' | 'week' | 'month',
         startDate: new Date().toISOString().split('T')[0],
         highlightToday: true,
         showStatusFilter: undefined, // Show all statuses

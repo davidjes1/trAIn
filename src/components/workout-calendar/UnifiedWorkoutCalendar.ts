@@ -226,9 +226,9 @@ export class UnifiedWorkoutCalendar {
           <div class="calendar-title">
             <h3>Week of ${startDate.toLocaleDateString()}</h3>
             <div class="view-switcher">
-              <button class="btn btn-small view-btn" data-view="day">Day</button>
-              <button class="btn btn-small view-btn active" data-view="week">Week</button>
-              <button class="btn btn-small view-btn" data-view="month">Month</button>
+              <button class="btn btn-small view-btn ${this.config.viewType === 'day' ? 'active' : ''}" data-view="day">Day</button>
+              <button class="btn btn-small view-btn ${this.config.viewType === 'week' ? 'active' : ''}" data-view="week">Week</button>
+              <button class="btn btn-small view-btn ${this.config.viewType === 'month' ? 'active' : ''}" data-view="month">Month</button>
             </div>
           </div>
           <div class="calendar-controls">
@@ -281,9 +281,9 @@ export class UnifiedWorkoutCalendar {
           <div class="calendar-title">
             <h3>${startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h3>
             <div class="view-switcher">
-              <button class="btn btn-small view-btn" data-view="day">Day</button>
-              <button class="btn btn-small view-btn" data-view="week">Week</button>
-              <button class="btn btn-small view-btn active" data-view="month">Month</button>
+              <button class="btn btn-small view-btn ${this.config.viewType === 'day' ? 'active' : ''}" data-view="day">Day</button>
+              <button class="btn btn-small view-btn ${this.config.viewType === 'week' ? 'active' : ''}" data-view="week">Week</button>
+              <button class="btn btn-small view-btn ${this.config.viewType === 'month' ? 'active' : ''}" data-view="month">Month</button>
             </div>
           </div>
           <div class="calendar-controls">
@@ -318,9 +318,9 @@ export class UnifiedWorkoutCalendar {
           <div class="calendar-title">
             <h3>${date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</h3>
             <div class="view-switcher">
-              <button class="btn btn-small view-btn active" data-view="day">Day</button>
-              <button class="btn btn-small view-btn" data-view="week">Week</button>
-              <button class="btn btn-small view-btn" data-view="month">Month</button>
+              <button class="btn btn-small view-btn ${this.config.viewType === 'day' ? 'active' : ''}" data-view="day">Day</button>
+              <button class="btn btn-small view-btn ${this.config.viewType === 'week' ? 'active' : ''}" data-view="week">Week</button>
+              <button class="btn btn-small view-btn ${this.config.viewType === 'month' ? 'active' : ''}" data-view="month">Month</button>
             </div>
           </div>
           <div class="calendar-controls">
