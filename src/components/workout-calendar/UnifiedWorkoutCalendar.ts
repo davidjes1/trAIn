@@ -69,6 +69,7 @@ export class UnifiedWorkoutCalendar {
 
       // Determine date range based on view type
       const dateRange = this.getDateRange();
+      console.log('📅 Date range:', dateRange);
       
       // Load workouts from unified service
       this.workouts = await WorkoutService.getWorkoutsByDateRange(
@@ -77,10 +78,18 @@ export class UnifiedWorkoutCalendar {
         dateRange.endDate
       );
 
+      console.log(`📅 Raw workouts loaded: ${this.workouts.length}`);
+
       // Apply filters
       this.workouts = this.applyFilters(this.workouts);
 
-      console.log(`✅ Loaded ${this.workouts.length} workouts for calendar`);
+      console.log(`✅ Loaded ${this.workouts.length} filtered workouts for calendar (${dateRange.startDate} to ${dateRange.endDate})`);
+      
+      // Log workout dates for debugging
+      if (this.workouts.length > 0) {
+        const workoutDates = this.workouts.map(w => w.date).sort();
+        console.log('📅 Workout dates:', workoutDates);
+      }
       
     } catch (error) {
       console.error('Failed to load workouts:', error);
@@ -162,12 +171,8 @@ export class UnifiedWorkoutCalendar {
     // Clear container
     this.container.innerHTML = '';
 
-    if (this.workouts.length === 0) {
-      this.showEmptyState();
-      return;
-    }
-
-    // Generate calendar HTML based on view type
+    // Always generate calendar HTML - don't show empty state for no workouts
+    // The calendar should show empty days instead
     let calendarHTML = '';
     
     switch (this.config.viewType) {
@@ -180,6 +185,9 @@ export class UnifiedWorkoutCalendar {
       case 'day':
         calendarHTML = this.generateDayView();
         break;
+      default:
+        this.showError('Invalid view type');
+        return;
     }
 
     this.container.innerHTML = calendarHTML;
@@ -272,7 +280,10 @@ export class UnifiedWorkoutCalendar {
           </div>
         </div>
         <div class="day-workouts">
-          ${dayWorkouts.map(workout => this.generateWorkoutCard(workout, true)).join('')}
+          ${dayWorkouts.length > 0 
+            ? dayWorkouts.map(workout => this.generateWorkoutCard(workout, true)).join('') 
+            : '<div class="rest-day"><span class="rest-icon">💤</span><span class="rest-text">Rest Day - No Workouts Scheduled</span></div>'
+          }
         </div>
       </div>
     `;
@@ -587,7 +598,7 @@ export class UnifiedWorkoutCalendar {
   /**
    * Navigate to previous period
    */
-  private navigatePrevious(): void {
+  private async navigatePrevious(): Promise<void> {
     const currentDate = new Date(this.config.startDate);
 
     switch (this.config.viewType) {
@@ -602,13 +613,13 @@ export class UnifiedWorkoutCalendar {
         break;
     }
 
-    this.updateConfig({ startDate: currentDate.toISOString().split('T')[0] });
+    await this.updateConfig({ startDate: currentDate.toISOString().split('T')[0] });
   }
 
   /**
    * Navigate to next period
    */
-  private navigateNext(): void {
+  private async navigateNext(): Promise<void> {
     const currentDate = new Date(this.config.startDate);
 
     switch (this.config.viewType) {
@@ -623,23 +634,31 @@ export class UnifiedWorkoutCalendar {
         break;
     }
 
-    this.updateConfig({ startDate: currentDate.toISOString().split('T')[0] });
+    await this.updateConfig({ startDate: currentDate.toISOString().split('T')[0] });
   }
 
   /**
    * Navigate to today
    */
-  private navigateToToday(): void {
+  private async navigateToToday(): Promise<void> {
     const today = new Date().toISOString().split('T')[0];
-    this.updateConfig({ startDate: today });
+    await this.updateConfig({ startDate: today });
   }
 
   /**
    * Update calendar configuration and refresh
    */
-  public updateConfig(newConfig: Partial<CalendarConfig>): void {
+  public async updateConfig(newConfig: Partial<CalendarConfig>): Promise<void> {
+    console.log('📅 Updating calendar config:', newConfig);
     this.config = { ...this.config, ...newConfig };
-    this.loadWorkouts().then(() => this.render());
+    
+    // Reload workouts for new date range
+    await this.loadWorkouts();
+    
+    // Re-render calendar
+    this.render();
+    
+    console.log('📅 Calendar updated successfully');
   }
 
   /**
