@@ -15,10 +15,47 @@
     align-items: center;
     margin-bottom: 1.5rem;
 
-    h3 {
-      margin: 0;
-      color: #ffffff;
-      font-weight: 600;
+    .calendar-title {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+
+      h3 {
+        margin: 0;
+        color: #ffffff;
+        font-weight: 600;
+      }
+
+      .view-switcher {
+        display: flex;
+        gap: 0.25rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 0.25rem;
+
+        .view-btn {
+          padding: 0.5rem 1rem;
+          border: none;
+          background: transparent;
+          color: rgba(255, 255, 255, 0.7);
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-size: 0.875rem;
+          font-weight: 500;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+          }
+
+          &.active {
+            background: var(--accent-color);
+            color: #ffffff;
+            font-weight: 600;
+          }
+        }
+      }
     }
 
     .calendar-controls {
@@ -60,13 +97,128 @@
 
   // Month View
   &.month-view {
+    .month-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+      .weekday-header {
+        text-align: center;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.8);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+
     .calendar-grid.month-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 0.5rem;
 
       @media (max-width: 768px) {
-        grid-template-columns: repeat(3, 1fr);
+        gap: 0.25rem;
+      }
+    }
+
+    .month-day-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 0.75rem;
+      min-height: 80px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--accent-color);
+        transform: translateY(-1px);
+      }
+
+      &.today {
+        border-color: var(--accent-color);
+        background: rgba(var(--accent-color-rgb), 0.1);
+        
+        .month-day-number {
+          color: var(--accent-color);
+          font-weight: 700;
+        }
+      }
+
+      &.other-month {
+        opacity: 0.4;
+        
+        .month-day-number {
+          color: rgba(255, 255, 255, 0.5);
+        }
+      }
+
+      &.has-completed {
+        border-left: 3px solid #10b981;
+      }
+
+      &.has-planned {
+        border-left: 3px solid #6366f1;
+      }
+
+      &.has-missed {
+        border-left: 3px solid #ef4444;
+      }
+
+      .month-day-number {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #ffffff;
+        margin-bottom: 0.25rem;
+      }
+
+      .month-day-indicators {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        margin-top: auto;
+
+        .workout-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          
+          &.status-completed {
+            background: #10b981;
+          }
+          
+          &.status-planned {
+            background: #6366f1;
+          }
+          
+          &.status-missed {
+            background: #ef4444;
+          }
+          
+          &.status-unplanned {
+            background: #f59e0b;
+          }
+        }
+
+        .workout-count-badge {
+          background: var(--accent-color);
+          color: #ffffff;
+          font-size: 0.65rem;
+          font-weight: 600;
+          padding: 0.15rem 0.3rem;
+          border-radius: 8px;
+          min-width: 16px;
+          text-align: center;
+        }
       }
     }
   }

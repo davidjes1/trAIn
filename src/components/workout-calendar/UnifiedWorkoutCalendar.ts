@@ -114,9 +114,17 @@ export class UnifiedWorkoutCalendar {
         break;
 
       case 'month':
-        // Show current month
-        startDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
-        endDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
+        // For month view, extend the range to include adjacent month days for complete calendar grid
+        const firstDayOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+        const lastDayOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
+        
+        // Get first Sunday of the calendar view
+        startDate = new Date(firstDayOfMonth);
+        startDate.setDate(firstDayOfMonth.getDate() - firstDayOfMonth.getDay());
+        
+        // Get last Saturday of the calendar view
+        endDate = new Date(lastDayOfMonth);
+        endDate.setDate(lastDayOfMonth.getDate() + (6 - lastDayOfMonth.getDay()));
         break;
 
       case 'day':
@@ -215,7 +223,14 @@ export class UnifiedWorkoutCalendar {
     return `
       <div class="unified-calendar week-view">
         <div class="calendar-header">
-          <h3>Week of ${startDate.toLocaleDateString()}</h3>
+          <div class="calendar-title">
+            <h3>Week of ${startDate.toLocaleDateString()}</h3>
+            <div class="view-switcher">
+              <button class="btn btn-small view-btn" data-view="day">Day</button>
+              <button class="btn btn-small view-btn active" data-view="week">Week</button>
+              <button class="btn btn-small view-btn" data-view="month">Month</button>
+            </div>
+          </div>
           <div class="calendar-controls">
             <button class="btn btn-ghost" id="prev-week">‹</button>
             <button class="btn btn-ghost" id="today">Today</button>
@@ -236,25 +251,53 @@ export class UnifiedWorkoutCalendar {
     const dateRange = this.getDateRange();
     const startDate = new Date(dateRange.startDate);
     const endDate = new Date(dateRange.endDate);
+    
+    // Create a proper calendar grid starting from Sunday of the first week
+    const firstDayOfMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+    const lastDayOfMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+    
+    // Get first Sunday of the calendar view
+    const startOfWeek = new Date(firstDayOfMonth);
+    startOfWeek.setDate(firstDayOfMonth.getDate() - firstDayOfMonth.getDay());
+    
+    // Get last Saturday of the calendar view
+    const endOfWeek = new Date(lastDayOfMonth);
+    endOfWeek.setDate(lastDayOfMonth.getDate() + (6 - lastDayOfMonth.getDay()));
+    
     const days = [];
+    const weekDayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    // Generate all days in month
-    for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+    // Generate all days in the calendar grid (6 weeks)
+    for (let date = new Date(startOfWeek); date <= endOfWeek; date.setDate(date.getDate() + 1)) {
       const dateStr = date.toISOString().split('T')[0];
       const dayWorkouts = this.workouts.filter(w => w.date === dateStr);
-      days.push(this.generateDayCard(new Date(date), dayWorkouts, false));
+      const isCurrentMonth = date.getMonth() === firstDayOfMonth.getMonth();
+      days.push(this.generateMonthDayCard(new Date(date), dayWorkouts, isCurrentMonth));
     }
 
     return `
       <div class="unified-calendar month-view">
         <div class="calendar-header">
-          <h3>${startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h3>
+          <div class="calendar-title">
+            <h3>${startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h3>
+            <div class="view-switcher">
+              <button class="btn btn-small view-btn" data-view="day">Day</button>
+              <button class="btn btn-small view-btn" data-view="week">Week</button>
+              <button class="btn btn-small view-btn active" data-view="month">Month</button>
+            </div>
+          </div>
           <div class="calendar-controls">
             <button class="btn btn-ghost" id="prev-month">‹</button>
             <button class="btn btn-ghost" id="today">Today</button>
             <button class="btn btn-ghost" id="next-month">›</button>
           </div>
         </div>
+        
+        <!-- Weekday headers -->
+        <div class="month-header">
+          ${weekDayHeaders.map(day => `<div class="weekday-header">${day}</div>`).join('')}
+        </div>
+        
         <div class="calendar-grid month-grid">
           ${days.join('')}
         </div>
@@ -272,7 +315,14 @@ export class UnifiedWorkoutCalendar {
     return `
       <div class="unified-calendar day-view">
         <div class="calendar-header">
-          <h3>${date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</h3>
+          <div class="calendar-title">
+            <h3>${date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</h3>
+            <div class="view-switcher">
+              <button class="btn btn-small view-btn active" data-view="day">Day</button>
+              <button class="btn btn-small view-btn" data-view="week">Week</button>
+              <button class="btn btn-small view-btn" data-view="month">Month</button>
+            </div>
+          </div>
           <div class="calendar-controls">
             <button class="btn btn-ghost" id="prev-day">‹</button>
             <button class="btn btn-ghost" id="today">Today</button>
@@ -330,6 +380,41 @@ export class UnifiedWorkoutCalendar {
         <div class="day-content">
           ${workoutCards}
         </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Generate compact day card for month view
+   */
+  private generateMonthDayCard(date: Date, workouts: Workout[], isCurrentMonth: boolean): string {
+    const dateStr = date.toISOString().split('T')[0];
+    const dayNumber = date.getDate();
+    const isToday = this.config.highlightToday && 
+      dateStr === new Date().toISOString().split('T')[0];
+    
+    const workoutCount = workouts.length;
+    const hasCompletedWorkouts = workouts.some(w => w.status === 'completed' || w.status === 'unplanned');
+    const hasPlannedWorkouts = workouts.some(w => w.status === 'planned');
+    const hasMissedWorkouts = workouts.some(w => w.status === 'missed');
+
+    // Get status for styling
+    let statusClass = '';
+    if (hasCompletedWorkouts) statusClass = 'has-completed';
+    else if (hasMissedWorkouts) statusClass = 'has-missed';
+    else if (hasPlannedWorkouts) statusClass = 'has-planned';
+
+    return `
+      <div class="month-day-card ${isCurrentMonth ? '' : 'other-month'} ${isToday ? 'today' : ''} ${statusClass}" data-date="${dateStr}">
+        <div class="month-day-number">${dayNumber}</div>
+        ${workoutCount > 0 ? `
+          <div class="month-day-indicators">
+            ${workoutCount <= 3 
+              ? workouts.map(w => `<div class="workout-dot status-${w.status}" title="${w.name}"></div>`).join('')
+              : `<div class="workout-count-badge">${workoutCount}</div>`
+            }
+          </div>
+        ` : ''}
       </div>
     `;
   }
@@ -579,6 +664,17 @@ export class UnifiedWorkoutCalendar {
     nextBtn?.addEventListener('click', () => this.navigateNext());
     todayBtn?.addEventListener('click', () => this.navigateToToday());
 
+    // View switcher controls
+    const viewBtns = this.container.querySelectorAll('.view-btn');
+    viewBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const viewType = (e.target as HTMLElement).dataset.view as 'day' | 'week' | 'month';
+        if (viewType && viewType !== this.config.viewType) {
+          this.switchView(viewType);
+        }
+      });
+    });
+
     // Workout click handlers
     const workoutCards = this.container.querySelectorAll('.workout-card');
     workoutCards.forEach(card => {
@@ -593,6 +689,29 @@ export class UnifiedWorkoutCalendar {
         }
       });
     });
+
+    // Month day card click handlers (for navigation to day view)
+    const monthDayCards = this.container.querySelectorAll('.month-day-card');
+    monthDayCards.forEach(card => {
+      card.addEventListener('click', (e) => {
+        const date = (card as HTMLElement).dataset.date;
+        if (date) {
+          // Switch to day view for the clicked date
+          this.updateConfig({ 
+            viewType: 'day', 
+            startDate: date 
+          });
+        }
+      });
+    });
+  }
+
+  /**
+   * Switch calendar view type
+   */
+  private async switchView(newViewType: 'day' | 'week' | 'month'): Promise<void> {
+    console.log(`📅 Switching calendar view from ${this.config.viewType} to ${newViewType}`);
+    await this.updateConfig({ viewType: newViewType });
   }
 
   /**
