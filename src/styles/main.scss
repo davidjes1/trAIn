@@ -36,6 +36,9 @@
 // 4b. Accessibility Overrides for Legacy Components
 @use 'accessible-calendar';
 
+// 4c. Phase 1 Quick Wins Components
+@use 'phase1-components';
+
 // 5. Logo and Branding Styles
 .nav-brand {
   display: flex;

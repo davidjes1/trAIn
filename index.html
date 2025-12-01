@@ -270,6 +270,41 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Fitness-Fatigue-Form Section -->
+            <section class="fitness-form-section" aria-labelledby="fitness-form-heading">
+                <div class="section-header">
+                    <h2 id="fitness-form-heading">Fitness-Fatigue-Form (CTL/ATL/TSB)</h2>
+                    <div class="section-info">
+                        <button class="btn btn-ghost btn-small" id="fitness-form-info" aria-label="About Fitness-Fatigue-Form">ℹ️</button>
+                    </div>
+                </div>
+                <div class="analytics-card">
+                    <div id="fitness-form-chart-container" style="height: 300px;"></div>
+                </div>
+            </section>
+
+            <!-- Intensity Heat Map Section -->
+            <section class="heatmap-section" aria-labelledby="heatmap-heading">
+                <div class="section-header">
+                    <h2 id="heatmap-heading">Training Intensity Heat Map</h2>
+                </div>
+                <div class="analytics-card">
+                    <div id="intensity-heatmap-container"></div>
+                </div>
+            </section>
+
+            <!-- Workout Search & Filter Section -->
+            <section class="workout-filter-section" aria-labelledby="filter-heading" style="display: none;">
+                <div class="section-header">
+                    <h2 id="filter-heading">Find Workouts</h2>
+                    <button class="btn btn-ghost" id="toggle-filter" aria-label="Toggle workout filter">
+                        <span class="filter-icon">🔍</span>
+                    </button>
+                </div>
+                <div id="workout-filter-container" style="display: none;"></div>
+                <div id="filtered-workouts-container"></div>
+            </section>
         </div>
 
         <!-- Data Import Drawer (Hidden by default) -->

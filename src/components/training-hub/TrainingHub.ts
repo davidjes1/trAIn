@@ -25,6 +25,10 @@ import { Router } from '../../services/Router';
 import { UserProfileService } from '../../services/UserProfileService';
 import { StravaAutoSync } from '../../services/StravaAutoSync';
 import { User } from 'firebase/auth';
+import { FitnessFatigueChart } from '../charts/FitnessFatigueChart';
+import { IntensityHeatMap } from '../charts/IntensityHeatMap';
+import { WorkoutFilter } from '../workout-filter/WorkoutFilter';
+import { LapCharts } from '../charts/LapCharts';
 
 export class TrainingHub {
   private state: TrainingHubState;
@@ -42,6 +46,12 @@ export class TrainingHub {
   private stravaConnector: StravaConnector | null = null;
   private isImportModalOpen: boolean = false;
   private currentPlan: any | null = null;
+
+  // New Phase 1 components
+  private fitnessFatigueChart: FitnessFatigueChart | null = null;
+  private intensityHeatMap: IntensityHeatMap | null = null;
+  private workoutFilter: WorkoutFilter | null = null;
+  private lapCharts: LapCharts | null = null;
 
   constructor() {
     this.state = this.initializeState();
@@ -127,15 +137,18 @@ export class TrainingHub {
       
       // Initialize training plan manager with reference to this hub
       this.trainingPlanManager = new TrainingPlanManager(this);
-      
+
       // Setup integration between training plan and other components
       this.setupTrainingPlanIntegration();
-      
+
       // Update nav user info using centralized service
       const displayName = this.userProfileService.getDisplayName();
       const email = this.userProfileService.getEmail();
       this.router.updateNavUser(displayName, email);
-      
+
+        // Initialize new Phase 1 components
+        this.initializePhase1Components();
+
         // Initialize the app
         this.initializeEventListeners();
         this.initializeUnifiedCalendar();
@@ -309,7 +322,10 @@ export class TrainingHub {
 
       // Update header metrics with Firebase data
       this.updateHeaderMetricsFromDashboard(dashboardData);
-      
+
+      // Update Phase 1 components with dashboard data
+      this.updatePhase1Components(dashboardData);
+
       // Display AI insights if available
       this.displayAIInsights(dashboardData.aiInsights);
       
@@ -624,6 +640,224 @@ export class TrainingHub {
       weeklyLoad: Math.round(weeklyLoad),
       streak
     };
+  }
+
+  /**
+   * Initialize Phase 1 quick-win components
+   */
+  private initializePhase1Components(): void {
+    try {
+      // Initialize Fitness-Fatigue-Form Chart
+      const fitnessFormContainer = document.getElementById('fitness-form-chart-container');
+      if (fitnessFormContainer) {
+        this.fitnessFatigueChart = new FitnessFatigueChart(fitnessFormContainer);
+        console.log('✅ Fitness-Fatigue-Form chart initialized');
+      }
+
+      // Initialize Intensity Heat Map
+      const heatMapContainer = document.getElementById('intensity-heatmap-container');
+      if (heatMapContainer) {
+        this.intensityHeatMap = new IntensityHeatMap(heatMapContainer);
+        console.log('✅ Intensity heat map initialized');
+      }
+
+      // Initialize Workout Filter
+      const filterContainer = document.getElementById('workout-filter-container');
+      if (filterContainer) {
+        this.workoutFilter = new WorkoutFilter(filterContainer, {
+          onFilterChange: (filtered) => this.handleFilteredWorkouts(filtered)
+        });
+        console.log('✅ Workout filter initialized');
+      }
+
+      // Setup filter toggle button
+      const toggleFilterBtn = document.getElementById('toggle-filter');
+      toggleFilterBtn?.addEventListener('click', () => {
+        const filterSection = document.getElementById('workout-filter-container');
+        if (filterSection) {
+          const isVisible = filterSection.style.display !== 'none';
+          filterSection.style.display = isVisible ? 'none' : 'block';
+        }
+      });
+
+      // Setup fitness-form info button
+      const fitnessFormInfoBtn = document.getElementById('fitness-form-info');
+      fitnessFormInfoBtn?.addEventListener('click', () => {
+        this.showFitnessFormInfo();
+      });
+
+    } catch (error) {
+      console.error('❌ Error initializing Phase 1 components:', error);
+    }
+  }
+
+  /**
+   * Update Phase 1 components with new dashboard data
+   */
+  private updatePhase1Components(dashboardData: DashboardData): void {
+    try {
+      // Update Fitness-Fatigue-Form Chart
+      if (this.fitnessFatigueChart && dashboardData.metrics) {
+        this.fitnessFatigueChart.update(dashboardData.metrics);
+      }
+
+      // Update Intensity Heat Map
+      if (this.intensityHeatMap && dashboardData.metrics) {
+        this.intensityHeatMap.update(dashboardData.metrics);
+      }
+
+      // Update Workout Filter with activities
+      if (this.workoutFilter && dashboardData.activities) {
+        this.workoutFilter.updateActivities(dashboardData.activities);
+      }
+
+    } catch (error) {
+      console.error('❌ Error updating Phase 1 components:', error);
+    }
+  }
+
+  /**
+   * Handle filtered workouts from workout filter
+   */
+  private handleFilteredWorkouts(filtered: ActivityMetrics[]): void {
+    const container = document.getElementById('filtered-workouts-container');
+    if (!container) return;
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="no-results">No workouts match your filters</div>';
+      return;
+    }
+
+    // Display filtered workouts in a list
+    container.innerHTML = `
+      <div class="filtered-workouts-list">
+        ${filtered.map(activity => `
+          <div class="workout-card" data-activity-id="${activity.activityId}">
+            <div class="workout-header">
+              <span class="sport-icon">${this.getSportIcon(activity.sport)}</span>
+              <span class="workout-date">${new Date(activity.date).toLocaleDateString()}</span>
+            </div>
+            <div class="workout-stats">
+              <div class="stat">
+                <span class="stat-label">Duration</span>
+                <span class="stat-value">${Math.round(activity.duration)} min</span>
+              </div>
+              ${activity.distance ? `
+                <div class="stat">
+                  <span class="stat-label">Distance</span>
+                  <span class="stat-value">${activity.distance.toFixed(2)} km</span>
+                </div>
+              ` : ''}
+              ${activity.avgHR ? `
+                <div class="stat">
+                  <span class="stat-label">Avg HR</span>
+                  <span class="stat-value">${Math.round(activity.avgHR)} bpm</span>
+                </div>
+              ` : ''}
+              <div class="stat">
+                <span class="stat-label">Load</span>
+                <span class="stat-value">${Math.round(activity.trainingLoad)}</span>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    // Add click handlers to show workout details with lap charts
+    container.querySelectorAll('.workout-card').forEach(card => {
+      card.addEventListener('click', async () => {
+        const activityId = card.getAttribute('data-activity-id');
+        if (activityId) {
+          await this.showWorkoutDetailWithLaps(activityId);
+        }
+      });
+    });
+  }
+
+  /**
+   * Show workout detail with lap charts
+   */
+  private async showWorkoutDetailWithLaps(activityId: string): Promise<void> {
+    try {
+      const panel = document.getElementById('workout-detail-panel');
+      const content = document.getElementById('workout-detail-content');
+      if (!panel || !content) return;
+
+      // Load lap data for this activity
+      const laps = await this.dashboardService.getLapsForActivity(activityId);
+
+      // Show panel
+      panel.style.display = 'block';
+
+      // Create lap charts if we have lap data
+      if (laps && laps.length > 0) {
+        content.innerHTML = '<div id="lap-charts-container"></div>';
+        const lapChartsContainer = document.getElementById('lap-charts-container');
+
+        if (lapChartsContainer) {
+          this.lapCharts = new LapCharts(lapChartsContainer);
+          await this.lapCharts.update(laps);
+        }
+      } else {
+        content.innerHTML = '<div class="no-lap-data">No lap data available for this workout</div>';
+      }
+
+    } catch (error) {
+      console.error('Error showing workout detail with laps:', error);
+    }
+  }
+
+  /**
+   * Get sport icon emoji
+   */
+  private getSportIcon(sport: string): string {
+    const icons: Record<string, string> = {
+      'Run': '🏃',
+      'Bike': '🚴',
+      'Swim': '🏊',
+      'Walk': '🚶',
+      'Hike': '⛰️',
+      'Strength': '🏋️',
+      'Yoga': '🧘',
+      'Other': '🏃'
+    };
+    return icons[sport] || icons['Other'];
+  }
+
+  /**
+   * Show fitness-form info modal
+   */
+  private showFitnessFormInfo(): void {
+    const infoHTML = `
+      <div class="modal-overlay" id="fitness-form-info-modal">
+        <div class="modal-content modal-small">
+          <header class="modal-header">
+            <h3>About Fitness-Fatigue-Form</h3>
+            <button class="btn btn-ghost close-modal-btn" onclick="document.getElementById('fitness-form-info-modal').remove()">×</button>
+          </header>
+          <div class="modal-body">
+            <h4>CTL (Chronic Training Load) - Fitness</h4>
+            <p>42-day exponential average of training stress. Represents your baseline fitness level.</p>
+
+            <h4>ATL (Acute Training Load) - Fatigue</h4>
+            <p>7-day exponential average of training stress. Represents recent fatigue.</p>
+
+            <h4>TSB (Training Stress Balance) - Form</h4>
+            <p>CTL minus ATL. Indicates your current readiness to perform:</p>
+            <ul>
+              <li><strong>TSB > 25:</strong> Fresh (may be under-training)</li>
+              <li><strong>TSB 5-25:</strong> Optimal (peak performance zone)</li>
+              <li><strong>TSB -10 to 5:</strong> Productive (building fitness)</li>
+              <li><strong>TSB -30 to -10:</strong> Overreaching (need recovery)</li>
+              <li><strong>TSB < -30:</strong> High Risk (reduce training)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', infoHTML);
   }
 
   // Calendar Navigation
@@ -3092,21 +3326,6 @@ export class TrainingHub {
         </div>
       </div>
     `;
-  }
-
-  /**
-   * Get sport icon
-   */
-  private getSportIcon(sport: string): string {
-    const iconMap: Record<string, string> = {
-      'run': '🏃',
-      'bike': '🚴',
-      'swim': '🏊',
-      'strength': '💪',
-      'yoga': '🧘',
-      'other': '⚽'
-    };
-    return iconMap[sport] || '⚽';
   }
 
   /**

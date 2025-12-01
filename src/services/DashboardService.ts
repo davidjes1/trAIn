@@ -218,6 +218,26 @@ export class DashboardService {
   }
 
   /**
+   * Get lap data for a specific activity
+   */
+  async getLapsForActivity(activityId: string): Promise<LapMetrics[]> {
+    try {
+      if (!this.userProfileService.isAuthenticated()) {
+        console.warn('User not authenticated, cannot load laps');
+        return [];
+      }
+
+      const laps = await FirestoreService.getLapDataForActivity(activityId);
+
+      // Convert Firebase lap data to LapMetrics format
+      return laps.map(lap => this.convertFirebaseLapToMetrics(lap, undefined));
+    } catch (error) {
+      console.error('Failed to get laps for activity:', error);
+      return [];
+    }
+  }
+
+  /**
    * Test connection to Firebase or localStorage
    */
   async testConnection(): Promise<{ success: boolean; message: string }> {

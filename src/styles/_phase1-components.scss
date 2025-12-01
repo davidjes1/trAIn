@@ -1,0 +1,594 @@
+// Phase 1 Quick Wins Component Styles
+// Fitness-Fatigue-Form Chart, Intensity Heat Map, Workout Filter, Lap Charts
+
+// ===================================
+// Fitness-Fatigue-Form Chart
+// ===================================
+.fitness-form-section {
+  margin: 2rem 0;
+
+  .section-info {
+    display: flex;
+    align-items: center;
+  }
+}
+
+.fitness-form-summary {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: var(--color-surface);
+  border-radius: 12px;
+}
+
+.fitness-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.form-metric {
+  text-align: center;
+}
+
+.form-metric-label {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.form-metric-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.form-metric-change {
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+
+  &.positive {
+    color: var(--color-success);
+  }
+
+  &.negative {
+    color: var(--color-danger);
+  }
+}
+
+.form-status {
+  grid-column: 1 / -1;
+  text-align: center;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: 24px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+// ===================================
+// Intensity Heat Map
+// ===================================
+.heatmap-section {
+  margin: 2rem 0;
+}
+
+.intensity-heat-map {
+  position: relative;
+  padding: 1.5rem;
+}
+
+.heat-map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+
+  h3 {
+    margin: 0;
+    font-size: 1.25rem;
+  }
+}
+
+.heat-map-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  .legend-label {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+  }
+}
+
+.legend-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.heat-map-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.heat-map-months {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 18px;
+  gap: 3px;
+  padding-left: 45px;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+
+  .month-spacer {
+    width: 0;
+  }
+
+  .month-label {
+    text-align: left;
+  }
+}
+
+.heat-map-body {
+  display: flex;
+  gap: 3px;
+}
+
+.heat-map-days {
+  display: grid;
+  grid-template-rows: repeat(7, 14px);
+  gap: 3px;
+  padding-right: 8px;
+
+  .day-label {
+    font-size: 0.65rem;
+    color: var(--color-text-secondary);
+    text-align: right;
+    line-height: 14px;
+  }
+}
+
+.heat-map-weeks {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 14px;
+  gap: 3px;
+}
+
+.heat-map-week {
+  display: grid;
+  grid-template-rows: repeat(7, 14px);
+  gap: 3px;
+}
+
+.heat-map-cell {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: scale(1.2);
+    border-color: rgba(0, 0, 0, 0.3);
+    z-index: 10;
+  }
+
+  &.future {
+    background: transparent;
+    border-color: rgba(0, 0, 0, 0.03);
+    cursor: default;
+
+    &:hover {
+      transform: none;
+      border-color: rgba(0, 0, 0, 0.03);
+    }
+  }
+
+  &.today {
+    border: 2px solid var(--color-primary);
+    border-radius: 3px;
+  }
+
+  // Intensity levels (like GitHub contributions)
+  &.intensity-0 {
+    background: #ebedf0;
+  }
+
+  &.intensity-1 {
+    background: #9be9a8;
+  }
+
+  &.intensity-2 {
+    background: #40c463;
+  }
+
+  &.intensity-3 {
+    background: #30a14e;
+  }
+
+  &.intensity-4 {
+    background: #216e39;
+  }
+}
+
+.heat-map-tooltip {
+  position: absolute;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 10px));
+  min-width: 200px;
+
+  .tooltip-date {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .tooltip-content {
+    font-size: 0.875rem;
+  }
+
+  .tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+  }
+
+  .tooltip-label {
+    color: var(--color-text-secondary);
+  }
+
+  .tooltip-value {
+    font-weight: 600;
+  }
+}
+
+// ===================================
+// Workout Filter
+// ===================================
+.workout-filter-section {
+  margin: 2rem 0;
+}
+
+.workout-filter-container {
+  background: var(--color-surface);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+
+  h3 {
+    margin: 0;
+    font-size: 1.25rem;
+  }
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+}
+
+.sport-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  .chip-label {
+    cursor: pointer;
+
+    input[type="checkbox"] {
+      display: none;
+    }
+
+    .chip {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      border: 2px solid var(--color-border);
+      background: var(--color-background);
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: var(--color-primary);
+        background: var(--color-primary-light);
+      }
+    }
+
+    input:checked ~ .chip {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+    }
+  }
+}
+
+.date-range-inputs,
+.range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  .range-separator {
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+  }
+
+  .input-small {
+    flex: 1;
+    min-width: 80px;
+  }
+}
+
+.sort-controls {
+  display: flex;
+  gap: 0.5rem;
+
+  select {
+    flex: 1;
+  }
+
+  .btn-icon {
+    width: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.filter-results {
+  padding: 1rem;
+  background: var(--color-background);
+  border-radius: 8px;
+  text-align: center;
+
+  .results-count {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+
+    strong {
+      color: var(--color-text);
+      font-weight: 600;
+    }
+  }
+}
+
+// Filtered workouts list
+.filtered-workouts-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.workout-card {
+  background: var(--color-surface);
+  border-radius: 12px;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid var(--color-border);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--color-primary);
+  }
+
+  .workout-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+
+    .sport-icon {
+      font-size: 1.5rem;
+    }
+
+    .workout-date {
+      font-weight: 600;
+      color: var(--color-text);
+    }
+  }
+
+  .workout-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+
+      .stat-label {
+        font-size: 0.75rem;
+        color: var(--color-text-secondary);
+        margin-bottom: 0.25rem;
+      }
+
+      .stat-value {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--color-text);
+      }
+    }
+  }
+}
+
+.no-results {
+  text-align: center;
+  padding: 2rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+// ===================================
+// Lap Charts
+// ===================================
+.lap-charts-container {
+  padding: 1.5rem;
+}
+
+.lap-summary {
+  margin-bottom: 1.5rem;
+
+  h4 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+}
+
+.lap-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.chart-card {
+  background: var(--color-surface);
+  border-radius: 12px;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border);
+
+  h5 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  canvas {
+    width: 100% !important;
+    height: 250px !important;
+  }
+}
+
+.lap-table-container {
+  margin-top: 2rem;
+
+  h5 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}
+
+.lap-table-scroll {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.lap-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+
+  thead {
+    background: var(--color-surface);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+
+    th {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: var(--color-text);
+      border-bottom: 2px solid var(--color-border);
+      white-space: nowrap;
+    }
+  }
+
+  tbody {
+    tr {
+      transition: background 0.15s ease;
+
+      &:hover {
+        background: var(--color-background);
+      }
+
+      &:not(:last-child) {
+        border-bottom: 1px solid var(--color-border);
+      }
+
+      td {
+        padding: 0.75rem 1rem;
+        color: var(--color-text);
+        white-space: nowrap;
+      }
+    }
+  }
+}
+
+.no-lap-data {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+// ===================================
+// Responsive Design
+// ===================================
+@media (max-width: 768px) {
+  .fitness-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filtered-workouts-list {
+    grid-template-columns: 1fr;
+  }
+
+  .lap-charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .heat-map-months {
+    padding-left: 35px;
+  }
+
+  .workout-card .workout-stats {
+    grid-template-columns: 1fr;
+  }
+}
