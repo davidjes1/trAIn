@@ -5,7 +5,7 @@ export interface DashboardMetrics {
   // Current status
   currentFatigueRisk: 'low' | 'moderate' | 'high';
   readinessScore: number; // 0-100
-  
+
   // Weekly metrics
   weeklyTrainingLoad: number;
   weeklyZoneDistribution: {
@@ -15,25 +15,36 @@ export interface DashboardMetrics {
     zone4: number;
     zone5: number;
   };
-  
+
   // Trends and patterns
   trainingLoadTrend: 'increasing' | 'stable' | 'decreasing';
   currentStreak: number; // days
   longestStreak: number; // days
-  
+
   // Recovery indicators
   hrDriftTrend: 'improving' | 'stable' | 'declining' | 'insufficient_data';
   volumeChangePercent: number; // week over week
-  
+
   // Injury risk factors
   injuryRiskFactors: string[];
-  
+
+  // Fitness-Fatigue-Form metrics (CTL/ATL/TSB)
+  fitnessForm: {
+    ctl: number; // Chronic Training Load (Fitness) - 42 day exponential average
+    atl: number; // Acute Training Load (Fatigue) - 7 day exponential average
+    tsb: number; // Training Stress Balance (Form) = CTL - ATL
+    ctlChange: number; // Change in CTL over last 7 days
+    status: 'fresh' | 'optimal' | 'productive' | 'maintaining' | 'overreaching' | 'high_risk';
+  };
+
   // Time-based data for charts
   chartData: {
     trainingLoadHistory: Array<{ date: string; load: number; }>;
     weeklyLoadComparison: Array<{ week: string; load: number; recovery: number; }>;
     hrTrendData: Array<{ date: string; avgHR: number; maxHR: number; }>;
     zoneProgressData: Array<{ date: string; zones: number[]; }>;
+    fitnessFormHistory: Array<{ date: string; ctl: number; atl: number; tsb: number; }>;
+    intensityHeatMap: Array<{ date: string; intensity: number; load: number; duration: number; }>;
   };
 }
 
@@ -74,6 +85,9 @@ export class MetricsCalculator {
       return differenceInDays(now, activityDate) <= 7;
     });
 
+    // Calculate fitness-fatigue-form metrics
+    const fitnessForm = this.calculateFitnessForm(sortedActivities);
+
     return {
       currentFatigueRisk: this.calculateFatigueRisk(recentActivities),
       readinessScore: this.calculateReadinessScore(recentActivities, sortedActivities),
@@ -85,6 +99,7 @@ export class MetricsCalculator {
       hrDriftTrend: this.calculateHRDriftTrend(recentActivities),
       volumeChangePercent: this.calculateVolumeChange(currentWeekActivities, previousWeekActivities),
       injuryRiskFactors: this.identifyInjuryRiskFactors(recentActivities, sortedActivities),
+      fitnessForm,
       chartData: this.generateChartData(sortedActivities)
     };
   }
@@ -310,6 +325,99 @@ export class MetricsCalculator {
   }
 
   /**
+   * Calculate CTL (Chronic Training Load), ATL (Acute Training Load), and TSB (Training Stress Balance)
+   * Uses exponential weighted moving average (EWMA) to model fitness and fatigue
+   */
+  private static calculateFitnessForm(activities: ActivityMetrics[]) {
+    if (activities.length === 0) {
+      return {
+        ctl: 0,
+        atl: 0,
+        tsb: 0,
+        ctlChange: 0,
+        status: 'maintaining' as const
+      };
+    }
+
+    const now = new Date();
+    const ctlTimeConstant = 42; // Fitness builds slowly over ~6 weeks
+    const atlTimeConstant = 7;  // Fatigue responds quickly over ~1 week
+
+    // Calculate daily training loads
+    const dailyLoads = this.generateDailyTrainingLoads(activities);
+
+    let ctl = 0;
+    let atl = 0;
+    let previousCTL = 0;
+
+    // Calculate exponential moving averages
+    dailyLoads.forEach((dayLoad, index) => {
+      // Store previous CTL for tracking change
+      if (index === dailyLoads.length - 8) {
+        previousCTL = ctl;
+      }
+
+      // EWMA formulas:
+      // CTL_today = CTL_yesterday + (TSS_today - CTL_yesterday) * (1 / timeConstant)
+      ctl = ctl + (dayLoad.load - ctl) * (1 / ctlTimeConstant);
+      atl = atl + (dayLoad.load - atl) * (1 / atlTimeConstant);
+    });
+
+    const tsb = ctl - atl;
+    const ctlChange = ctl - previousCTL;
+
+    // Determine training status based on TSB
+    let status: 'fresh' | 'optimal' | 'productive' | 'maintaining' | 'overreaching' | 'high_risk';
+    if (tsb > 25) status = 'fresh';
+    else if (tsb >= 5 && tsb <= 25) status = 'optimal';
+    else if (tsb >= -10 && tsb < 5) status = 'productive';
+    else if (tsb >= -30 && tsb < -10) status = 'overreaching';
+    else if (tsb < -30) status = 'high_risk';
+    else status = 'maintaining';
+
+    return {
+      ctl: Math.round(ctl * 10) / 10,
+      atl: Math.round(atl * 10) / 10,
+      tsb: Math.round(tsb * 10) / 10,
+      ctlChange: Math.round(ctlChange * 10) / 10,
+      status
+    };
+  }
+
+  /**
+   * Generate daily training loads with date gaps filled
+   */
+  private static generateDailyTrainingLoads(activities: ActivityMetrics[]): Array<{ date: string; load: number }> {
+    if (activities.length === 0) return [];
+
+    const dailyLoads = new Map<string, number>();
+
+    // Sum up loads by day
+    activities.forEach(activity => {
+      const date = activity.date.split('T')[0];
+      dailyLoads.set(date, (dailyLoads.get(date) || 0) + activity.trainingLoad);
+    });
+
+    // Fill in all days from first activity to today
+    const firstDate = parseISO(activities[0].date);
+    const lastDate = new Date();
+    const result: Array<{ date: string; load: number }> = [];
+
+    let currentDate = new Date(firstDate);
+    while (currentDate <= lastDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      result.push({
+        date: dateStr,
+        load: dailyLoads.get(dateStr) || 0
+      });
+      currentDate = new Date(currentDate);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return result;
+  }
+
+  /**
    * Generate chart data for dashboard visualizations
    */
   private static generateChartData(activities: ActivityMetrics[]) {
@@ -320,8 +428,70 @@ export class MetricsCalculator {
       trainingLoadHistory: this.generateTrainingLoadHistory(recentActivities),
       weeklyLoadComparison: this.generateWeeklyComparison(activities),
       hrTrendData: this.generateHRTrendData(recentActivities),
-      zoneProgressData: this.generateZoneProgressData(recentActivities)
+      zoneProgressData: this.generateZoneProgressData(recentActivities),
+      fitnessFormHistory: this.generateFitnessFormHistory(activities),
+      intensityHeatMap: this.generateIntensityHeatMap(activities)
     };
+  }
+
+  /**
+   * Generate historical fitness-fatigue-form data for charting
+   */
+  private static generateFitnessFormHistory(activities: ActivityMetrics[]) {
+    if (activities.length === 0) return [];
+
+    const dailyLoads = this.generateDailyTrainingLoads(activities);
+    const ctlTimeConstant = 42;
+    const atlTimeConstant = 7;
+
+    let ctl = 0;
+    let atl = 0;
+    const history: Array<{ date: string; ctl: number; atl: number; tsb: number }> = [];
+
+    // Calculate CTL/ATL for each day
+    dailyLoads.forEach(dayLoad => {
+      ctl = ctl + (dayLoad.load - ctl) * (1 / ctlTimeConstant);
+      atl = atl + (dayLoad.load - atl) * (1 / atlTimeConstant);
+      const tsb = ctl - atl;
+
+      history.push({
+        date: dayLoad.date,
+        ctl: Math.round(ctl * 10) / 10,
+        atl: Math.round(atl * 10) / 10,
+        tsb: Math.round(tsb * 10) / 10
+      });
+    });
+
+    // Return last 90 days
+    return history.slice(-90);
+  }
+
+  /**
+   * Generate intensity heat map data for calendar visualization
+   */
+  private static generateIntensityHeatMap(activities: ActivityMetrics[]) {
+    const last90Days = subDays(new Date(), 90);
+    const recentActivities = activities.filter(a => parseISO(a.date) >= last90Days);
+
+    const dailyData = new Map<string, { intensity: number; load: number; duration: number }>();
+
+    recentActivities.forEach(activity => {
+      const date = activity.date.split('T')[0];
+      const existing = dailyData.get(date) || { intensity: 0, load: 0, duration: 0 };
+
+      // Calculate intensity as load per minute
+      const activityIntensity = activity.duration > 0 ? activity.trainingLoad / activity.duration : 0;
+
+      dailyData.set(date, {
+        intensity: Math.max(existing.intensity, activityIntensity), // Use max intensity for the day
+        load: existing.load + activity.trainingLoad,
+        duration: existing.duration + activity.duration
+      });
+    });
+
+    return Array.from(dailyData.entries())
+      .map(([date, data]) => ({ date, ...data }))
+      .sort((a, b) => a.date.localeCompare(b.date));
   }
 
   /**
@@ -460,11 +630,20 @@ export class MetricsCalculator {
       hrDriftTrend: 'insufficient_data',
       volumeChangePercent: 0,
       injuryRiskFactors: [],
+      fitnessForm: {
+        ctl: 0,
+        atl: 0,
+        tsb: 0,
+        ctlChange: 0,
+        status: 'maintaining'
+      },
       chartData: {
         trainingLoadHistory: [],
         weeklyLoadComparison: [],
         hrTrendData: [],
-        zoneProgressData: []
+        zoneProgressData: [],
+        fitnessFormHistory: [],
+        intensityHeatMap: []
       }
     };
   }
