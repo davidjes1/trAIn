@@ -279,14 +279,47 @@ class TrainingHubApp {
   }
 }
 
+// Initialize skip link functionality
+function initializeSkipLinks(): void {
+  const skipLinks = document.querySelectorAll('.skip-link');
+
+  skipLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      const targetId = (link as HTMLAnchorElement).getAttribute('href');
+      if (targetId) {
+        const targetElement = document.querySelector(targetId);
+
+        if (targetElement) {
+          // Focus the target element
+          (targetElement as HTMLElement).focus();
+
+          // Scroll to the target element
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+          console.log('✅ Skip link activated:', targetId);
+        } else {
+          console.warn('⚠️ Skip link target not found:', targetId);
+        }
+      }
+    });
+  });
+
+  console.log('✅ Skip links initialized:', skipLinks.length);
+}
+
 // Initialize the application when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
   try {
+    // Initialize skip links first
+    initializeSkipLinks();
+
     const app = new TrainingHubApp();
-    
+
     // Make app globally accessible for debugging
     (window as any).app = app;
-    
+
   } catch (error) {
     console.error('❌ Failed to initialize Training Hub:', error);
     UIHelpers.showStatus('Failed to initialize application. Please refresh the page.', 'error');

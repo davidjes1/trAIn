@@ -20,7 +20,7 @@
     
     <!-- Skip Links for Accessibility -->
     <div class="skip-links">
-        <a href="#main-content" class="skip-link">Skip to main content</a>
+        <a href="#main-content-area" class="skip-link">Skip to main content</a>
         <a href="#nav-menu" class="skip-link">Skip to navigation</a>
     </div>
 
@@ -34,7 +34,7 @@
                         <img src="/logo.svg" alt="trAIn" class="logo" width="32" height="32">
                         <h1>trAIn</h1>
                     </div>
-                    <nav class="nav-menu" id="nav-menu" role="navigation" aria-label="Main navigation">
+                    <nav class="nav-menu" id="nav-menu" role="navigation" aria-label="Main navigation" tabindex="-1">
                         <button class="nav-btn active" data-view="dashboard" aria-current="page">Dashboard</button>
                         <button class="nav-btn" data-view="training-plan">Training Plans</button>
                         <button class="nav-btn" data-view="profile">Profile</button>
@@ -46,7 +46,7 @@
             </header>
 
             <!-- Main Content Area -->
-            <main class="app-main" id="main-content-area" role="main">
+            <main class="app-main" id="main-content-area" role="main" tabindex="-1">
 
         <!-- Dashboard View -->
         <div id="dashboard-view" class="view-container active">
