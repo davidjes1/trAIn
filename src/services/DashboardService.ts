@@ -1,8 +1,7 @@
 import { MetricsCalculator, DashboardMetrics } from './MetricsCalculator';
-import { ActivityMetrics, LapMetrics } from '../types/training-metrics.types';
+import { ActivityMetrics, LapMetrics, FirebaseActivity, FirebaseLapData } from '@/core/models';
 import { FirestoreService } from '../firebase/firestore';
 import { UserProfileService } from './UserProfileService';
-import { FirebaseActivity, FirebaseLapData } from '../types/firebase.types';
 import { AIService } from '../ai/AIService';
 
 export interface DashboardData {

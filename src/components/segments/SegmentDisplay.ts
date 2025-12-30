@@ -1,13 +1,13 @@
 // Segment Display Component - renders workout segments in a readable format
-import { 
-  WorkoutSegment, 
+import {
+  WorkoutSegment,
   TimeBasedSegment,
   DistanceBasedSegment,
   RepBasedSegment,
   RoundBasedSegment,
   CustomSegment,
-  SegmentGroup 
-} from '../../types/workout.types';
+  SegmentGroup
+} from '@/core/models';
 
 export class SegmentDisplay {
 

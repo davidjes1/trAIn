@@ -1,11 +1,11 @@
 // Example segments showing the flexibility of the segment system
 import { SegmentBuilder } from '../services/SegmentBuilder';
-import { 
-  WorkoutSegment, 
+import {
+  WorkoutSegment,
   SegmentGroup,
   TimeBasedSegment,
-  RepBasedSegment 
-} from '../types/workout.types';
+  RepBasedSegment
+} from '@/core/models';
 
 export class SegmentExamples {
 

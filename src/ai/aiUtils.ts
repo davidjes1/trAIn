@@ -1,7 +1,6 @@
 // AI utility functions and shared calculations for training analysis
 
-import { ActivityMetrics } from '../types/training-metrics.types';
-import { FirebaseRecoveryMetrics } from '../types/firebase.types';
+import { ActivityMetrics, FirebaseRecoveryMetrics } from '@/core/models';
 import { 
   TrainingStressBalance, 
   TSBInterpretation, 

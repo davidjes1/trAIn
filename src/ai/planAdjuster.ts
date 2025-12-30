@@ -1,6 +1,6 @@
 // AI-powered dynamic training plan adjustment system
 
-import { TrainingPlan, WorkoutType } from '../types/training-metrics.types';
+import { TrainingPlan, WorkoutType } from '@/core/models';
 import {
   PlanAdjustmentRequest,
   PlanAdjustmentResult,

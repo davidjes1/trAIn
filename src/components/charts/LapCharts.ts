@@ -1,6 +1,6 @@
 // Lap Charts Component
 // Displays detailed lap-by-lap analysis with interactive charts
-import { LapMetrics } from '../../types/training-metrics.types';
+import { LapMetrics } from '@/core/models';
 
 export class LapCharts {
   private container: HTMLElement;

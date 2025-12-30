@@ -5,8 +5,7 @@ import { StravaService } from './StravaService';
 import { StravaDataMapper } from './StravaDataMapper';
 import { FirestoreService } from '../firebase/firestore';
 import { UserProfileService } from './UserProfileService';
-import { StravaConnection, StravaActivity } from '../types/strava.types';
-import { FirebaseActivity } from '../types/firebase.types';
+import { StravaConnection, StravaActivity, FirebaseActivity } from '@/core/models';
 
 export class StravaAutoSync {
   private static instance: StravaAutoSync;

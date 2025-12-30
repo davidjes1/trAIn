@@ -1,5 +1,5 @@
 // Workout Filter and Search Component
-import { ActivityMetrics } from '../../types/training-metrics.types';
+import { ActivityMetrics } from '@/core/models';
 
 export interface FilterOptions {
   searchTerm: string;

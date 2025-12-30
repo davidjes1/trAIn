@@ -1,13 +1,13 @@
 // Strava OAuth Authentication Manager
 // Handles OAuth flow, token management, and secure storage
 
-import { 
-  StravaOAuthConfig, 
-  StravaAuthState, 
-  StravaTokens, 
+import {
+  StravaOAuthConfig,
+  StravaAuthState,
+  StravaTokens,
   StravaTokenResponse,
   StravaConnection
-} from '../types/strava.types';
+} from '@/core/models';
 import { StravaConfigManager } from '../config/strava-config';
 
 export class StravaAuthManager {

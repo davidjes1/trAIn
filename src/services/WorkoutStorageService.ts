@@ -1,14 +1,15 @@
 // Workout Storage Service - Handles persistence of training plans and workout data using Firebase
-import { TrainingPlan, PlanGenerationResult } from '../types/training-metrics.types';
-import { TrackedWorkout } from '../types/workout-tracking.types';
+import {
+  TrainingPlan,
+  PlanGenerationResult,
+  TrackedWorkout,
+  FirebaseGeneratedPlan,
+  FirebaseTrainingPlan,
+  FirebaseTrackedWorkout,
+  FirebaseTrainingCalendar
+} from '@/core/models';
 import { FirestoreService } from '../firebase/firestore';
 import { AuthService } from '../firebase/auth';
-import { 
-  FirebaseGeneratedPlan, 
-  FirebaseTrainingPlan, 
-  FirebaseTrackedWorkout,
-  FirebaseTrainingCalendar 
-} from '../types/firebase.types';
 
 export interface StoredTrainingPlan {
   id: string;

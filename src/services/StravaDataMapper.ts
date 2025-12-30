@@ -1,16 +1,14 @@
 // Strava Data Mapper
 // Converts Strava API data to Firebase activity format with HR zone calculation
 
-import { 
-  StravaActivity, 
+import {
+  StravaActivity,
   StravaLap,
-  STRAVA_SPORT_MAPPINGS
-} from '../types/strava.types';
-import { 
-  FirebaseActivity, 
+  STRAVA_SPORT_MAPPINGS,
+  FirebaseActivity,
   FirebaseLapData,
-  HRZoneConfig 
-} from '../types/firebase.types';
+  HRZoneConfig
+} from '@/core/models';
 
 export class StravaDataMapper {
   private static instance: StravaDataMapper;

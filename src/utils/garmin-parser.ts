@@ -1,5 +1,5 @@
 // Garmin FIT File Parser Utilities for trAIn
-import { ParsedFitData, SportType, HRZone } from '../types/workout.types';
+import { ParsedFitData, SportType, HRZone } from '@/core/models';
 
 /**
  * Parse Garmin FIT file data into standardized format

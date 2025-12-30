@@ -1,6 +1,6 @@
 // Create Sample Workout Data for Testing
 import WorkoutService from '../services/WorkoutService';
-import { CreatePlannedWorkoutInput, Workout } from '../types/workout.types';
+import { CreatePlannedWorkoutInput, Workout } from '@/core/models';
 import { AuthService } from '../firebase/auth';
 
 export async function createSampleWorkoutData(): Promise<void> {

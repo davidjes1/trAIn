@@ -4,7 +4,7 @@
 import { StravaAuthManager } from '../../services/StravaAuthManager';
 import { StravaService } from '../../services/StravaService';
 import { UserProfileService } from '../../services/UserProfileService';
-import { StravaConnection } from '../../types/strava.types';
+import { StravaConnection } from '@/core/models';
 import { StravaConfigurationModal } from './StravaConfigurationModal';
 import { StravaConfigManager } from '../../config/strava-config';
 

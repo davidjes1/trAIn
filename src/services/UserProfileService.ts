@@ -1,7 +1,6 @@
 // Centralized User Profile Management Service
 import { User } from 'firebase/auth';
-import { UserProfile, HRZoneConfig } from '../types/firebase.types';
-import { StravaConnection } from '../types/strava.types';
+import { UserProfile, HRZoneConfig, StravaConnection } from '@/core/models';
 import { AuthService } from '../firebase/auth';
 
 export class UserProfileService {

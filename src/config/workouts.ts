@@ -1,5 +1,5 @@
 // Workout library with predefined templates for triathlon training
-import { WorkoutType, TrainingPhase } from '../types/training-metrics.types';
+import { WorkoutType, TrainingPhase } from '@/core/models';
 
 export const WORKOUT_LIBRARY: WorkoutType[] = [
   // Running Workouts

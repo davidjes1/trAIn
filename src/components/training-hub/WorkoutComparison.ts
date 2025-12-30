@@ -1,5 +1,5 @@
 // Workout Comparison component - generates detailed planned vs actual analysis
-import { TrackedWorkout, WorkoutComparison as WorkoutComparisonData } from '../../types/workout-tracking.types';
+import { TrackedWorkout, WorkoutComparison as WorkoutComparisonData } from '@/core/models';
 
 export class WorkoutComparison {
   

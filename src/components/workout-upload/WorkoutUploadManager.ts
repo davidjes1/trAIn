@@ -1,7 +1,7 @@
 // Workout Upload Manager for FIT File Processing
 import WorkoutService from '../../services/WorkoutService';
 import GarminParser from '../../utils/garmin-parser';
-import { ParsedFitData, WorkoutBatchResult, Workout } from '../../types/workout.types';
+import { ParsedFitData, WorkoutBatchResult, Workout } from '@/core/models';
 import { UIHelpers } from '../../utils/ui-helpers';
 
 export interface FitFileUpload {

@@ -1,6 +1,6 @@
 // Firebase Data Test Utility
 import WorkoutService from '../services/WorkoutService';
-import { Workout } from '../types/workout.types';
+import { Workout } from '@/core/models';
 
 export async function testFirebaseWorkoutData(userId: string): Promise<void> {
   try {

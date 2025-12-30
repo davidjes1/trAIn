@@ -1,5 +1,5 @@
 // Daily Recovery Metrics Tracker Component
-import { FirebaseRecoveryMetrics } from '../../types/firebase.types';
+import { FirebaseRecoveryMetrics } from '@/core/models';
 import { FirestoreService } from '../../firebase/firestore';
 import { UIHelpers } from '../../utils/ui-helpers';
 

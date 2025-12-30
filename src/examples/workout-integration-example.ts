@@ -3,12 +3,12 @@ import WorkoutService from '../services/WorkoutService';
 import GarminParser from '../utils/garmin-parser';
 import WorkoutUploadManager from '../components/workout-upload/WorkoutUploadManager';
 import { WorkoutServiceTests } from '../tests/workout-service.test';
-import { 
-  CreatePlannedWorkoutInput, 
-  ParsedFitData, 
+import {
+  CreatePlannedWorkoutInput,
+  ParsedFitData,
   Workout,
-  WorkoutBatchResult 
-} from '../types/workout.types';
+  WorkoutBatchResult
+} from '@/core/models';
 
 /**
  * Example: Complete workout management integration for trAIn

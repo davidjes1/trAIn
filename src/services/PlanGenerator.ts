@@ -1,15 +1,15 @@
 // Dynamic training plan generator with adaptive workout selection
-import { 
-  PlanOptions, 
-  TrainingPlan, 
-  ReadinessMetrics, 
+import {
+  PlanOptions,
+  TrainingPlan,
+  ReadinessMetrics,
   PlanGenerationResult,
   WorkoutType,
   TrainingPhase,
-  ActivityMetrics
-} from '../types/training-metrics.types';
+  ActivityMetrics,
+  TrackedWorkout
+} from '@/core/models';
 import { WorkoutLibrary, WORKOUT_LIBRARY } from '../config/workouts';
-import { TrackedWorkout } from '../types/workout-tracking.types';
 
 // Enhanced plan options with actual workout data
 export interface EnhancedPlanOptions extends PlanOptions {

@@ -1,6 +1,6 @@
 // Recent Workout Display Component - shows detailed info about the most recently uploaded workout
 import WorkoutService from '../../services/WorkoutService';
-import { Workout } from '../../types/workout.types';
+import { Workout } from '@/core/models';
 import { AuthService } from '../../firebase/auth';
 import testFirebaseWorkoutData from '../../utils/firebase-test';
 import createSampleWorkoutData from '../../utils/create-sample-workout';

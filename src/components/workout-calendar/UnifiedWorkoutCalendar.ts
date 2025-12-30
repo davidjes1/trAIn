@@ -1,6 +1,6 @@
 // Unified Workout Calendar - displays workouts from the unified WorkoutService
 import WorkoutService from '../../services/WorkoutService';
-import { Workout, SportType } from '../../types/workout.types';
+import { Workout, SportType } from '@/core/models';
 import { UIHelpers } from '../../utils/ui-helpers';
 import { AuthService } from '../../firebase/auth';
 

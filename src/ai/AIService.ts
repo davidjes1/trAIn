@@ -1,7 +1,6 @@
 // Central AI service orchestrating all AI-powered features
 
-import { ActivityMetrics } from '../types/training-metrics.types';
-import { FirebaseRecoveryMetrics } from '../types/firebase.types';
+import { ActivityMetrics, FirebaseRecoveryMetrics } from '@/core/models';
 import { 
   AIRecommendationInput,
   UserTrainingProfile,

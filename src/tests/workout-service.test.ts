@@ -1,12 +1,12 @@
 // Comprehensive Test Suite for WorkoutService
 import WorkoutService from '../services/WorkoutService';
 import GarminParser from '../utils/garmin-parser';
-import { 
-  CreatePlannedWorkoutInput, 
-  ParsedFitData, 
-  Workout, 
-  SportType 
-} from '../types/workout.types';
+import {
+  CreatePlannedWorkoutInput,
+  ParsedFitData,
+  Workout,
+  SportType
+} from '@/core/models';
 
 // Note: These tests are for demonstration. In a real app, you'd use Jest/Mocha
 // and mock Firebase instead of using actual Firestore calls.

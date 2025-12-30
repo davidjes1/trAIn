@@ -1,11 +1,11 @@
 import { ParsedFitData } from '../types/fit-parser.types';
-import { 
-  ActivityMetrics, 
-  LapMetrics, 
-  ProcessingResult, 
+import {
+  ActivityMetrics,
+  LapMetrics,
+  ProcessingResult,
   HRZoneDistribution,
-  BatchProcessingOptions 
-} from '../types/training-metrics.types';
+  BatchProcessingOptions
+} from '@/core/models';
 import { HRZoneCalculator, DEFAULT_TRAINING_CONFIG } from '../config/training';
 import { DashboardService } from './DashboardService';
 

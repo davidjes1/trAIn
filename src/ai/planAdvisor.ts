@@ -1,10 +1,10 @@
 // AI-powered workout recommendation system with adaptive training suggestions
 
-import { 
+import {
   WorkoutType,
-  ActivityMetrics 
-} from '../types/training-metrics.types';
-import { FirebaseRecoveryMetrics } from '../types/firebase.types';
+  ActivityMetrics,
+  FirebaseRecoveryMetrics
+} from '@/core/models';
 import { 
   AIRecommendationInput,
   WorkoutRecommendation,

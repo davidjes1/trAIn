@@ -1,5 +1,5 @@
 import { ParsedFitData } from '../types/fit-parser.types';
-import { ActivityMetrics, LapMetrics } from '../types/training-metrics.types';
+import { ActivityMetrics, LapMetrics } from '@/core/models';
 import { FitParser } from '../parser/FitParser';
 import { AnalysisService } from './AnalysisService';
 import { DashboardService } from './DashboardService';

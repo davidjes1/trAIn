@@ -1,4 +1,4 @@
-import { ActivityMetrics } from '../types/training-metrics.types';
+import { ActivityMetrics } from '@/core/models';
 import { subDays, startOfWeek, endOfWeek, differenceInDays, parseISO, isWithinInterval } from 'date-fns';
 
 export interface DashboardMetrics {

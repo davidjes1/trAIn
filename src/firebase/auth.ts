@@ -12,7 +12,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from './config';
-import { UserProfile, UserPreferences } from '../types/firebase.types';
+import { UserProfile, UserPreferences } from '@/core/models';
 
 export class AuthService {
   private static currentUser: User | null = null;

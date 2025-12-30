@@ -1,7 +1,6 @@
 // Data adapters to convert between Firebase types and AI system types
 
-import { FirebaseActivity, FirebaseRecoveryMetrics } from '../types/firebase.types';
-import { ActivityMetrics } from '../types/training-metrics.types';
+import { FirebaseActivity, FirebaseRecoveryMetrics, ActivityMetrics } from '@/core/models';
 import { UserTrainingProfile } from './aiTypes';
 
 export class DataAdapters {

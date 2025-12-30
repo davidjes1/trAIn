@@ -1,5 +1,5 @@
 // Workout Calendar component - displays planned vs actual workouts in calendar format
-import { TrackedWorkout, CalendarViewConfig } from '../../types/workout-tracking.types';
+import { TrackedWorkout, CalendarViewConfig } from '@/core/models';
 import { WorkoutStorageService } from '../../services/WorkoutStorageService';
 
 export class WorkoutCalendar {

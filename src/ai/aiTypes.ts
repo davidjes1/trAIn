@@ -1,11 +1,11 @@
 // AI system type definitions for training insights and recommendations
 
-import { 
-  ActivityMetrics, 
-  TrainingPlan, 
-  WorkoutType
-} from '../types/training-metrics.types';
-import { FirebaseRecoveryMetrics } from '../types/firebase.types';
+import {
+  ActivityMetrics,
+  TrainingPlan,
+  WorkoutType,
+  FirebaseRecoveryMetrics
+} from '@/core/models';
 
 // Core AI Input/Output Types
 export interface AIRecommendationInput {

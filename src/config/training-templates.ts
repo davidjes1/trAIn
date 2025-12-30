@@ -1,5 +1,5 @@
 // Pre-built training templates for different goals and durations
-import { MacroPlan, Mesocycle } from '../types/training-metrics.types';
+import { MacroPlan, Mesocycle } from '@/core/models';
 
 // Weekly templates for different phases
 export const WEEKLY_TEMPLATES = {

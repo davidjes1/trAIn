@@ -1,17 +1,15 @@
 // Integration service between existing TrainingPlan system and new unified WorkoutService
 import WorkoutService from './WorkoutService';
-import { 
-  TrainingPlan, 
-  PlanGenerationResult 
-} from '../types/training-metrics.types';
-import { 
-  Workout, 
-  CreatePlannedWorkoutInput, 
-  SportType, 
+import {
+  TrainingPlan,
+  PlanGenerationResult,
+  Workout,
+  CreatePlannedWorkoutInput,
+  SportType,
   WorkoutSegment,
   SegmentGroup,
-  TargetMetrics 
-} from '../types/workout.types';
+  TargetMetrics
+} from '@/core/models';
 import { SegmentBuilder } from './SegmentBuilder';
 import { UIHelpers } from '../utils/ui-helpers';
 import { AuthService } from '../firebase/auth';

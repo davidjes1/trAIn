@@ -24,7 +24,7 @@ import {
   FirebaseAnalytics,
   FirebaseGeneratedPlan,
   FirebaseTrainingCalendar
-} from '../types/firebase.types';
+} from '@/core/models';
 
 export class FirestoreService {
   private static getUserId(): string {

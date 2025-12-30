@@ -1,12 +1,12 @@
 // Plan Adjustment Service - handles dynamic training plan modifications
-import { 
+import {
   TrainingPlan,
   WorkoutModification,
   WorkoutModificationType,
   PlanAdjustmentOptions,
   PlanAdjustmentResult,
   WorkoutType
-} from '../types/training-metrics.types';
+} from '@/core/models';
 import { WorkoutLibrary } from '../config/workouts';
 
 export class PlanAdjustmentService {

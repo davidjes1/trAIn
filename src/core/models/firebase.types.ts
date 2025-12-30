@@ -1,0 +1,336 @@
+// Firebase-specific type definitions for trAIn
+// Data models for Firestore documents and Firebase operations
+
+import type { WorkoutStatus } from './workout.types';
+import type { WorkoutComparison } from './workout.types';
+import type { StravaConnection } from './strava.types';
+
+// ============================================================================
+// FIREBASE DOCUMENT TYPES
+// ============================================================================
+
+// Activity Data (Firebase version with ID and user reference)
+export interface FirebaseActivity {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD
+  sport: string;
+  subSport?: string;
+  duration: number; // minutes
+  distance: number; // km
+  avgHR?: number;
+  maxHR?: number;
+  hrDrift?: number;
+  zone1Minutes: number;
+  zone2Minutes: number;
+  zone3Minutes: number;
+  zone4Minutes: number;
+  zone5Minutes: number;
+  trainingLoad: number;
+  calories?: number;
+  totalAscent?: number;
+  totalDescent?: number;
+  avgSpeed?: number;
+  maxSpeed?: number;
+  avgPace?: number;
+  notes?: string;
+  fitFileUrl?: string; // Firebase Storage path
+  stravaActivityId?: number; // Strava activity ID if imported from Strava
+  dataSource: 'fit_file' | 'strava' | 'manual'; // Source of the activity data
+  uploadedAt: Date;
+  processed: boolean;
+}
+
+// Lap Data (Firebase version)
+export interface FirebaseLapData {
+  id: string;
+  userId: string;
+  activityId: string;
+  lapNumber: number;
+  lapDuration: number; // minutes
+  lapDistance: number; // km
+  avgHR?: number;
+  maxHR?: number;
+  avgSpeed?: number;
+  maxSpeed?: number;
+  avgPace?: number;
+  elevationGain?: number;
+  elevationLoss?: number;
+  avgPower?: number;
+  maxPower?: number;
+  normalizedPower?: number;
+  startTime?: Date;
+  endTime?: Date;
+  splitType?: 'manual' | 'auto' | 'distance' | 'time';
+}
+
+// Training Plan (Firebase version)
+export interface FirebaseTrainingPlan {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD
+  workoutType: string;
+  description: string;
+  expectedFatigue: number; // 0-100
+  durationMin: number;
+  sport?: string;
+  completed: boolean;
+  actualFatigue?: number;
+  adherenceScore?: number;
+
+  // Additional workout details
+  workoutZones?: string[];
+  workoutTags?: string[];
+  hrTargetZone?: string;
+  customParameters?: Record<string, any>;
+
+  // Plan association
+  planRef?: string; // Reference to FirebaseGeneratedPlan ID
+
+  generatedAt: Date;
+  generatedBy: 'user' | 'algorithm';
+  createdAt: Date;
+  metadata?: {
+    basedOnMetrics: boolean;
+    adjustmentReason?: string;
+  };
+}
+
+// Tracked Workout (Firebase version)
+export interface FirebaseTrackedWorkout {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD
+  status: WorkoutStatus;
+  plannedWorkoutRef?: string; // Reference to FirebaseTrainingPlan ID
+  actualActivityRef?: string; // Reference to FirebaseActivity ID
+  comparison?: WorkoutComparison;
+  userNotes?: string;
+  userRating?: number; // 1-5
+  lastUpdated: Date;
+}
+
+// Generated Training Plan (Firebase version) - saved generated plans to avoid regeneration
+export interface FirebaseGeneratedPlan {
+  id: string; // planId
+  userId: string;
+  planName: string;
+  planType: 'base' | 'build' | 'peak' | 'recovery' | 'custom';
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  totalWeeks: number;
+
+  // Plan configuration
+  config: {
+    sport: string;
+    weeklyHours: number;
+    fitnessLevel: 'beginner' | 'intermediate' | 'advanced';
+    goals: string[];
+    availableDays: string[];
+  };
+
+  // Generated workouts
+  workouts: FirebaseTrainingPlan[];
+
+  // Plan metadata
+  generatedAt: Date;
+  generatedBy: 'user' | 'ai' | 'periodization';
+  version: string; // for plan updates
+  isActive: boolean;
+  lastModified: Date;
+}
+
+// Training Calendar View (Firebase version) - saves calendar state and customizations
+export interface FirebaseTrainingCalendar {
+  id: string; // calendarId
+  userId: string;
+  calendarName: string;
+
+  // Calendar configuration
+  viewConfig: {
+    viewType: 'week' | 'month' | 'day';
+    startDate: string; // YYYY-MM-DD
+    showPlannedOnly: boolean;
+    showActualOnly: boolean;
+    showComparison: boolean;
+    highlightAdherence: boolean;
+  };
+
+  // Associated plan
+  activePlanId?: string; // Reference to FirebaseGeneratedPlan
+
+  // Calendar customizations
+  customizations: {
+    colorScheme?: 'default' | 'sport-based' | 'intensity-based';
+    displayFields: string[]; // which fields to show in calendar view
+    workoutSorting: 'date' | 'type' | 'intensity';
+  };
+
+  // Metadata
+  createdAt: Date;
+  lastViewed: Date;
+  isDefault: boolean;
+}
+
+// Recovery Metrics (Firebase version)
+export interface FirebaseRecoveryMetrics {
+  date: string; // YYYY-MM-DD (also used as document ID)
+  userId: string;
+  sleepScore?: number; // 0-100
+  bodyBattery?: number; // 0-100
+  hrv?: number;
+  restingHR?: number;
+  subjectiveFatigue: number; // 1-10
+  stressLevel?: number; // 0-100
+  notes?: string;
+  recordedAt: Date;
+}
+
+// Analytics (Firebase version)
+export interface FirebaseAnalytics {
+  period: string; // 'week-YYYY-WW' | 'month-YYYY-MM' (also used as document ID)
+  userId: string;
+  adherence: {
+    completionRate: number; // percentage
+    durationAdherence: number; // percentage
+    loadAdherence: number; // percentage
+  };
+  performance: {
+    totalActivities: number;
+    totalDuration: number; // minutes
+    totalLoad: number; // TRIMP
+    averageLoadVariance: number;
+  };
+  trends: {
+    consistencyScore: number; // 0-100
+    intensityTrend: 'increasing' | 'stable' | 'decreasing';
+  };
+  generatedAt: Date;
+}
+
+// ============================================================================
+// FILE UPLOAD TYPES
+// ============================================================================
+
+export interface FirebaseFileUpload {
+  file: File;
+  userId: string;
+  activityId?: string;
+  path: string;
+  metadata?: {
+    originalName: string;
+    size: number;
+    type: string;
+    uploadedAt: Date;
+  };
+}
+
+export interface FileUploadResult {
+  success: boolean;
+  downloadUrl?: string;
+  error?: string;
+  path?: string;
+}
+
+// ============================================================================
+// CLOUD FUNCTIONS TYPES
+// ============================================================================
+
+export interface PlanGenerationRequest {
+  userId: string;
+  options: {
+    startDate: string;
+    duration: number; // days
+    fitnessLevel: 'beginner' | 'intermediate' | 'advanced';
+    targetEvent?: {
+      date: string;
+      type: string;
+    };
+    recoveryMetrics?: {
+      bodyBattery?: number;
+      sleepScore?: number;
+      hrv?: number;
+    };
+    recentActivities: FirebaseActivity[];
+  };
+}
+
+export interface PlanGenerationResponse {
+  success: boolean;
+  plans: FirebaseTrainingPlan[];
+  recommendations: string[];
+  warnings: string[];
+  generatedAt: string;
+}
+
+// ============================================================================
+// REAL-TIME DATA TYPES
+// ============================================================================
+
+export interface RealtimeUpdate<T> {
+  type: 'added' | 'modified' | 'removed';
+  data: T;
+  id: string;
+}
+
+export interface SubscriptionOptions {
+  startDate?: Date;
+  endDate?: Date;
+  limit?: number;
+  orderBy?: string;
+  orderDirection?: 'asc' | 'desc';
+}
+
+// ============================================================================
+// BATCH OPERATIONS
+// ============================================================================
+
+export interface BatchOperation<T> {
+  operation: 'create' | 'update' | 'delete';
+  id?: string;
+  data: T;
+}
+
+export interface BatchResult {
+  success: boolean;
+  processedCount: number;
+  errors: Array<{
+    operation: BatchOperation<any>;
+    error: string;
+  }>;
+}
+
+// ============================================================================
+// FIREBASE CONFIGURATION
+// ============================================================================
+
+export interface FirebaseConfig {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
+  storageBucket: string;
+  messagingSenderId: string;
+  appId: string;
+  measurementId?: string;
+}
+
+// ============================================================================
+// ERROR TYPES
+// ============================================================================
+
+export interface FirebaseError {
+  code: string;
+  message: string;
+  details?: any;
+}
+
+// ============================================================================
+// SECURITY RULES TYPES
+// ============================================================================
+
+export interface SecurityRuleContext {
+  userId: string;
+  isOwner: boolean;
+  isAuthenticated: boolean;
+  timestamp: Date;
+}

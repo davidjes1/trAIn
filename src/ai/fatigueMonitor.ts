@@ -1,7 +1,6 @@
 // AI-powered fatigue monitoring and overtraining detection system
 
-import { ActivityMetrics } from '../types/training-metrics.types';
-import { FirebaseRecoveryMetrics } from '../types/firebase.types';
+import { ActivityMetrics, FirebaseRecoveryMetrics } from '@/core/models';
 import {
   FatigueAssessment,
   FatigueIndicator,

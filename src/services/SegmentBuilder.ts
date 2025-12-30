@@ -1,6 +1,6 @@
 // Segment Builder - utility service for creating and managing workout segments
-import { 
-  WorkoutSegment, 
+import {
+  WorkoutSegment,
   TimeBasedSegment,
   DistanceBasedSegment,
   RepBasedSegment,
@@ -9,7 +9,7 @@ import {
   SegmentGroup,
   SegmentType,
   SegmentMeasurement
-} from '../types/workout.types';
+} from '@/core/models';
 import { v4 as uuidv4 } from 'uuid';
 
 export class SegmentBuilder {

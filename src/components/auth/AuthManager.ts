@@ -1,7 +1,7 @@
 // Authentication UI Manager
 import { AuthService } from '../../firebase/auth';
 import { User } from 'firebase/auth';
-import { UserProfile } from '../../types/firebase.types';
+import { UserProfile } from '@/core/models';
 
 export class AuthManager {
   private container: HTMLElement;

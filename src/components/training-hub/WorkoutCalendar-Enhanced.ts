@@ -1,5 +1,5 @@
 // Enhanced Modern Workout Calendar component
-import { TrackedWorkout, CalendarViewConfig } from '../../types/workout-tracking.types';
+import { TrackedWorkout, CalendarViewConfig } from '@/core/models';
 
 export class EnhancedWorkoutCalendar {
   private container: HTMLElement | null = null;

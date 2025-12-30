@@ -11,7 +11,7 @@ import {
 } from 'firebase/storage';
 import { storage } from './config';
 import { AuthService } from './auth';
-import { FileUploadResult } from '../types/firebase.types';
+import { FileUploadResult } from '@/core/models';
 
 export class StorageService {
   private static getUserId(): string {

@@ -1,11 +1,12 @@
 // Main Training Hub component - unified interface for planning, tracking, and analytics
-import { 
-  TrackedWorkout, 
-  TrainingHubState, 
-  TrainingPeriodSummary 
-} from '../../types/workout-tracking.types';
-import { ActivityMetrics, LapMetrics } from '../../types/training-metrics.types';
-import { UserProfile } from '../../types/firebase.types';
+import {
+  TrackedWorkout,
+  TrainingHubState,
+  TrainingPeriodSummary,
+  ActivityMetrics,
+  LapMetrics,
+  UserProfile
+} from '@/core/models';
 import { WorkoutMatchingService } from '../../services/WorkoutMatchingService';
 import { PlanGenerator, EnhancedPlanOptions } from '../../services/PlanGenerator';
 import { FileService } from '../../services/FileService';

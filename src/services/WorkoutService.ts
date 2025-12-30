@@ -14,16 +14,16 @@ import {
   deleteDoc
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { 
-  Workout, 
-  CreatePlannedWorkoutInput, 
-  ParsedFitData, 
-  WorkoutMatchResult, 
-  ActualWorkout, 
+import {
+  Workout,
+  CreatePlannedWorkoutInput,
+  ParsedFitData,
+  WorkoutMatchResult,
+  ActualWorkout,
   SportType,
   WorkoutBatchResult,
-  HRZone 
-} from '../types/workout.types';
+  HRZone
+} from '@/core/models';
 import { v4 as uuidv4 } from 'uuid';
 
 export class WorkoutService {

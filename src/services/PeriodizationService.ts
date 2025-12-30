@@ -1,11 +1,11 @@
 // Periodization service for structured macro and mesocycle planning
-import { 
-  MacroPlan, 
-  Mesocycle, 
-  TrainingPlan, 
+import {
+  MacroPlan,
+  Mesocycle,
+  TrainingPlan,
   TrainingPhase,
-  WorkoutType 
-} from '../types/training-metrics.types';
+  WorkoutType
+} from '@/core/models';
 import { WorkoutLibrary } from '../config/workouts';
 
 export class PeriodizationService {

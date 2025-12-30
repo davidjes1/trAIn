@@ -1,15 +1,15 @@
 // Strava API Service
 // Handles API calls with rate limiting, error handling, and data fetching
 
-import { 
-  StravaActivity, 
-  StravaConnection, 
-  StravaRateLimitStatus, 
+import {
+  StravaActivity,
+  StravaConnection,
+  StravaRateLimitStatus,
   StravaAPIError,
   StravaSyncError,
   StravaServiceConfig,
   StravaToFirebaseMapping
-} from '../types/strava.types';
+} from '@/core/models';
 import { StravaAuthManager } from './StravaAuthManager';
 import { StravaDataMapper } from './StravaDataMapper';
 import WorkoutService from './WorkoutService';

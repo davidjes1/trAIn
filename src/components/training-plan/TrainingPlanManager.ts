@@ -1,13 +1,13 @@
 // Training Plan Manager - handles the training plan tab UI and plan management
 import { PlanAdjustmentService } from '../../services/PlanAdjustmentService';
 import { WorkoutStorageService } from '../../services/WorkoutStorageService';
-import { 
-  TrainingPlan, 
+import {
+  TrainingPlan,
   PlanGenerationResult,
   WorkoutModification,
   WorkoutModificationType,
   PlanAdjustmentResult
-} from '../../types/training-metrics.types';
+} from '@/core/models';
 import { UIHelpers } from '../../utils/ui-helpers';
 import { AIService } from '../../ai/AIService';
 

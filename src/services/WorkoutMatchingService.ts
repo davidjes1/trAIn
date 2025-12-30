@@ -1,12 +1,14 @@
 // Service for intelligently matching uploaded FIT files with planned workouts
-import { 
-  TrackedWorkout, 
-  WorkoutMatchResult, 
-  WorkoutMatchingConfig, 
+import {
+  TrackedWorkout,
+  WorkoutMatchResult,
+  WorkoutMatchingConfig,
   WorkoutComparison,
-  ZoneCompliance 
-} from '../types/workout-tracking.types';
-import { ActivityMetrics, LapMetrics, TrainingPlan } from '../types/training-metrics.types';
+  ZoneCompliance,
+  ActivityMetrics,
+  LapMetrics,
+  TrainingPlan
+} from '@/core/models';
 
 export class WorkoutMatchingService {
   private static readonly DEFAULT_CONFIG: WorkoutMatchingConfig = {
