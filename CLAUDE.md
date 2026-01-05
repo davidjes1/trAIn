@@ -11,8 +11,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The repository is organized into the following structure:
 
 - **index.html**: Main application HTML with Training Hub UI
-- **src/**: TypeScript source code organized by feature
+- **src/**: TypeScript source code organized by domain
   - **main.ts**: Application entry point and initialization
+  - **core/**: Core business logic and domain models
+    - **models/**: Unified type system (use `@/core/models` for imports)
+      - **workout.types.ts**: Workout data structures and states
+      - **training.types.ts**: Training plans, metrics, and analytics
+      - **user.types.ts**: User profiles and preferences
+      - **firebase.types.ts**: Firebase/Firestore document types
+      - **strava.types.ts**: Strava integration types
+      - **index.ts**: Barrel export for clean imports
   - **ai/**: AI-powered training insights system
     - **AIService.ts**: Central AI orchestration service
     - **planAdvisor.ts**: Workout recommendation engine
@@ -22,29 +30,35 @@ The repository is organized into the following structure:
   - **components/**: UI components and views
     - **auth/**: Authentication UI (AuthManager)
     - **dashboard/**: Dashboard visualization (DashboardManager)
-    - **training-hub/**: Main training interface (TrainingHub, WorkoutCalendar)
+    - **training-hub/**: Main training interface (TrainingHub, WorkoutComparison)
     - **training-plan/**: Training plan management (TrainingPlanManager)
-    - **workout-calendar/**: Calendar views (UnifiedWorkoutCalendar)
+    - **workout-calendar/**: Unified calendar component (UnifiedWorkoutCalendar)
     - **workout-upload/**: FIT file upload interface (WorkoutUploadManager)
     - **import-data/**: Data import page (ImportDataPage)
     - **recovery/**: Recovery metrics tracking (RecoveryMetricsTracker)
     - **recent-workout/**: Recent workout display (RecentWorkoutDisplay)
     - **segments/**: Segment analysis (SegmentDisplay)
     - **strava/**: Strava integration UI (StravaConnector, StravaConfigurationModal)
+    - **charts/**: Chart components (FitnessFatigueChart, IntensityHeatMap, LapCharts)
+    - **workout-filter/**: Workout filtering UI
   - **services/**: Business logic services
+    - **WorkoutService.ts**: Primary workout CRUD operations (Firebase)
+    - **TrainingPlanService.ts**: Training plan management and workout integration
     - **FileService.ts**: FIT file processing
     - **AnalysisService.ts**: Activity analysis and metrics computation
-    - **WorkoutService.ts**: Workout CRUD operations
-    - **WorkoutStorageService.ts**: Firebase workout persistence
     - **DashboardService.ts**: Dashboard data aggregation
     - **ChartService.ts**: Chart.js visualization service
     - **StravaService.ts**: Strava API integration
     - **StravaAuthManager.ts**: Strava OAuth flow
     - **StravaAutoSync.ts**: Automatic Strava synchronization
+    - **StravaDataMapper.ts**: Strava data conversion
     - **PlanGenerator.ts**: Training plan generation
     - **PeriodizationService.ts**: Training periodization logic
+    - **PlanAdjustmentService.ts**: Dynamic plan adjustments
     - **MetricsCalculator.ts**: Training metrics computation
     - **UserProfileService.ts**: User profile management
+    - **WorkoutMatchingService.ts**: Match FIT files to planned workouts
+    - **SegmentBuilder.ts**: Workout segment creation
     - **Router.ts**: Client-side routing
   - **firebase/**: Firebase integration
     - **config.ts**: Firebase initialization
@@ -53,12 +67,6 @@ The repository is organized into the following structure:
     - **storage.ts**: Cloud storage helpers
   - **parser/**: FIT file parsing
     - **FitParser.ts**: Wrapper around fit-file-parser library
-  - **types/**: TypeScript type definitions
-    - **fit-parser.types.ts**: FIT file parsing types
-    - **training-metrics.types.ts**: Training analysis types
-    - **workout.types.ts**: Workout data structures
-    - **strava.types.ts**: Strava integration types
-    - **firebase.types.ts**: Firebase data models
   - **config/**: Configuration files
     - **training.ts**: HR zones and training parameters
     - **workouts.ts**: Workout type definitions
@@ -69,12 +77,20 @@ The repository is organized into the following structure:
     - **garmin-parser.ts**: Garmin data parsing
   - **styles/**: SCSS stylesheets
     - **main.scss**: Main stylesheet
+    - **_unified-workout-calendar.scss**: Calendar component styles
     - **training-hub.scss**: Training hub styles
     - **dashboard.scss**: Dashboard styles
     - **auth.scss**: Authentication styles
     - **components/**: Component-specific styles
+  - **__dev__/**: Development and testing code (excluded from production)
+    - **examples/**: Example code and integration demos
+    - **debug/**: Debugging utilities
+    - **tests/**: Test files
+    - **test-integration.ts**: Integration test runner
+  - **__archive__/**: Legacy files preserved for reference
+    - **types/**: Old type files (replaced by core/models)
 - **dist/**: Production build output (generated)
-- **vite.config.ts**: Vite build configuration
+- **vite.config.ts**: Vite build configuration with path aliases
 
 ## Development Commands
 
@@ -103,6 +119,82 @@ npm run lint:fix
 npm run deploy:vercel    # Deploy to Vercel
 npm run deploy:netlify   # Deploy to Netlify
 npm run deploy:gh-pages  # Deploy to GitHub Pages
+```
+
+## Recent Refactoring (January 2026)
+
+The codebase underwent a comprehensive refactoring to improve maintainability, eliminate redundancies, and establish clearer architectural boundaries.
+
+### Changes Made
+
+**Phase 1: Type System Consolidation**
+- Created `/src/core/models/` with unified type system
+- Consolidated 4 duplicate type definitions
+- Updated 50+ files to use `@/core/models` imports
+- Configured TypeScript path aliases (`@/*`)
+
+**Phase 2: Calendar Component Consolidation**
+- Merged 3 calendar components into single `UnifiedWorkoutCalendar`
+- Removed ~1,900 lines of duplicate code
+- Added 16 features from legacy calendars
+- Consolidated calendar SCSS files
+
+**Phase 3: Service Layer Refactoring**
+- Renamed `WorkoutStorageService` → `TrainingPlanService` (clearer purpose)
+- Removed 193 lines of unused localStorage methods
+- Integrated `WorkoutPlanIntegration.ts` into `TrainingPlanService`
+- Eliminated duplicate conversion layer
+
+**Phase 4: Code Organization**
+- Moved development/test files to `/src/__dev__/` (excluded from production)
+- Archived legacy type files to `/src/__archive__/`
+- Removed unused entry points (`main-new.ts`, `main-old.scss`)
+- Cleaned ~2,900 lines from production source tree
+
+### Impact
+
+- **Files Deleted:** 23 files (duplicates, legacy, dev files moved)
+- **Lines Removed:** ~6,000 lines total
+- **Code Organization:** Clear domain-driven structure
+- **Type Safety:** Single source of truth for all types
+- **Build Size:** Smaller production bundles
+
+### Importing Types
+
+**Use the unified type system:**
+```typescript
+// ✅ CORRECT - Use @/core/models
+import { Workout, TrainingPlan, UserProfile } from '@/core/models';
+
+// ❌ WRONG - Old paths (archived)
+import { Workout } from '../types/workout.types';
+```
+
+### Service Usage
+
+**WorkoutService** - Primary workout CRUD operations
+```typescript
+import WorkoutService from '@/services/WorkoutService';
+
+// Create planned workout
+const workout = await WorkoutService.createPlannedWorkout(input);
+
+// Match FIT file to planned workout
+const match = await WorkoutService.matchPlannedWorkout(userId, fitData);
+
+// Process FIT file
+const { workout, wasMatched } = await WorkoutService.processParsedFitData(userId, fitData);
+```
+
+**TrainingPlanService** - Training plan management
+```typescript
+import { TrainingPlanService } from '@/services/TrainingPlanService';
+
+// Save generated plan as workouts
+const { workouts, failures } = await TrainingPlanService.saveGeneratedPlanAsWorkouts(plan);
+
+// Replace all future workouts with new plan
+const result = await TrainingPlanService.replaceGeneratedPlan(plan, userId);
 ```
 
 ## Architecture Overview
@@ -190,7 +282,7 @@ npm run deploy:gh-pages  # Deploy to GitHub Pages
 1. **Upload**: User uploads FIT file via drag-and-drop or file picker
 2. **Parse**: FitParser processes binary data
 3. **Analyze**: AnalysisService computes metrics (HR zones, TRIMP, pace/speed)
-4. **Store**: WorkoutStorageService saves to Firestore
+4. **Store**: WorkoutService saves to Firestore
 5. **Display**: Dashboard updates with new workout data
 6. **AI Analysis**: AIService generates insights based on new data
 
@@ -828,10 +920,10 @@ Warnings triggered by:
 
 #### New Workout Source
 1. Create service in `src/services/` (e.g., `GarminConnectService.ts`)
-2. Define types in `src/types/`
+2. Define types in `src/core/models/` or extend existing types
 3. Implement OAuth flow if needed
 4. Add data mapping to trAIn workout format
-5. Integrate with `WorkoutService` and `WorkoutStorageService`
+5. Integrate with `WorkoutService` and `TrainingPlanService`
 
 ## Roadmap
 

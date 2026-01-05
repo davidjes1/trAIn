@@ -2,10 +2,6 @@
 import WorkoutService from '../../services/WorkoutService';
 import { Workout } from '@/core/models';
 import { AuthService } from '../../firebase/auth';
-import testFirebaseWorkoutData from '../../utils/firebase-test';
-import createSampleWorkoutData from '../../utils/create-sample-workout';
-import '../../utils/auth-debug';
-import '../../utils/firestore-debug';
 
 export class RecentWorkoutDisplay {
   private container: HTMLElement;
