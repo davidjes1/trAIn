@@ -1,6 +1,6 @@
 // Training Plan Manager - handles the training plan tab UI and plan management
 import { PlanAdjustmentService } from '../../services/PlanAdjustmentService';
-import { WorkoutStorageService } from '../../services/WorkoutStorageService';
+import { TrainingPlanService } from '../../services/TrainingPlanService';
 import {
   TrainingPlan,
   PlanGenerationResult,
@@ -1073,7 +1073,7 @@ export class TrainingPlanManager {
 
     try {
       // Check if user is authenticated
-      if (!WorkoutStorageService.isAuthenticated()) {
+      if (!TrainingPlanService.isAuthenticated()) {
         console.log('User not authenticated, plan will only be stored locally');
         return;
       }
@@ -1082,10 +1082,10 @@ export class TrainingPlanManager {
       const planName = this.generatePlanName();
       
       // Save to Firebase (with localStorage fallback)
-      const planId = await WorkoutStorageService.saveTrainingPlan(this.currentPlan, planName);
+      const planId = await TrainingPlanService.saveTrainingPlan(this.currentPlan, planName);
       
       // Set as active plan
-      await WorkoutStorageService.setActivePlan(planId);
+      await TrainingPlanService.setActivePlan(planId);
       
       console.log(`Plan saved with ID: ${planId}`);
       
@@ -1101,11 +1101,11 @@ export class TrainingPlanManager {
   private async loadSavedPlan(): Promise<void> {
     try {
       // Only load if user is authenticated
-      if (!WorkoutStorageService.isAuthenticated()) {
+      if (!TrainingPlanService.isAuthenticated()) {
         return;
       }
 
-      const activePlan = await WorkoutStorageService.getActivePlan();
+      const activePlan = await TrainingPlanService.getActivePlan();
       if (activePlan && this.isPlanStillRelevant(activePlan)) {
         this.loadPlanFromStorage(activePlan);
         UIHelpers.showStatus('Loaded your saved training plan', 'info');
@@ -1120,7 +1120,7 @@ export class TrainingPlanManager {
   /**
    * Load plan from storage format to current plan
    */
-  private loadPlanFromStorage(storedPlan: import('../../services/WorkoutStorageService').StoredTrainingPlan): void {
+  private loadPlanFromStorage(storedPlan: import('../../services/TrainingPlanService').StoredTrainingPlan): void {
     this.currentPlan = {
       plan: storedPlan.plan,
       readinessMetrics: storedPlan.readinessMetrics,
@@ -1163,7 +1163,7 @@ export class TrainingPlanManager {
   /**
    * Check if a stored plan is still relevant (within date range)
    */
-  private isPlanStillRelevant(storedPlan: import('../../services/WorkoutStorageService').StoredTrainingPlan): boolean {
+  private isPlanStillRelevant(storedPlan: import('../../services/TrainingPlanService').StoredTrainingPlan): boolean {
     const today = new Date().toISOString().split('T')[0];
     const planEndDate = storedPlan.endDate;
     
@@ -1216,7 +1216,7 @@ export class TrainingPlanManager {
    */
   private async showPlanSelectionModal(): Promise<void> {
     try {
-      const savedPlans = await WorkoutStorageService.getStoredTrainingPlans();
+      const savedPlans = await TrainingPlanService.getStoredTrainingPlans();
       
       if (savedPlans.length === 0) {
         UIHelpers.showStatus('No saved plans found', 'info');
@@ -1234,7 +1234,7 @@ export class TrainingPlanManager {
   /**
    * Create modal for selecting saved plans
    */
-  private createPlanSelectionModal(plans: import('../../services/WorkoutStorageService').StoredTrainingPlan[]): void {
+  private createPlanSelectionModal(plans: import('../../services/TrainingPlanService').StoredTrainingPlan[]): void {
     // Remove existing modal
     const existingModal = document.getElementById('plan-selection-modal');
     existingModal?.remove();
@@ -1284,7 +1284,7 @@ export class TrainingPlanManager {
   /**
    * Attach event listeners for plan selection modal
    */
-  private attachPlanSelectionEventListeners(plans: import('../../services/WorkoutStorageService').StoredTrainingPlan[]): void {
+  private attachPlanSelectionEventListeners(plans: import('../../services/TrainingPlanService').StoredTrainingPlan[]): void {
     // Close modal events
     const closeButtons = document.querySelectorAll('#plan-selection-modal .close-modal-btn');
     closeButtons.forEach(btn => {
@@ -1302,7 +1302,7 @@ export class TrainingPlanManager {
           const plan = plans.find(p => p.id === planId);
           if (plan) {
             // Set as active plan
-            await WorkoutStorageService.setActivePlan(planId);
+            await TrainingPlanService.setActivePlan(planId);
             
             // Load the plan
             this.loadPlanFromStorage(plan);
@@ -1323,7 +1323,7 @@ export class TrainingPlanManager {
         const planId = (e.target as HTMLElement).dataset.planId;
         if (planId && confirm('Are you sure you want to delete this training plan?')) {
           try {
-            await WorkoutStorageService.deleteTrainingPlan(planId);
+            await TrainingPlanService.deleteTrainingPlan(planId);
             
             // Remove from UI
             const planItem = document.querySelector(`[data-plan-id="${planId}"]`);

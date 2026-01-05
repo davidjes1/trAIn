@@ -1,6 +1,6 @@
 // Integration test for unified workout system
 import WorkoutService from './services/WorkoutService';
-import { WorkoutPlanIntegration } from './services/WorkoutPlanIntegration';
+import { TrainingPlanService } from './services/TrainingPlanService';
 import { UnifiedWorkoutCalendar } from './components/workout-calendar/UnifiedWorkoutCalendar';
 import { AuthService } from './firebase/auth';
 import { UIHelpers } from './utils/ui-helpers';
@@ -26,7 +26,7 @@ declare global {
 // Make services available globally for testing
 window.testServices = {
   WorkoutService,
-  WorkoutPlanIntegration,
+  TrainingPlanService,
   UnifiedWorkoutCalendar,
   AuthService,
   UIHelpers
@@ -106,8 +106,8 @@ window.generateSamplePlan = async function() {
 
     const userId = window.testUserId || 'test-user';
     
-    // Use WorkoutPlanIntegration to save the plan
-    const result = await WorkoutPlanIntegration.replaceGeneratedPlan(samplePlan, userId);
+    // Use TrainingPlanService to save the plan
+    const result = await TrainingPlanService.replaceGeneratedPlan(samplePlan, userId);
     
     results.innerHTML = `✅ Plan Generated Successfully!
     
@@ -336,7 +336,7 @@ window.replaceAllFutureWorkouts = async function() {
     };
 
     // Use the comprehensive replacement method
-    const result = await WorkoutPlanIntegration.replaceAllFutureWorkouts(newPlan, userId);
+    const result = await TrainingPlanService.replaceAllFutureWorkouts(newPlan, userId);
     
     // Verify the results
     const allWorkouts = await WorkoutService.getUserWorkouts(userId, 20);
