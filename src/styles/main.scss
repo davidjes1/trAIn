@@ -23,18 +23,17 @@
 // 3.2. Page Components
 @use 'import-data-page';
 
-// 4. Legacy Components (to be migrated)
+// 4. Calendar Components
+@use 'unified-workout-calendar';
+
+// 4b. Legacy Components (to be migrated)
 // Keep existing styles for components not yet migrated
-@use 'modern-calendar';
 @use 'workout-popup';
 @use 'auth';
 @use 'recovery-metrics';
 @use 'recent-workout';
 @use 'segment-display';
 @use 'strava-connector';
-
-// 4b. Accessibility Overrides for Legacy Components
-@use 'accessible-calendar';
 
 // 4c. Phase 1 Quick Wins Components
 @use 'phase1-components';

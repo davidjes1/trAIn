@@ -17,20 +17,23 @@ export class UnifiedWorkoutCalendar {
   private config: CalendarConfig;
   private workouts: Workout[] = [];
   private onWorkoutClick?: (workout: Workout) => void;
+  private onWorkoutDoubleClick?: (workout: Workout) => void;
   private userId: string | null = null;
 
   constructor(
-    container: HTMLElement, 
+    container: HTMLElement,
     config: CalendarConfig,
     callbacks: {
       onWorkoutClick?: (workout: Workout) => void;
+      onWorkoutDoubleClick?: (workout: Workout) => void;
     } = {}
   ) {
     this.container = container;
     this.config = config;
     this.onWorkoutClick = callbacks.onWorkoutClick;
+    this.onWorkoutDoubleClick = callbacks.onWorkoutDoubleClick;
     this.userId = AuthService.getCurrentUserId();
-    
+
     this.initialize();
   }
 
@@ -208,6 +211,7 @@ export class UnifiedWorkoutCalendar {
   private generateWeekView(): string {
     const dateRange = this.getDateRange();
     const startDate = new Date(dateRange.startDate);
+    const endDate = new Date(dateRange.endDate);
     const days = [];
 
     // Generate 7 days
@@ -215,16 +219,21 @@ export class UnifiedWorkoutCalendar {
       const currentDate = new Date(startDate);
       currentDate.setDate(startDate.getDate() + i);
       const dateStr = currentDate.toISOString().split('T')[0];
-      
+
       const dayWorkouts = this.workouts.filter(w => w.date === dateStr);
-      days.push(this.generateDayCard(currentDate, dayWorkouts));
+      const isCenter = i === 3; // Middle day is center
+      days.push(this.generateDayCard(currentDate, dayWorkouts, false, isCenter));
     }
+
+    // Generate week range text (e.g., "Jan 1 - Jan 7")
+    const weekRangeText = this.getWeekRangeText(startDate, endDate);
 
     return `
       <div class="unified-calendar week-view">
         <div class="calendar-header">
           <div class="calendar-title">
             <h3>Week of ${startDate.toLocaleDateString()}</h3>
+            <p class="calendar-subtitle">${weekRangeText}</p>
             <div class="view-switcher">
               <button class="btn btn-small view-btn ${this.config.viewType === 'day' ? 'active' : ''}" data-view="day">Day</button>
               <button class="btn btn-small view-btn ${this.config.viewType === 'week' ? 'active' : ''}" data-view="week">Week</button>
@@ -236,10 +245,12 @@ export class UnifiedWorkoutCalendar {
             <button class="btn btn-ghost" id="today">Today</button>
             <button class="btn btn-ghost" id="next-week">›</button>
           </div>
+          ${this.generateCalendarLegend()}
         </div>
         <div class="calendar-grid week-grid">
           ${days.join('')}
         </div>
+        ${this.generateWeekStats()}
       </div>
     `;
   }
@@ -342,36 +353,37 @@ export class UnifiedWorkoutCalendar {
   /**
    * Generate day card for calendar grid
    */
-  private generateDayCard(date: Date, workouts: Workout[], expanded = false): string {
+  private generateDayCard(date: Date, workouts: Workout[], expanded = false, isCenter = false): string {
     const dateStr = date.toISOString().split('T')[0];
     const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
     const dayNumber = date.getDate();
-    const isToday = this.config.highlightToday && 
+    const isToday = this.config.highlightToday &&
       dateStr === new Date().toISOString().split('T')[0];
 
     if (workouts.length === 0) {
       return `
-        <div class="day-card empty-day ${isToday ? 'today' : ''}" data-date="${dateStr}">
+        <div class="day-card empty-day ${isToday ? 'today' : ''} ${isCenter ? 'center-day' : ''}" data-date="${dateStr}">
           <div class="day-header">
             <span class="day-name">${dayName}</span>
             <span class="day-number">${dayNumber}</span>
           </div>
           <div class="day-content">
             <div class="rest-day">
-              <span class="rest-icon">💤</span>
-              <span class="rest-text">Rest</span>
+              <span class="rest-icon">🌿</span>
+              <span class="rest-text">Rest Day</span>
+              <span class="rest-subtitle">Recovery time</span>
             </div>
           </div>
         </div>
       `;
     }
 
-    const workoutCards = workouts.map(workout => 
+    const workoutCards = workouts.map(workout =>
       this.generateWorkoutCard(workout, expanded)
     ).join('');
 
     return `
-      <div class="day-card has-workouts ${isToday ? 'today' : ''}" data-date="${dateStr}">
+      <div class="day-card has-workouts ${isToday ? 'today' : ''} ${isCenter ? 'center-day' : ''}" data-date="${dateStr}">
         <div class="day-header">
           <span class="day-name">${dayName}</span>
           <span class="day-number">${dayNumber}</span>
@@ -426,21 +438,26 @@ export class UnifiedWorkoutCalendar {
     const sportIcon = this.getSportIcon(workout.sport);
     const statusClass = `status-${workout.status}`;
     const statusIcon = this.getStatusIcon(workout.status);
+    const intensityColor = this.getIntensityColor(workout);
+    const intensityLabel = this.getIntensityLabel(workout);
 
     // Use actual data if available (completed/unplanned), otherwise use planned data
     const duration = workout.actual?.durationMin || workout.planned?.durationMin;
     const distance = workout.actual?.distanceKm || workout.planned?.distanceKm;
     const isCompleted = workout.status === 'completed' || workout.status === 'unplanned';
-    
+
     // Calculate completion vs planned comparison
     const hasComparison = workout.actual && workout.planned;
-    const durationDiff = hasComparison ? 
+    const durationDiff = hasComparison ?
       ((workout.actual.durationMin - workout.planned.durationMin) / workout.planned.durationMin * 100) : null;
-    const distanceDiff = hasComparison && workout.planned.distanceKm ? 
+    const distanceDiff = hasComparison && workout.planned.distanceKm ?
       ((workout.actual.distanceKm! - workout.planned.distanceKm) / workout.planned.distanceKm * 100) : null;
 
+    // Calculate adherence score if we have comparison data
+    const adherenceScore = hasComparison ? this.calculateAdherenceScore(workout) : null;
+
     return `
-      <div class="workout-card ${statusClass} ${isCompleted ? 'completed-workout' : ''}" data-workout-id="${workout.id}">
+      <div class="workout-card ${statusClass} ${isCompleted ? 'completed-workout' : ''}" data-workout-id="${workout.id}" style="border-left: 4px solid ${intensityColor}">
         <div class="workout-header">
           <span class="sport-icon">${sportIcon}</span>
           <span class="workout-name">${workout.name}</span>
@@ -449,6 +466,8 @@ export class UnifiedWorkoutCalendar {
             ${isCompleted ? '<span class="completion-badge">✓</span>' : ''}
           </div>
         </div>
+        ${adherenceScore ? this.generateAdherenceBadge(adherenceScore) : ''}
+        ${intensityLabel ? `<div class="workout-intensity-label">${intensityLabel}</div>` : ''}
         
         ${expanded ? `
           <div class="workout-details">
@@ -688,6 +707,18 @@ export class UnifiedWorkoutCalendar {
           }
         }
       });
+
+      // Double-click handler for quick edit
+      card.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        const workoutId = (card as HTMLElement).dataset.workoutId;
+        if (workoutId && this.onWorkoutDoubleClick) {
+          const workout = this.workouts.find(w => w.id === workoutId);
+          if (workout) {
+            this.onWorkoutDoubleClick(workout);
+          }
+        }
+      });
     });
 
     // Month day card click handlers (for navigation to day view)
@@ -793,6 +824,281 @@ export class UnifiedWorkoutCalendar {
    */
   public getCurrentWorkouts(): Workout[] {
     return [...this.workouts];
+  }
+
+  /**
+   * Get workouts currently in view (same as getCurrentWorkouts but named for compatibility)
+   */
+  public getWorkoutsInView(): Workout[] {
+    return this.getCurrentWorkouts();
+  }
+
+  /**
+   * Programmatically select a workout by date
+   */
+  public selectWorkout(date: string): void {
+    const workout = this.workouts.find(w => w.date === date);
+    if (workout && this.onWorkoutClick) {
+      this.onWorkoutClick(workout);
+    }
+  }
+
+  /**
+   * Highlight a specific date in the calendar
+   */
+  public highlightDate(date: string): void {
+    if (!this.container) return;
+
+    // Remove existing highlights
+    this.container.querySelectorAll('.day-card.highlighted, .month-day-card.highlighted').forEach(card => {
+      card.classList.remove('highlighted');
+    });
+
+    // Add highlight to specified date
+    const card = this.container.querySelector(`[data-date="${date}"]`);
+    if (card) {
+      card.classList.add('highlighted');
+    }
+  }
+
+  /**
+   * Refresh workouts from storage (reloads from WorkoutService)
+   */
+  public async refreshFromStorage(): Promise<void> {
+    await this.loadWorkouts();
+    this.render();
+  }
+
+  /**
+   * Mark a workout as completed
+   */
+  public async markWorkoutCompleted(
+    workoutId: string,
+    actualData?: {
+      durationMin?: number;
+      distanceKm?: number;
+      avgHR?: number;
+      maxHR?: number;
+      trainingLoad?: number;
+      notes?: string;
+    }
+  ): Promise<void> {
+    try {
+      if (!this.userId) {
+        console.error('User not authenticated');
+        return;
+      }
+
+      // Update workout status in WorkoutService
+      const workout = this.workouts.find(w => w.id === workoutId);
+      if (!workout) {
+        console.error(`Workout ${workoutId} not found`);
+        return;
+      }
+
+      // Update the workout with actual data
+      const updatedWorkout: Workout = {
+        ...workout,
+        status: 'completed',
+        actual: actualData || workout.actual || {
+          durationMin: workout.planned?.durationMin || 0,
+          distanceKm: workout.planned?.distanceKm,
+          avgHR: actualData?.avgHR,
+          maxHR: actualData?.maxHR,
+          trainingLoad: actualData?.trainingLoad || workout.planned?.expectedFatigue
+        },
+        completedAt: new Date().toISOString()
+      };
+
+      await WorkoutService.updateWorkout(this.userId, workoutId, updatedWorkout);
+
+      // Refresh calendar
+      await this.refreshFromStorage();
+
+      console.log(`✅ Workout ${workoutId} marked as completed`);
+    } catch (error) {
+      console.error('Error marking workout as completed:', error);
+    }
+  }
+
+  /**
+   * Mark a workout as missed
+   */
+  public async markWorkoutMissed(workoutId: string, reason?: string): Promise<void> {
+    try {
+      if (!this.userId) {
+        console.error('User not authenticated');
+        return;
+      }
+
+      const workout = this.workouts.find(w => w.id === workoutId);
+      if (!workout) {
+        console.error(`Workout ${workoutId} not found`);
+        return;
+      }
+
+      // Update the workout status
+      const updatedWorkout: Workout = {
+        ...workout,
+        status: 'missed',
+        notes: reason ? `${workout.notes || ''}\nMissed: ${reason}`.trim() : workout.notes
+      };
+
+      await WorkoutService.updateWorkout(this.userId, workoutId, updatedWorkout);
+
+      // Refresh calendar
+      await this.refreshFromStorage();
+
+      console.log(`❌ Workout ${workoutId} marked as missed${reason ? `: ${reason}` : ''}`);
+    } catch (error) {
+      console.error('Error marking workout as missed:', error);
+    }
+  }
+
+  /**
+   * Get week range text (e.g., "Jan 1 - Jan 7")
+   */
+  private getWeekRangeText(startDate: Date, endDate: Date): string {
+    const startStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const endStr = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `${startStr} - ${endStr}`;
+  }
+
+  /**
+   * Generate calendar legend
+   */
+  private generateCalendarLegend(): string {
+    return `
+      <div class="calendar-legend">
+        <div class="legend-item">
+          <div class="legend-dot status-planned"></div>
+          <span>Planned</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot status-completed"></div>
+          <span>Completed</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot status-missed"></div>
+          <span>Missed</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot status-unplanned"></div>
+          <span>Extra</span>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Generate week statistics footer
+   */
+  private generateWeekStats(): string {
+    const weekWorkouts = this.workouts.filter(w => {
+      const workoutDate = new Date(w.date);
+      const dateRange = this.getDateRange();
+      const startDate = new Date(dateRange.startDate);
+      const endDate = new Date(dateRange.endDate);
+      return workoutDate >= startDate && workoutDate <= endDate;
+    });
+
+    const completed = weekWorkouts.filter(w => w.status === 'completed' || w.status === 'unplanned').length;
+    const planned = weekWorkouts.filter(w => w.status === 'planned').length;
+    const totalTrainingLoad = weekWorkouts
+      .filter(w => w.actual?.trainingLoad)
+      .reduce((sum, w) => sum + (w.actual!.trainingLoad || 0), 0);
+
+    return `
+      <div class="calendar-footer">
+        <div class="week-stats">
+          <div class="stat-item">
+            <span class="stat-value">${completed}</span>
+            <span class="stat-label">Completed</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">${planned}</span>
+            <span class="stat-label">Planned</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">${Math.round(totalTrainingLoad)}</span>
+            <span class="stat-label">TRIMP</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Get intensity color based on workout data
+   */
+  private getIntensityColor(workout: Workout): string {
+    const intensity = workout.planned?.expectedFatigue || workout.actual?.trainingLoad || 50;
+    if (intensity < 30) return '#4CAF50'; // Green - Easy
+    if (intensity < 60) return '#FF9800'; // Orange - Moderate
+    if (intensity < 80) return '#F44336'; // Red - Hard
+    return '#9C27B0'; // Purple - Very Hard
+  }
+
+  /**
+   * Get intensity label text
+   */
+  private getIntensityLabel(workout: Workout): string | null {
+    const intensity = workout.planned?.expectedFatigue || workout.actual?.trainingLoad;
+    if (!intensity) return null;
+
+    if (intensity < 30) return 'Easy';
+    if (intensity < 60) return 'Moderate';
+    if (intensity < 80) return 'Hard';
+    return 'Very Hard';
+  }
+
+  /**
+   * Calculate adherence score (0-100)
+   */
+  private calculateAdherenceScore(workout: Workout): number {
+    if (!workout.actual || !workout.planned) return 0;
+
+    let score = 100;
+
+    // Duration adherence (40% weight)
+    const durationDiff = Math.abs(
+      (workout.actual.durationMin - workout.planned.durationMin) / workout.planned.durationMin
+    );
+    score -= Math.min(durationDiff * 100, 40);
+
+    // Distance adherence (30% weight) - if applicable
+    if (workout.planned.distanceKm && workout.actual.distanceKm) {
+      const distanceDiff = Math.abs(
+        (workout.actual.distanceKm - workout.planned.distanceKm) / workout.planned.distanceKm
+      );
+      score -= Math.min(distanceDiff * 100, 30);
+    }
+
+    // Heart rate adherence (30% weight) - if applicable
+    if (workout.planned.targetMetrics?.expectedAvgHR && workout.actual.avgHR) {
+      const hrDiff = Math.abs(
+        (workout.actual.avgHR - workout.planned.targetMetrics.expectedAvgHR) /
+        workout.planned.targetMetrics.expectedAvgHR
+      );
+      score -= Math.min(hrDiff * 100, 30);
+    }
+
+    return Math.max(0, Math.round(score));
+  }
+
+  /**
+   * Generate adherence badge HTML
+   */
+  private generateAdherenceBadge(score: number): string {
+    let badgeClass = 'adherence-success';
+    if (score < 60) badgeClass = 'adherence-error';
+    else if (score < 80) badgeClass = 'adherence-warning';
+
+    return `
+      <div class="adherence-badge ${badgeClass}">
+        ${score}%
+      </div>
+    `;
   }
 }
 

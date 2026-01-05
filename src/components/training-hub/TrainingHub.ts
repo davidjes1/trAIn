@@ -13,7 +13,6 @@ import { FileService } from '../../services/FileService';
 import { DashboardService, DashboardData } from '../../services/DashboardService';
 import { FirestoreService } from '../../firebase/firestore';
 import { UIHelpers } from '../../utils/ui-helpers';
-import { EnhancedWorkoutCalendar } from './WorkoutCalendar-Enhanced';
 import { UnifiedWorkoutCalendar } from '../workout-calendar/UnifiedWorkoutCalendar';
 import { SegmentDisplay } from '../segments/SegmentDisplay';
 import { WorkoutComparison } from './WorkoutComparison';
@@ -33,7 +32,6 @@ import { LapCharts } from '../charts/LapCharts';
 
 export class TrainingHub {
   private state: TrainingHubState;
-  private workoutCalendar: EnhancedWorkoutCalendar;
   private unifiedWorkoutCalendar: UnifiedWorkoutCalendar | null = null;
   private workoutComparison: WorkoutComparison;
   private recoveryTracker!: RecoveryMetricsTracker; // Initialized after authentication
@@ -69,9 +67,8 @@ export class TrainingHub {
     }
     
     this.authManager = new AuthManager(authContainer, this.onAuthStateChanged.bind(this));
-    
+
     // Initialize other components (they will be shown after authentication)
-    this.workoutCalendar = new EnhancedWorkoutCalendar(this.onWorkoutSelected.bind(this));
     this.workoutComparison = new WorkoutComparison();
     
     // Initialize event listeners
@@ -331,7 +328,7 @@ export class TrainingHub {
       this.displayAIInsights(dashboardData.aiInsights);
       
       // Initialize calendar with current workouts
-      await this.workoutCalendar.initialize(this.state.trackedWorkouts, this.state.calendar);
+      await this.unifiedWorkoutCalendar.initialize(this.state.trackedWorkouts, this.state.calendar);
       
       // Load analytics data
       this.updateAnalytics();
@@ -872,7 +869,7 @@ export class TrainingHub {
     };
 
     this.setState({ calendar: newConfig });
-    this.workoutCalendar.updateView(newConfig);
+    this.unifiedWorkoutCalendar.updateView(newConfig);
     this.updateCurrentPeriodDisplay();
   }
 
@@ -1146,9 +1143,9 @@ export class TrainingHub {
     // Save and refresh UI
     this.saveWorkouts();
     this.updateHeaderMetrics();
-    if (this.workoutCalendar) {
-      if (this.workoutCalendar) {
-        await this.workoutCalendar.updateWorkouts(this.state.trackedWorkouts);
+    if (this.unifiedWorkoutCalendar) {
+      if (this.unifiedWorkoutCalendar) {
+        await this.unifiedWorkoutCalendar.updateWorkouts(this.state.trackedWorkouts);
       }
     }
     this.updateAnalytics();
@@ -1283,9 +1280,9 @@ export class TrainingHub {
       });
       
       this.saveWorkouts();
-      if (this.workoutCalendar) {
-      if (this.workoutCalendar) {
-        await this.workoutCalendar.updateWorkouts(this.state.trackedWorkouts);
+      if (this.unifiedWorkoutCalendar) {
+      if (this.unifiedWorkoutCalendar) {
+        await this.unifiedWorkoutCalendar.updateWorkouts(this.state.trackedWorkouts);
       }
     }
       this.updateHeaderMetrics();
@@ -1658,9 +1655,9 @@ export class TrainingHub {
       this.updateAnalytics();
       
       // Refresh calendar with merged workout data
-      if (this.workoutCalendar) {
-        if (this.workoutCalendar) {
-        await this.workoutCalendar.updateWorkouts(updatedWorkouts);
+      if (this.unifiedWorkoutCalendar) {
+        if (this.unifiedWorkoutCalendar) {
+        await this.unifiedWorkoutCalendar.updateWorkouts(updatedWorkouts);
       }
       }
       
@@ -1726,8 +1723,8 @@ export class TrainingHub {
       this.updateAnalytics();
       
       // Refresh calendar
-      if (this.workoutCalendar) {
-        await this.workoutCalendar.updateWorkouts(updatedWorkouts);
+      if (this.unifiedWorkoutCalendar) {
+        await this.unifiedWorkoutCalendar.updateWorkouts(updatedWorkouts);
       }
       
       // Show subtle notification for real-time updates
@@ -3132,8 +3129,8 @@ export class TrainingHub {
     try {
       UIHelpers.showStatus('Refreshing training calendar...', 'info');
       
-      if (this.workoutCalendar) {
-        await this.workoutCalendar.refreshFromStorage();
+      if (this.unifiedWorkoutCalendar) {
+        await this.unifiedWorkoutCalendar.refreshFromStorage();
       }
       
       UIHelpers.showStatus('Calendar refreshed successfully', 'success');
