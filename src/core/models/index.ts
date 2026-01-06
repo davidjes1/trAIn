@@ -144,6 +144,9 @@ export type {
   StravaError,
 } from './strava.types';
 
+// Export Strava constants
+export { STRAVA_SPORT_MAPPINGS } from './strava.types';
+
 // ============================================================================
 // FIREBASE TYPES
 // ============================================================================

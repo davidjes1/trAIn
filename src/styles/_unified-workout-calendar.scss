@@ -736,7 +736,7 @@
         color: white;
 
         &:hover {
-          background: darken(var(--accent-color), 10%);
+          filter: brightness(0.85);
         }
       }
 
