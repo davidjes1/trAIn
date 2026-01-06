@@ -1,10 +1,10 @@
-// Unified Workout Calendar Styles
+// Unified Workout Calendar Styles - Accessibility Compliant
 @import 'variables';
 
 .unified-calendar {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15); // Increased opacity for better contrast base
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 12px;
   padding: 1.5rem;
   margin: 1rem 0;
@@ -37,7 +37,7 @@
           padding: 0.5rem 1rem;
           border: none;
           background: transparent;
-          color: rgba(255, 255, 255, 0.7);
+          color: #ffffff; // Full white for better contrast (WCAG AA compliant)
           border-radius: 6px;
           cursor: pointer;
           transition: all 0.2s;
@@ -45,8 +45,13 @@
           font-weight: 500;
 
           &:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.15);
             color: #ffffff;
+          }
+
+          &:focus {
+            outline: 2px solid #ffffff;
+            outline-offset: 2px;
           }
 
           &.active {
@@ -67,15 +72,21 @@
         height: 40px;
         padding: 0.5rem;
         border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.3); // Increased border visibility
+        background: rgba(255, 255, 255, 0.15);
         color: #ffffff;
         cursor: pointer;
         transition: all 0.2s;
+        font-weight: 500; // Better legibility
 
         &:hover {
-          background: rgba(255, 255, 255, 0.2);
-          border-color: var(--accent-color);
+          background: rgba(255, 255, 255, 0.25);
+          border-color: #ffffff;
+        }
+
+        &:focus {
+          outline: 3px solid #ffffff;
+          outline-offset: 2px;
         }
       }
     }
@@ -109,7 +120,7 @@
         text-align: center;
         font-size: 0.875rem;
         font-weight: 600;
-        color: rgba(255, 255, 255, 0.8);
+        color: #ffffff; // Full white for WCAG AA compliance
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
@@ -126,8 +137,8 @@
     }
 
     .month-day-card {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.08); // Slightly more opaque for better visibility
+      border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 8px;
       padding: 0.75rem;
       min-height: 80px;
@@ -139,39 +150,46 @@
       align-items: flex-start;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.1);
-        border-color: var(--accent-color);
+        background: rgba(255, 255, 255, 0.15);
+        border-color: #ffffff;
         transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      &:focus-within {
+        outline: 2px solid #ffffff;
+        outline-offset: 2px;
       }
 
       &.today {
-        border-color: var(--accent-color);
-        background: rgba(var(--accent-color-rgb), 0.1);
-        
+        border: 2px solid #ffffff; // More visible border
+        background: rgba(255, 255, 255, 0.2); // Better contrast
+
         .month-day-number {
-          color: var(--accent-color);
+          color: #ffffff;
           font-weight: 700;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); // Better readability
         }
       }
 
       &.other-month {
-        opacity: 0.4;
-        
+        opacity: 0.5;
+
         .month-day-number {
-          color: rgba(255, 255, 255, 0.5);
+          color: rgba(255, 255, 255, 0.7); // Increased from 0.5 for better visibility
         }
       }
 
       &.has-completed {
-        border-left: 3px solid #10b981;
+        border-left: 4px solid #34D399; // Brighter emerald for better visibility
       }
 
       &.has-planned {
-        border-left: 3px solid #6366f1;
+        border-left: 4px solid #818CF8; // Brighter indigo for better visibility
       }
 
       &.has-missed {
-        border-left: 3px solid #ef4444;
+        border-left: 4px solid #F87171; // Brighter red for better visibility
       }
 
       .month-day-number {
@@ -188,24 +206,25 @@
         margin-top: auto;
 
         .workout-dot {
-          width: 8px;
-          height: 8px;
+          width: 10px; // Increased from 8px for better visibility
+          height: 10px;
           border-radius: 50%;
-          
+          border: 1px solid rgba(0, 0, 0, 0.2); // Added border for definition
+
           &.status-completed {
-            background: #10b981;
+            background: #34D399; // Brighter emerald for better visibility
           }
-          
+
           &.status-planned {
-            background: #6366f1;
+            background: #818CF8; // Brighter indigo for better visibility
           }
-          
+
           &.status-missed {
-            background: #ef4444;
+            background: #F87171; // Brighter red for better visibility
           }
-          
+
           &.status-unplanned {
-            background: #f59e0b;
+            background: #FBBF24; // Brighter amber for better visibility
           }
         }
 
@@ -233,8 +252,8 @@
   }
 
   .day-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08); // Better base opacity
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 8px;
     padding: 1rem;
     min-height: 120px;
@@ -242,14 +261,20 @@
     cursor: pointer;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: var(--accent-color);
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #ffffff;
       transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    &:focus-within {
+      outline: 2px solid #ffffff;
+      outline-offset: 2px;
     }
 
     &.today {
-      border-color: var(--accent-color);
-      background: rgba(var(--accent-color-rgb), 0.1);
+      border: 2px solid #ffffff;
+      background: rgba(255, 255, 255, 0.2);
     }
 
     &.empty-day {
@@ -258,8 +283,8 @@
 
       &:hover {
         transform: none;
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
       }
     }
 
@@ -271,8 +296,8 @@
 
       .day-name {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.7);
-        font-weight: 500;
+        color: #ffffff; // Changed from rgba(255, 255, 255, 0.7) for better contrast
+        font-weight: 600; // Increased from 500
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
@@ -285,12 +310,12 @@
 
       .workout-count {
         background: var(--accent-color);
-        color: white;
+        color: #ffffff;
         font-size: 0.75rem;
         font-weight: 600;
-        padding: 2px 6px;
+        padding: 4px 8px; // Slightly larger for better readability
         border-radius: 12px;
-        min-width: 20px;
+        min-width: 24px;
         text-align: center;
       }
     }
@@ -303,17 +328,17 @@
         justify-content: center;
         text-align: center;
         padding: 1rem 0;
-        opacity: 0.6;
 
         .rest-icon {
           font-size: 1.5rem;
-          margin-bottom: 0.25rem;
-          color: rgba(0, 0, 0, 0.6);
+          margin-bottom: 0.5rem;
+          color: #ffffff; // Changed from black for consistency
+          opacity: 0.8;
         }
 
         .rest-text {
           font-size: 0.875rem;
-          color: #000000;
+          color: #ffffff; // Changed from black for WCAG AA compliance
           font-weight: 500;
         }
       }
@@ -321,8 +346,8 @@
   }
 
   .workout-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.1); // Increased opacity for better text visibility
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 6px;
     padding: 0.75rem;
     margin-bottom: 0.5rem;
@@ -330,29 +355,35 @@
     cursor: pointer;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: var(--accent-color);
+      background: rgba(255, 255, 255, 0.18);
+      border-color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    &:focus-within {
+      outline: 2px solid #ffffff;
+      outline-offset: 2px;
     }
 
     &:last-child {
       margin-bottom: 0;
     }
 
-    // Status-based styling
+    // Status-based styling with brighter, more visible colors
     &.status-planned {
-      border-left: 3px solid #6366f1; // Indigo
+      border-left: 4px solid #818CF8; // Brighter indigo for better visibility
     }
 
     &.status-completed {
-      border-left: 3px solid #10b981; // Emerald
+      border-left: 4px solid #34D399; // Brighter emerald for better visibility
     }
 
     &.status-missed {
-      border-left: 3px solid #ef4444; // Red
+      border-left: 4px solid #F87171; // Brighter red for better visibility
     }
 
     &.status-unplanned {
-      border-left: 3px solid #f59e0b; // Amber
+      border-left: 4px solid #FBBF24; // Brighter amber for better visibility
     }
 
     // Enhanced completed workout styling
@@ -380,13 +411,14 @@
       .sport-icon {
         font-size: 1.2rem;
         margin-right: 0.5rem;
+        filter: brightness(1.2); // Ensure emoji visibility
       }
 
       .workout-name {
         flex: 1;
         font-size: 0.875rem;
         font-weight: 600;
-        color: #000000;
+        color: #ffffff; // Changed from black for WCAG AA compliance
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -394,7 +426,7 @@
 
       .status-icon {
         font-size: 0.875rem;
-        opacity: 0.8;
+        color: #ffffff;
       }
     }
 
@@ -402,12 +434,13 @@
       display: flex;
       gap: 0.75rem;
       font-size: 0.75rem;
-      color: rgba(0, 0, 0, 0.8);
+      color: #ffffff; // Changed from rgba(0, 0, 0, 0.8) for WCAG AA compliance
+      font-weight: 500; // Better legibility
 
       .duration,
       .distance {
         &::before {
-          margin-right: 2px;
+          margin-right: 4px; // Increased spacing
         }
       }
 
@@ -423,9 +456,10 @@
     .workout-details {
       .workout-description {
         font-size: 0.8rem;
-        color: rgba(0, 0, 0, 0.8);
+        color: #ffffff; // Changed from rgba(0, 0, 0, 0.8) for WCAG AA compliance
         margin-bottom: 0.5rem;
-        line-height: 1.3;
+        line-height: 1.4; // Improved readability
+        font-weight: 400;
       }
 
       .workout-metrics {
@@ -436,11 +470,11 @@
 
         .metric {
           font-size: 0.75rem;
-          color: rgba(0, 0, 0, 0.7);
+          color: #ffffff; // Changed from rgba(0, 0, 0, 0.7) for WCAG AA compliance
 
           .metric-label {
-            font-weight: 500;
-            color: #000000;
+            font-weight: 600; // Increased from 500
+            color: #ffffff; // Changed from black
           }
         }
       }
@@ -465,10 +499,11 @@
 
       .workout-notes {
         font-size: 0.75rem;
-        color: rgba(0, 0, 0, 0.7);
+        color: #ffffff; // Changed from rgba(0, 0, 0, 0.7) for WCAG AA compliance
         font-style: italic;
-        line-height: 1.3;
+        line-height: 1.4;
         margin-top: 0.5rem;
+        opacity: 0.9; // Slight reduction to indicate secondary info
       }
 
       // Actual Performance Metrics Section
@@ -494,8 +529,9 @@
 
           small {
             font-size: 0.7rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: #ffffff; // Changed from rgba for better contrast
             font-weight: 400;
+            opacity: 0.85; // Slight opacity to indicate secondary info
           }
         }
 
@@ -530,16 +566,17 @@
               }
 
               .zone-time {
-                color: rgba(255, 255, 255, 0.7);
+                color: #ffffff; // Changed from rgba for better contrast
                 font-size: 0.6rem;
+                opacity: 0.9; // Slight reduction to indicate secondary info
               }
 
-              // Zone colors
-              &.zone-1 { border-left: 2px solid #9CA3AF; }
-              &.zone-2 { border-left: 2px solid #60A5FA; }
-              &.zone-3 { border-left: 2px solid #34D399; }
-              &.zone-4 { border-left: 2px solid #FBBF24; }
-              &.zone-5 { border-left: 2px solid #F87171; }
+              // Zone colors - brighter for better visibility
+              &.zone-1 { border-left: 3px solid #D1D5DB; } // Brighter gray
+              &.zone-2 { border-left: 3px solid #93C5FD; } // Brighter blue
+              &.zone-3 { border-left: 3px solid #6EE7B7; } // Brighter emerald
+              &.zone-4 { border-left: 3px solid #FCD34D; } // Brighter yellow
+              &.zone-5 { border-left: 3px solid #FCA5A5; } // Brighter red
             }
           }
         }
@@ -587,17 +624,19 @@
             }
 
             .planned-value {
-              color: rgba(255, 255, 255, 0.7);
+              color: #ffffff; // Changed from rgba for better contrast
+              opacity: 0.85; // Slight reduction to indicate planned vs actual
             }
 
             .comparison-arrow {
-              color: var(--accent-color);
+              color: #ffffff; // Better visibility
               font-weight: 600;
+              opacity: 0.7;
             }
 
             .actual-value {
               color: #ffffff;
-              font-weight: 500;
+              font-weight: 600; // Increased from 500 for emphasis
             }
 
             .comparison-diff {
@@ -608,20 +647,23 @@
               border-radius: 2px;
             }
 
-            // Comparison result styling
+            // Comparison result styling - brighter colors for better visibility
             &.on-target .comparison-diff {
-              background: rgba(16, 185, 129, 0.2);
-              color: #10b981;
+              background: rgba(52, 211, 153, 0.25);
+              color: #6EE7B7; // Brighter emerald
+              font-weight: 700;
             }
 
             &.over .comparison-diff {
-              background: rgba(245, 158, 11, 0.2);
-              color: #f59e0b;
+              background: rgba(251, 191, 36, 0.25);
+              color: #FCD34D; // Brighter amber
+              font-weight: 700;
             }
 
             &.under .comparison-diff {
-              background: rgba(239, 68, 68, 0.2);
-              color: #ef4444;
+              background: rgba(248, 113, 113, 0.25);
+              color: #FCA5A5; // Brighter red
+              font-weight: 700;
             }
           }
         }
@@ -658,10 +700,11 @@
 
         .metric-compact {
           font-size: 0.7rem;
-          color: rgba(255, 255, 255, 0.7);
-          background: rgba(255, 255, 255, 0.1);
-          padding: 2px 6px;
-          border-radius: 3px;
+          color: #ffffff; // Changed from rgba for better contrast
+          background: rgba(255, 255, 255, 0.15); // Increased opacity
+          padding: 3px 8px; // Slightly larger
+          border-radius: 4px;
+          font-weight: 500;
 
           &.duration::before { content: "⏱️ "; }
           &.distance::before { content: "📏 "; }
@@ -673,21 +716,21 @@
       .quick-comparison {
         display: flex;
         justify-content: flex-end;
-        
+
         .diff-indicator {
-          font-size: 0.65rem;
-          font-weight: 600;
-          padding: 1px 4px;
-          border-radius: 2px;
+          font-size: 0.7rem; // Increased from 0.65rem
+          font-weight: 700; // Increased from 600
+          padding: 2px 6px; // Slightly larger
+          border-radius: 3px;
 
           &.over {
-            background: rgba(245, 158, 11, 0.3);
-            color: #f59e0b;
+            background: rgba(251, 191, 36, 0.3);
+            color: #FCD34D; // Brighter amber
           }
 
           &.under {
-            background: rgba(239, 68, 68, 0.3);
-            color: #ef4444;
+            background: rgba(248, 113, 113, 0.3);
+            color: #FCA5A5; // Brighter red
           }
         }
       }
@@ -717,10 +760,11 @@
     }
 
     p {
-      color: rgba(255, 255, 255, 0.7);
+      color: #ffffff; // Changed from rgba for better contrast
       margin-bottom: 1.5rem;
       max-width: 300px;
-      line-height: 1.5;
+      line-height: 1.6; // Improved readability
+      font-weight: 400;
     }
 
     .btn {
@@ -731,22 +775,29 @@
       cursor: pointer;
       transition: all 0.2s;
 
+      &:focus {
+        outline: 3px solid #ffffff;
+        outline-offset: 2px;
+      }
+
       &.btn-primary {
         background: var(--accent-color);
-        color: white;
+        color: #ffffff;
 
         &:hover {
-          filter: brightness(0.85);
+          filter: brightness(1.1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
       }
 
       &.btn-secondary {
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.15);
         color: #ffffff;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.3);
 
         &:hover {
-          background: rgba(255, 255, 255, 0.2);
+          background: rgba(255, 255, 255, 0.25);
+          border-color: #ffffff;
         }
       }
     }
@@ -778,8 +829,9 @@
 
         .workout-date {
           margin: 0 0 0.5rem 0;
-          color: rgba(255, 255, 255, 0.7);
+          color: #ffffff; // Changed from rgba for better contrast
           font-size: 0.875rem;
+          font-weight: 500;
         }
       }
     }
@@ -840,7 +892,8 @@
 
             .zone-time {
               flex: 1;
-              color: rgba(255, 255, 255, 0.7);
+              color: #ffffff; // Changed from rgba for better contrast
+              font-weight: 500;
             }
 
             .zone-percentage {
@@ -871,9 +924,10 @@
         margin-top: 1rem;
 
         p {
-          color: rgba(255, 255, 255, 0.7);
-          line-height: 1.5;
+          color: #ffffff; // Changed from rgba for better contrast
+          line-height: 1.6; // Improved readability
           margin: 0.5rem 0 0 0;
+          font-weight: 400;
         }
       }
     }
@@ -890,44 +944,56 @@
         border-radius: 6px;
         border: none;
         font-size: 0.875rem;
-        font-weight: 500;
+        font-weight: 600; // Increased from 500
         cursor: pointer;
         transition: all 0.2s;
 
+        &:focus {
+          outline: 3px solid #ffffff;
+          outline-offset: 2px;
+        }
+
         &.btn-success {
-          background: #10b981;
-          color: white;
+          background: #34D399; // Brighter emerald
+          color: #000000; // Dark text for better contrast on light green
+          font-weight: 700;
 
           &:hover {
-            background: #059669;
+            background: #6EE7B7; // Even brighter on hover
+            box-shadow: 0 4px 12px rgba(52, 211, 153, 0.4);
           }
         }
 
         &.btn-warning {
-          background: #f59e0b;
-          color: white;
+          background: #FBBF24; // Brighter amber
+          color: #000000; // Dark text for better contrast on yellow
+          font-weight: 700;
 
           &:hover {
-            background: #d97706;
+            background: #FCD34D; // Brighter on hover
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
           }
         }
 
         &.btn-secondary {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.15);
           color: #ffffff;
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          border: 2px solid rgba(255, 255, 255, 0.3);
 
           &:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.25);
+            border-color: #ffffff;
           }
         }
 
         &.btn-danger {
-          background: #ef4444;
-          color: white;
+          background: #F87171; // Brighter red
+          color: #000000; // Dark text for better contrast on light red
+          font-weight: 700;
 
           &:hover {
-            background: #dc2626;
+            background: #FCA5A5; // Even brighter on hover
+            box-shadow: 0 4px 12px rgba(248, 113, 113, 0.4);
           }
         }
       }
@@ -935,36 +1001,41 @@
   }
 }
 
-// Status badges
+// Status badges - Accessibility compliant
 .status-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
   font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.25rem 0.5rem;
+  font-weight: 700; // Increased from 600
+  padding: 0.3rem 0.6rem; // Slightly larger
   border-radius: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border: 1px solid transparent; // For additional definition
 
   &.planned {
-    background: rgba(99, 102, 241, 0.2);
-    color: #6366f1;
+    background: rgba(129, 140, 248, 0.3); // Brighter indigo
+    color: #C7D2FE; // Very bright indigo for dark backgrounds
+    border-color: #818CF8;
   }
 
   &.completed {
-    background: rgba(16, 185, 129, 0.2);
-    color: #10b981;
+    background: rgba(52, 211, 153, 0.3); // Brighter emerald
+    color: #A7F3D0; // Very bright emerald for dark backgrounds
+    border-color: #34D399;
   }
 
   &.missed {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    background: rgba(248, 113, 113, 0.3); // Brighter red
+    color: #FECACA; // Very bright red for dark backgrounds
+    border-color: #F87171;
   }
 
   &.unplanned {
-    background: rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
+    background: rgba(251, 191, 36, 0.3); // Brighter amber
+    color: #FEF3C7; // Very bright amber for dark backgrounds
+    border-color: #FBBF24;
   }
 }
 
@@ -1108,14 +1179,15 @@
 }
 
 .legend-dot {
-  width: 12px;
-  height: 12px;
+  width: 14px; // Increased from 12px for better visibility
+  height: 14px;
   border-radius: 50%;
-  
-  &.planned { background: #2196F3; }
-  &.completed { background: #4CAF50; }
-  &.missed { background: #f44336; }
-  &.rest { background: #9e9e9e; }
+  border: 1px solid rgba(0, 0, 0, 0.2); // Added border for definition
+
+  &.planned { background: #818CF8; } // Brighter indigo
+  &.completed { background: #34D399; } // Brighter emerald
+  &.missed { background: #F87171; } // Brighter red
+  &.rest { background: #D1D5DB; } // Brighter gray
 }
 
 // Week stats footer
@@ -1135,125 +1207,134 @@
 
 .stat-item {
   text-align: center;
-  
+
   .stat-label {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: #ffffff; // Changed from rgba for better contrast
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    font-weight: 600; // Added for better legibility
   }
-  
+
   .stat-value {
     font-size: 1.25rem;
-    font-weight: 600;
-    color: white;
+    font-weight: 700; // Increased from 600
+    color: #ffffff;
     margin-top: 0.25rem;
   }
 }
 
-// Adherence badges
+// Adherence badges - Accessibility compliant
 .adherence-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px; // Increased from 32px for better visibility
+  height: 36px;
   border-radius: 50%;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.85rem; // Increased from 0.75rem
+  font-weight: 700; // Increased from 600
   margin-left: 0.5rem;
-  
+
   &.adherence-success {
-    background: rgba(76, 175, 80, 0.2);
-    color: #4CAF50;
-    border: 2px solid #4CAF50;
+    background: rgba(52, 211, 153, 0.3); // Brighter emerald
+    color: #A7F3D0; // Very bright emerald text
+    border: 2px solid #34D399;
   }
-  
+
   &.adherence-warning {
-    background: rgba(255, 152, 0, 0.2);
-    color: #FF9800;
-    border: 2px solid #FF9800;
+    background: rgba(251, 191, 36, 0.3); // Brighter amber
+    color: #FEF3C7; // Very bright amber text
+    border: 2px solid #FBBF24;
   }
-  
+
   &.adherence-error {
-    background: rgba(244, 67, 54, 0.2);
-    color: #f44336;
-    border: 2px solid #f44336;
+    background: rgba(248, 113, 113, 0.3); // Brighter red
+    color: #FECACA; // Very bright red text
+    border: 2px solid #F87171;
   }
 }
 
-// Intensity labels and border colors
+// Intensity labels and border colors - Accessibility compliant
 .workout-intensity-label {
   font-size: 0.75rem;
-  font-weight: 500;
-  padding: 2px 6px;
-  border-radius: 3px;
+  font-weight: 700; // Increased from 500
+  padding: 3px 8px; // Slightly larger
+  border-radius: 4px;
   margin-left: 0.5rem;
-  
+  border: 1px solid transparent;
+
   &.intensity-easy {
-    background: rgba(76, 175, 80, 0.2);
-    color: #4CAF50;
+    background: rgba(52, 211, 153, 0.3); // Brighter emerald
+    color: #A7F3D0; // Very bright emerald text
+    border-color: #34D399;
   }
-  
+
   &.intensity-moderate {
-    background: rgba(33, 150, 243, 0.2);
-    color: #2196F3;
+    background: rgba(96, 165, 250, 0.3); // Brighter blue
+    color: #DBEAFE; // Very bright blue text
+    border-color: #60A5FA;
   }
-  
+
   &.intensity-hard {
-    background: rgba(255, 152, 0, 0.2);
-    color: #FF9800;
+    background: rgba(251, 191, 36, 0.3); // Brighter amber
+    color: #FEF3C7; // Very bright amber text
+    border-color: #FBBF24;
   }
-  
+
   &.intensity-very-hard {
-    background: rgba(244, 67, 54, 0.2);
-    color: #f44336;
+    background: rgba(248, 113, 113, 0.3); // Brighter red
+    color: #FECACA; // Very bright red text
+    border-color: #F87171;
   }
 }
 
-// Intensity border colors on workout cards
+// Intensity border colors on workout cards - brighter and thicker
 .workout-card {
   &.intensity-easy {
-    border-left: 4px solid #4CAF50;
+    border-left: 4px solid #34D399; // Brighter emerald
   }
-  
+
   &.intensity-moderate {
-    border-left: 4px solid #2196F3;
+    border-left: 4px solid #60A5FA; // Brighter blue
   }
-  
+
   &.intensity-hard {
-    border-left: 4px solid #FF9800;
+    border-left: 4px solid #FBBF24; // Brighter amber
   }
-  
+
   &.intensity-very-hard {
-    border-left: 4px solid #f44336;
+    border-left: 4px solid #F87171; // Brighter red
   }
 }
 
 // Calendar subtitle (week range)
 .calendar-subtitle {
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: #ffffff; // Changed from rgba for better contrast
   margin-top: 0.25rem;
+  font-weight: 500;
 }
 
 // Rest day subtitle
 .rest-subtitle {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: #ffffff; // Changed from rgba for better contrast
   margin-top: 0.25rem;
+  font-weight: 500;
+  opacity: 0.85; // Slight reduction to indicate secondary info
 }
 
-// Hover effects for workout cards
+// Hover effects for workout cards - enhanced accessibility
 .workout-card {
-  transition: transform 0.2s, box-shadow 0.2s;
-  
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); // Stronger shadow for better depth perception
   }
-  
+
   &.hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.18); // Increased from 0.15 for better visibility
   }
 }
