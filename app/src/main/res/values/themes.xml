@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base theme. The full color system is applied in Compose (TrainTheme).
+         This XML theme only sets the splash/window background and edge-to-edge bars. -->
+    <style name="Theme.Train" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/brand_surface_dark</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+</resources>

@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(rm:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(git mv *)",
+      "Bash(mv .github legacy/.github)",
+      "Bash(chmod +x gradlew)",
+      "Bash(mkdir -p mipmap-anydpi-v26 values)",
+      "Bash(cat)",
+      "Bash(git checkout *)",
+      "Bash(git add *)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
