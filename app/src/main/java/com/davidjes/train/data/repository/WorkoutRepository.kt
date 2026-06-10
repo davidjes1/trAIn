@@ -109,6 +109,26 @@ class WorkoutRepository @Inject constructor(
         return workoutsBetween(start, end).firstOrNull { it.id == id }
     }
 
+    /** Downsampled HR-over-time series for a workout's activity chart (~[buckets] points). */
+    suspend fun hrSeries(start: Instant, end: Instant, buckets: Int = 60): List<Float> {
+        val samples = hc.readHeartRate(start, end)
+            .flatMap { it.samples }
+            .map { it.time.epochSecond to it.beatsPerMinute.toInt() }
+            .sortedBy { it.first }
+        if (samples.size < 2) return emptyList()
+        val startSec = samples.first().first
+        val span = (samples.last().first - startSec).coerceAtLeast(1)
+        val bins = Array(buckets) { mutableListOf<Int>() }
+        samples.forEach { (t, hr) ->
+            val idx = (((t - startSec).toDouble() / span) * (buckets - 1)).toInt().coerceIn(0, buckets - 1)
+            bins[idx].add(hr)
+        }
+        val out = ArrayList<Float>(buckets)
+        var last = samples.first().second.toFloat()
+        bins.forEach { b -> if (b.isNotEmpty()) last = b.average().toFloat(); out.add(last) }
+        return out
+    }
+
     /** Summaries used by the recommender / fatigue engine. */
     suspend fun recentSummaries(days: Long = 14): List<WorkoutSummary> {
         val end = Instant.now()
