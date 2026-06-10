@@ -47,6 +47,9 @@ environment — there is no JDK/SDK here, so write build-ready code rather than 
 
 ## Layout
 
-See `README.md` for the full module map and current build status. Screens currently built:
-**Today** (fully wired). Insights/Plan/Body/Profile/Nutrition/Workout/Onboarding are navigable
-stubs to be built out next, in the handoff's suggested order.
+See `README.md` for the full module map and current build status. All eight surfaces are
+built and wired to Health Connect + Room: Today, Plan/Calendar (Day/Week/Month/Form), Workout
+detail, Body, Nutrition, Profile, Onboarding, and Insights. AI uses a deterministic
+`InsightsEngine` + a grounded rule-based `GeminiService`; binding a real on-device Gemini Nano
+model is a one-class swap in `di/AiModule` (see `GeminiService`). Remaining polish: strength
+workout detail variant, route map (Maps Compose), add-workout sheet, and editable profile/zones.

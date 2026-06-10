@@ -82,8 +82,12 @@ periodized macro→meso→micro plan generator. See `domain/training/`.
 | Navigation (5 destinations + detail routes) | ✅ |
 | Domain models + training-science engine | ✅ (with unit tests) |
 | Data layer: Health Connect + Room + repositories | ✅ |
-| **Today** screen (Narrative/Metrics, recovery, habits, check-in, nutrition, quick-log, HC permission gate) | ✅ wired |
-| Insights · Plan · Body · Profile · Nutrition · Workout · Onboarding | 🟡 navigable stubs — next |
-| Gemini Nano integration (ML Kit GenAI) | 🟡 fallback in place, on-device model next |
+| **Today** (Narrative/Metrics, recovery, habits, check-in, nutrition, quick-log, HC permission gate) | ✅ wired |
+| **Plan/Calendar** (Day/Week/Month/Form) + **Workout detail** (endurance) | ✅ wired |
+| **Body** (metric chips, chart, anomaly, grid) · **Nutrition** (macros, meals, add-meal) | ✅ wired |
+| **Profile** (identity, race, HR zones, connections) · **Onboarding** (HC permission flow) | ✅ wired |
+| **Insights** (collapsible insight cards, Gemini chat, suggested prompts, composer) | ✅ wired |
+| AI: deterministic `InsightsEngine` + grounded rule-based `GeminiService` | ✅ |
+| On-device **Gemini Nano** model binding (Google AI Edge / AICore) | 🟡 documented extension point (`AiModule` / `GeminiService`) — needs a supported device |
 
 The old web/TypeScript app is archived under [`legacy/`](legacy/).
