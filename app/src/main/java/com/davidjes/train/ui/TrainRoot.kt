@@ -1,9 +1,15 @@
 package com.davidjes.train.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.davidjes.train.ui.navigation.Routes
 import com.davidjes.train.ui.navigation.TopDest
 import com.davidjes.train.ui.navigation.TrainNavHost
 
@@ -13,7 +19,17 @@ import com.davidjes.train.ui.navigation.TrainNavHost
  * own chrome via [com.davidjes.train.ui.components.TrainScreenScaffold].
  */
 @Composable
-fun TrainRoot(startDestination: String = TopDest.TODAY.route) {
+fun TrainRoot() {
+    val rootViewModel: RootViewModel = hiltViewModel()
+    val onboarded by rootViewModel.onboarded.collectAsStateWithLifecycle()
+
+    // Wait for the flag so we don't flash the wrong start destination.
+    val start = when (onboarded) {
+        null -> { Box(Modifier.fillMaxSize()); return }
+        true -> TopDest.TODAY.route
+        false -> Routes.ONBOARDING
+    }
+
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
 
@@ -30,7 +46,7 @@ fun TrainRoot(startDestination: String = TopDest.TODAY.route) {
 
     TrainNavHost(
         navController = navController,
-        startDestination = startDestination,
+        startDestination = start,
         onNavigate = onNavigate,
     )
 }

@@ -2,6 +2,7 @@ package com.davidjes.train.ui.today
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -378,4 +379,4 @@ private fun QuickLogSheet(onDismiss: () -> Unit, onMeal: () -> Unit) {
 }
 
 private fun Modifier.clickableLog(onClick: () -> Unit): Modifier =
-    this.then(androidx.compose.foundation.clickable { onClick() })
+    this.clickable(onClick = onClick)
