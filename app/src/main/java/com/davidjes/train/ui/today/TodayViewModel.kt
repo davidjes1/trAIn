@@ -184,7 +184,7 @@ class TodayViewModel @Inject constructor(
             habitRepository.seedDefaultsIfEmpty(habits)
             habits = loadHabits(today)
         }
-        val nutrition = nutritionRepository.day(today).first()
+        val nutrition = nutritionRepository.day(today, profileRepository.nutritionTargets.first()).first()
 
         val conflicts = workoutRepository.findConflicts().map { it.toUi() }
 

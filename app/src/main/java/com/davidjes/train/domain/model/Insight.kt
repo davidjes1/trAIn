@@ -39,6 +39,13 @@ data class Meal(
     val loggedAt: Instant,
 )
 
+data class NutritionTargets(
+    val kcal: Int = 2400,
+    val proteinG: Int = 160,
+    val carbsG: Int = 260,
+    val fatG: Int = 75,
+)
+
 data class NutritionDay(
     val date: LocalDate,
     val targetKcal: Int,
