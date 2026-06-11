@@ -1,241 +1,106 @@
-# 🏃‍♂️ Garmin FIT File Parser & Training Dashboard
+# trAIn — Android (Kotlin + Jetpack Compose)
 
-A comprehensive web application for parsing Garmin FIT files and analyzing training data with interactive dashboards and Google Sheets integration.
+A mobile-first, native Android rebuild of trAIn: a daily training / recovery / readiness
+companion. **Health Connect is the source of truth** for health & workout data; app-specific
+data (plans, habits, nutrition, insights, chat) lives in a local **Room** database. On-device
+**Gemini Nano** powers AI narrative/insights, with a deterministic clinical-voice fallback on
+unsupported devices.
 
-## ✨ Features
-
-### 📁 FIT File Parser
-- **Binary FIT File Processing**: Parse .fit files directly in the browser
-- **Field Analysis**: Dynamic discovery of available data fields
-- **JSON Export**: Export selected fields with metadata
-- **Bulk Processing**: Handle multiple files simultaneously
-
-### 📊 Training Dashboard
-- **Interactive Charts**: HR trends, training load, zone distribution
-- **Status Panels**: Fatigue risk, readiness score, training streaks
-- **Analytics**: TRIMP-based training load, HR drift analysis
-- **Injury Prevention**: Automated risk factor detection
-- **Google Sheets Integration**: Real-time data sync and visualization
-
-## 🚀 Live Demo
-
-- **GitHub Pages**: [your-username.github.io/trAIn](https://your-username.github.io/trAIn)
-- **Full-Stack**: Deploy to Vercel/Netlify for complete functionality
-
-## 🛠 Local Development
-
-### Prerequisites
-- Node.js 18+
-- Google Cloud Project (for Sheets integration)
-- Service Account JSON (for server-side auth)
-
-### Quick Start
-```bash
-# Clone repository
-git clone https://github.com/your-username/trAIn.git
-cd trAIn
-
-# Install dependencies
-npm install
-
-# Configure Google Sheets (optional)
-cp google-sheets-config.example.json google-sheets-config.json
-cp service-account.example.json service-account.json
-# Edit files with your credentials
-
-# Start development servers
-npm start
-# Frontend: http://localhost:3000
-# API Server: http://localhost:3004
-```
-
-### Build for Production
-```bash
-npm run build
-```
-
-## 📊 Google Sheets Setup
-
-### 1. Create Google Cloud Project
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Create new project or select existing
-3. Enable Google Sheets API
-
-### 2. Create Service Account
-1. Go to IAM & Admin > Service Accounts
-2. Create service account with Sheets API access
-3. Download JSON credentials file
-4. Rename to `service-account.json`
-
-### 3. Configure Spreadsheet
-1. Create Google Sheets spreadsheet
-2. Share with service account email (from JSON)
-3. Copy spreadsheet ID from URL
-4. Update `google-sheets-config.json`
-
-## 🌐 Deployment Options
-
-### Option 1: GitHub Pages (Frontend Only)
-```bash
-# Enable GitHub Pages in repository settings
-# Push to main branch - GitHub Actions will deploy automatically
-```
-
-**Limitations**: 
-- No Google Sheets server integration
-- Dashboard will show demo data only
-- File parsing and export work fully
-
-### Option 2: Vercel (Recommended)
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel
-
-# Add environment variables in Vercel dashboard:
-# - Upload service-account.json content as GOOGLE_SERVICE_ACCOUNT
-# - Set spreadsheet ID as GOOGLE_SHEETS_ID
-```
-
-### Option 3: Netlify
-```bash
-# Install Netlify CLI
-npm i -g netlify-cli
-
-# Deploy
-netlify deploy --prod
-
-# Add environment variables in Netlify dashboard
-```
-
-### Option 4: Self-Hosted
-```bash
-# Build application
-npm run build
-
-# Start production server
-npm run server &
-npx serve dist -p 3000
-
-# Or use PM2 for process management
-npm i -g pm2
-pm2 start ecosystem.config.js
-```
-
-## 📱 Mobile Support
-
-The application is fully responsive and includes:
-- **Progressive Web App** features
-- **Capacitor integration** for native mobile apps
-- **Touch-optimized** dashboard interface
-- **Offline file parsing** capabilities
-
-### Build Mobile App
-```bash
-# Install Capacitor
-npm install @capacitor/core @capacitor/cli
-npm install @capacitor/android @capacitor/ios
-
-# Build and sync
-npm run build
-npx cap add android
-npx cap add ios
-npx cap sync
-
-# Open in native IDEs
-npx cap open android
-npx cap open ios
-```
-
-## 🏗 Architecture
-
-### Frontend (Vite + TypeScript)
-- **Parser**: FIT file processing with fit-file-parser
-- **Dashboard**: Chart.js visualizations with real-time data
-- **Services**: Modular architecture with caching
-- **Styles**: SCSS with glass-morphism design
-
-### Backend (Node.js + Express)
-- **Google Sheets API**: Server-side authentication
-- **RESTful API**: Clean endpoints for data operations
-- **Error Handling**: Comprehensive error management
-- **CORS**: Cross-origin request support
-
-### Database (Google Sheets)
-- **Training Log**: Activity metrics and analytics
-- **Lap Splits**: Detailed lap-by-lap data
-- **Auto-scaling**: No database maintenance required
-
-## 🔧 Configuration
-
-### Environment Variables
-```bash
-# Development
-VITE_API_URL=http://localhost:3004
-
-# Production
-VITE_API_URL=https://your-domain.com
-GOOGLE_SERVICE_ACCOUNT={"type":"service_account"...}
-GOOGLE_SHEETS_ID=1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms
-```
-
-### Google Sheets Structure
-```
-Training Log Sheet:
-Date | Sport | Duration | Distance | Avg HR | Max HR | Zone1-5 | Training Load | Calories | Ascent | Notes
-
-Lap Splits Sheet:
-Date | Activity ID | Lap # | Duration | Distance | Avg HR | Avg Pace | Elevation Gain
-```
-
-## 📊 Training Metrics
-
-### Calculations
-- **Training Load**: TRIMP formula with exponential HR weighting
-- **Readiness Score**: Multi-factor analysis (load, rest, HR drift)
-- **Fatigue Risk**: Volume, intensity, and recovery analysis
-- **HR Zones**: Configurable percentage-based zones
-
-### Analytics
-- **Trend Analysis**: Week-over-week progression tracking
-- **Injury Prevention**: Automated risk factor identification
-- **Performance Insights**: Zone distribution and efficiency metrics
-
-## 🛡 Security
-
-- **Client-side Processing**: FIT files never leave your browser
-- **Service Account Auth**: Secure Google Sheets integration
-- **No User Data Storage**: Privacy-first architecture
-- **HTTPS Required**: Secure communication in production
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/your-username/trAIn/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/trAIn/discussions)
-- **Email**: your-email@example.com
-
-## 🙏 Acknowledgments
-
-- **fit-file-parser**: FIT file parsing library
-- **Chart.js**: Interactive data visualizations
-- **Google Sheets API**: Cloud data storage
-- **Vite**: Modern build tooling
-- **TypeScript**: Type-safe development
+Built to the spec in [`design_handoff_train_mobile_compose/`](design_handoff_train_mobile_compose/README.md)
+(Material 3, dark-default, Inter + JetBrains Mono, the calm Whoop/Linear feel).
 
 ---
 
-**Made with ❤️ for the training data enthusiasts**
+## Toolchain
+
+There is **no committed Gradle wrapper jar** and the project has not been compiled here. To build:
+
+1. Install **Android Studio** (Ladybug or newer) and a **JDK 17**.
+2. Install the **Android SDK** (compileSdk/targetSdk **35**, minSdk **28**).
+3. Open the repo root in Android Studio. On first sync it generates `gradle/wrapper/gradle-wrapper.jar`
+   (or run `gradle wrapper` if you have a system Gradle).
+4. Let Gradle sync, then **Run** on a device/emulator (API 28+). For Health Connect data, use a
+   device with the **Health Connect** app and some recorded data; for **Gemini Nano**, a supported
+   device (Pixel 8/9, some Galaxy S24+) — otherwise the rule-based fallback is used.
+
+```bash
+./gradlew assembleDebug      # build
+./gradlew testDebugUnitTest  # run domain unit tests (no device needed)
+./gradlew installDebug       # install on a connected device
+```
+
+### Fonts caveat
+Inter & JetBrains Mono load via **Downloadable Google Fonts**. `app/src/main/res/values/font_certs.xml`
+ships a placeholder cert array — if the fonts don't render, regenerate it via Android Studio's
+*New → Downloadable Font* dialog (it inserts the canonical certs). Until then Compose falls back to
+the system sans/mono (no crash).
+
+---
+
+## Architecture
+
+```
+app/src/main/java/com/davidjes/train/
+├── MainActivity.kt            edge-to-edge host
+├── TrainApp.kt                @HiltAndroidApp
+├── ui/
+│   ├── theme/                 Color (M3 + TrainColors), Type, Shape, Dimens, Theme (dynamic color)
+│   ├── components/            Canvas primitives (ScoreRing, Sparkline, MacroRing, ZoneStack…),
+│   │                          cards, SportChip, SubFactor, HabitRow, QuickSlider, TrainIcons
+│   ├── navigation/            5 bottom destinations + detail routes, NavHost, NavigationBar
+│   ├── today/ insights/ plan/ body/ profile/ nutrition/ workout/ onboarding/   screens
+│   └── health/                Health Connect permission launcher
+├── domain/
+│   ├── model/                 pure data (Profile, Workout, Recovery, Plan, Insight, Nutrition…)
+│   ├── training/              TRIMP, CTL/ATL/TSB, ZoneCalculator, Readiness, Recommender,
+│   │                          PlanGenerator, FatigueMonitor   (pure Kotlin, unit-tested)
+│   └── ai/                    NarrativeGenerator (clinical-voice fallback / Gemini grounding)
+├── data/
+│   ├── health/                HealthConnectManager (+ mapper) — the source of truth
+│   ├── local/                 Room entities, DAOs, TrainDatabase
+│   ├── prefs/                 ProfileRepository (DataStore)
+│   └── repository/            Workout / Recovery / Plan / Habit / Nutrition / Insight repos
+└── di/                        Hilt modules
+```
+
+**State:** `ViewModel` + `StateFlow` + `collectAsStateWithLifecycle()`. Repositories abstract the
+data sources, so a Firebase cloud-sync backend can be added later without touching the screens.
+
+**Training science:** TRIMP (Banister), CTL (42-day) / ATL (7-day) EWMA → TSB, HR-reserve zones,
+a weighted multi-factor readiness score, a phase-aware dynamic workout recommender, and a
+periodized macro→meso→micro plan generator. See `domain/training/`.
+
+---
+
+## Status
+
+| Area | State |
+|------|-------|
+| Project scaffold, Gradle, manifest, Hilt | ✅ |
+| Theme / design tokens / typography / shapes / dynamic color | ✅ |
+| Canvas primitives + cards + icon set | ✅ |
+| Navigation (5 destinations + detail routes) | ✅ |
+| Domain models + training-science engine | ✅ (with unit tests) |
+| Data layer: Health Connect + Room + repositories | ✅ |
+| **Today** (Narrative/Metrics, recovery, habits, check-in, nutrition, quick-log, HC permission gate) | ✅ wired |
+| **Plan/Calendar** (Day/Week/Month/Form) + **Workout detail** (endurance) | ✅ wired |
+| **Body** (metric chips, chart, anomaly, grid) · **Nutrition** (macros, meals, add-meal) | ✅ wired |
+| **Profile** (identity, race, HR zones, connections) · **Onboarding** (HC permission flow) | ✅ wired |
+| **Insights** (collapsible insight cards, Gemini chat, suggested prompts, composer) | ✅ wired |
+| AI: deterministic `InsightsEngine` + grounded rule-based `GeminiService` | ✅ |
+| On-device **Gemini Nano** (Google AI Edge / AICore, `AiCoreGeminiService`) | 🟢 wired, bound by default — validate on a supported device (auto-falls back) |
+
+### On-device AI (Gemini Nano)
+`AiCoreGeminiService` (bound in `di/AiModule`) calls the Google AI Edge **AICore**
+`GenerativeModel` and **always falls back** to the deterministic rule-based assistant
+when the model is unavailable or a call fails — so the app behaves on every device.
+
+- **Requirements:** a Gemini-Nano-capable device (Pixel 8/9, some Galaxy S24+) with the
+  **AICore** system app present; API 31+ (older devices use the fallback).
+- **First run** triggers a model download via `prepareInferenceEngine()` — may take a moment.
+- **Verify on device** (experimental API, moves between `aicore` versions): the
+  `generationConfig {…}` builder fields, `prepareInferenceEngine()`, and
+  `generateContent(prompt).text` in `data/ai/AiCoreGeminiService.kt`. If a symbol differs,
+  fix it there only — the rest of the app is decoupled via the `GeminiService` interface.
+
+The old web/TypeScript app is archived under [`legacy/`](legacy/).
