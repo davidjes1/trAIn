@@ -78,11 +78,28 @@ class TodayViewModel @Inject constructor(
 
     fun updateCheckIn(checkIn: CheckIn) = _state.update { it.copy(checkIn = checkIn) }
 
-    /** Log a completed manual workout to Health Connect, then refresh. */
+    /**
+     * Complete-plan-first logging: only write a new Health Connect session if a
+     * device hasn't already recorded a matching one in the window.
+     */
     fun logWorkout(sport: Sport, durationMin: Int, title: String?) {
         viewModelScope.launch {
-            workoutRepository.logCompletedWorkout(sport, durationMin, title?.takeIf { it.isNotBlank() })
+            val end = java.time.Instant.now()
+            val start = end.minusSeconds(durationMin.coerceAtLeast(1) * 60L)
+            val deviceMatch = workoutRepository.findDeviceMatch(start, end, sport)
+            if (deviceMatch == null) {
+                workoutRepository.logCompletedWorkout(sport, durationMin, title?.takeIf { it.isNotBlank() })
+            }
+            // else: device already has it — skip the write to avoid a duplicate.
             loadData()
+        }
+    }
+
+    fun resolveConflict(ourWorkoutId: String, deleteOurs: Boolean) {
+        viewModelScope.launch {
+            if (deleteOurs) workoutRepository.deleteWorkout(ourWorkoutId)
+            _state.update { it.copy(conflicts = it.conflicts.filterNot { c -> c.ourId == ourWorkoutId }) }
+            if (deleteOurs) loadData()
         }
     }
 
@@ -141,12 +158,23 @@ class TodayViewModel @Inject constructor(
         }
         val nutrition = nutritionRepository.day(today).first()
 
+        val conflicts = workoutRepository.findConflicts().map { c ->
+            WorkoutConflict(
+                ourId = c.ours.id,
+                ourTitle = c.ours.title,
+                deviceTitle = c.device.title,
+                deviceSource = c.device.dataOrigin?.substringAfterLast('.')?.replaceFirstChar { it.uppercase() } ?: "Device",
+                dateLabel = c.device.start.atZone(java.time.ZoneId.systemDefault())
+                    .format(java.time.format.DateTimeFormatter.ofPattern("MMM d")),
+            )
+        }
+
         _state.update {
             it.copy(
                 loading = false, syncing = false,
                 readiness = readiness, load = load, recommendation = recommendation,
                 narrative = narrative, recoveryFactors = factors,
-                habits = habits, nutrition = nutrition,
+                habits = habits, nutrition = nutrition, conflicts = conflicts,
             )
         }
     }

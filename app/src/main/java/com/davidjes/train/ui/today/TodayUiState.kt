@@ -34,9 +34,19 @@ data class TodayUiState(
     val habits: List<Habit> = emptyList(),
     val nutrition: NutritionDay? = null,
     val checkIn: CheckIn = CheckIn(),
+    val conflicts: List<WorkoutConflict> = emptyList(),
 ) {
     val needsConnect: Boolean
         get() = hcAvailability != HealthConnectManager.Availability.INSTALLED || !hasPermissions
 }
 
 data class CheckIn(val mood: Int = 5, val energy: Int = 5, val stress: Int = 3)
+
+/** A trAIn-logged workout that overlaps a device recording — surfaced to the user to resolve. */
+data class WorkoutConflict(
+    val ourId: String,
+    val ourTitle: String,
+    val deviceTitle: String,
+    val deviceSource: String,
+    val dateLabel: String,
+)

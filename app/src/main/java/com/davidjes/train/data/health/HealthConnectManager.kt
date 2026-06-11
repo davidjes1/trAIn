@@ -34,6 +34,9 @@ class HealthConnectManager @Inject constructor(
 ) {
     val providerPackage = "com.google.android.apps.healthdata"
 
+    /** This app's package — used to tell our own (manual) records from device ones. */
+    val ownPackage: String get() = context.packageName
+
     enum class Availability { INSTALLED, UPDATE_REQUIRED, NOT_SUPPORTED }
 
     fun availability(): Availability = when (HealthConnectClient.getSdkStatus(context, providerPackage)) {
@@ -81,6 +84,21 @@ class HealthConnectManager @Inject constructor(
     suspend fun insert(records: List<androidx.health.connect.client.records.Record>): Boolean {
         val client = clientOrNull ?: return false
         return runCatching { client.insertRecords(records) }.isSuccess
+    }
+
+    /**
+     * Delete an exercise session we wrote, by record id. Health Connect only allows
+     * deleting records owned by this app — deleting another app's record fails (caught).
+     */
+    suspend fun deleteExerciseSession(recordId: String): Boolean {
+        val client = clientOrNull ?: return false
+        return runCatching {
+            client.deleteRecords(
+                androidx.health.connect.client.records.ExerciseSessionRecord::class,
+                recordIdsList = listOf(recordId),
+                clientRecordIdsList = emptyList(),
+            )
+        }.isSuccess
     }
 
     // ─── Reads ────────────────────────────────────────────────────────────────
