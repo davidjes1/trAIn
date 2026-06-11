@@ -4,17 +4,22 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
@@ -27,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,7 +41,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -61,6 +71,14 @@ fun InsightsScreen(onNavigate: (TopDest) -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     var draft by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(true) }
+    val listState = rememberLazyListState()
+    val focusManager = LocalFocusManager.current
+
+    // Keep the newest message / streaming token in view.
+    LaunchedEffect(state.messages.size, state.streamingText, state.sending) {
+        val count = listState.layoutInfo.totalItemsCount
+        if (count > 0) listState.animateScrollToItem(count - 1)
+    }
 
     TrainScreenScaffold(
         current = TopDest.INSIGHTS,
@@ -79,9 +97,13 @@ fun InsightsScreen(onNavigate: (TopDest) -> Unit) {
             })
         },
     ) { padding ->
-        Column(Modifier.padding(padding).fillMaxWidth()) {
+        Column(Modifier.padding(padding).fillMaxWidth().imePadding()) {
             LazyColumn(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
+                state = listState,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) },
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(start = Spacing.screen, end = Spacing.screen, top = Spacing.sm, bottom = Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
             ) {
@@ -104,8 +126,15 @@ fun InsightsScreen(onNavigate: (TopDest) -> Unit) {
             Composer(
                 value = draft,
                 onValueChange = { draft = it },
-                onSend = { if (draft.isNotBlank()) { vm.send(draft); draft = "" } },
-                enabled = !state.sending,
+                onSend = {
+                    if (draft.isNotBlank()) {
+                        vm.send(draft)
+                        draft = ""
+                        focusManager.clearFocus()
+                    }
+                },
+                onStop = vm::stop,
+                sending = state.sending,
             )
         }
     }
@@ -243,7 +272,13 @@ private fun SuggestedPrompt(prompt: String, onClick: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Composer(value: String, onValueChange: (String) -> Unit, onSend: () -> Unit, enabled: Boolean) {
+private fun Composer(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onSend: () -> Unit,
+    onStop: () -> Unit,
+    sending: Boolean,
+) {
     Row(
         Modifier.fillMaxWidth().padding(start = Spacing.md, end = Spacing.md, bottom = Spacing.md, top = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -254,6 +289,7 @@ private fun Composer(value: String, onValueChange: (String) -> Unit, onSend: () 
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(TrainIcons.spark, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 14.dp).size(20.dp))
+            val keyboard = LocalSoftwareKeyboardController.current
             TextField(
                 value = value,
                 onValueChange = onValueChange,
@@ -265,14 +301,26 @@ private fun Composer(value: String, onValueChange: (String) -> Unit, onSend: () 
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                 ),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardActions = KeyboardActions(onSend = { onSend(); keyboard?.hide() }),
                 maxLines = 4,
             )
         }
-        FilledIconButton(
-            onClick = onSend,
-            enabled = enabled && value.isNotBlank(),
-            colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
-        ) { Icon(TrainIcons.arrowUp, contentDescription = "Send") }
+        if (sending) {
+            FilledIconButton(
+                onClick = onStop,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
+            ) { Icon(TrainIcons.close, contentDescription = "Stop") }
+        } else {
+            FilledIconButton(
+                onClick = onSend,
+                enabled = value.isNotBlank(),
+                colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
+            ) { Icon(TrainIcons.arrowUp, contentDescription = "Send") }
+        }
     }
 }
 

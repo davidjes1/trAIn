@@ -17,6 +17,8 @@ import com.davidjes.train.domain.model.Insight
 import com.davidjes.train.domain.training.ReadinessCalculator
 import com.davidjes.train.domain.training.TrainingLoadCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
@@ -26,6 +28,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -61,6 +64,8 @@ class InsightsViewModel @Inject constructor(
     private val _state = MutableStateFlow(InsightsUiState())
     val state = _state.asStateFlow()
 
+    private var sendJob: Job? = null
+
     init {
         chatDao.observeAll()
             .map { list -> list.map { ChatMessage(it.id, ChatRole.valueOf(it.role), it.text, Instant.ofEpochMilli(it.createdAtMillis)) } }
@@ -90,19 +95,32 @@ class InsightsViewModel @Inject constructor(
     fun send(text: String) {
         val prompt = text.trim()
         if (prompt.isEmpty() || _state.value.sending) return
-        viewModelScope.launch {
+        sendJob = viewModelScope.launch {
             chatDao.insert(ChatMessageEntity(UUID.randomUUID().toString(), ChatRole.USER.name, prompt, Instant.now().toEpochMilli()))
             _state.update { it.copy(sending = true, streamingText = "") }
-            val context = buildContext()
             var finalText = ""
-            gemini.replyStream(prompt, context).collect { cumulative ->
-                finalText = cumulative
-                _state.update { it.copy(streamingText = cumulative) }
+            try {
+                val context = buildContext()
+                gemini.replyStream(prompt, context).collect { cumulative ->
+                    finalText = cumulative
+                    _state.update { it.copy(streamingText = cumulative) }
+                }
+                if (finalText.isBlank()) finalText = "I couldn't generate a response. Try rephrasing."
+            } finally {
+                // Persist whatever we have (incl. partial text if the user hit Stop).
+                if (finalText.isNotBlank()) {
+                    withContext(NonCancellable) {
+                        chatDao.insert(ChatMessageEntity(UUID.randomUUID().toString(), ChatRole.GEMINI.name, finalText, Instant.now().toEpochMilli()))
+                    }
+                }
+                _state.update { it.copy(sending = false, streamingText = null) }
             }
-            if (finalText.isBlank()) finalText = "I couldn't generate a response. Try rephrasing."
-            chatDao.insert(ChatMessageEntity(UUID.randomUUID().toString(), ChatRole.GEMINI.name, finalText, Instant.now().toEpochMilli()))
-            _state.update { it.copy(sending = false, streamingText = null) }
         }
+    }
+
+    /** Cancel an in-flight generation; any text streamed so far is kept. */
+    fun stop() {
+        sendJob?.cancel()
     }
 
     private suspend fun buildContext(): AiContext {
