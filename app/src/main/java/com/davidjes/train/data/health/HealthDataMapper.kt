@@ -32,6 +32,16 @@ object HealthDataMapper {
         else -> Sport.OTHER
     }
 
+    /** Reverse of [sportFor] — pick a Health Connect exercise type for manual logging. */
+    fun exerciseTypeFor(sport: Sport): Int = when (sport) {
+        Sport.RUN -> ExerciseSessionRecord.EXERCISE_TYPE_RUNNING
+        Sport.RIDE, Sport.BRICK -> ExerciseSessionRecord.EXERCISE_TYPE_BIKING
+        Sport.SWIM -> ExerciseSessionRecord.EXERCISE_TYPE_SWIMMING_POOL
+        Sport.STRENGTH -> ExerciseSessionRecord.EXERCISE_TYPE_STRENGTH_TRAINING
+        Sport.MOBILITY -> ExerciseSessionRecord.EXERCISE_TYPE_YOGA
+        else -> ExerciseSessionRecord.EXERCISE_TYPE_OTHER_WORKOUT
+    }
+
     fun defaultTitle(sport: Sport): String = when (sport) {
         Sport.RUN -> "Run"
         Sport.RIDE -> "Ride"

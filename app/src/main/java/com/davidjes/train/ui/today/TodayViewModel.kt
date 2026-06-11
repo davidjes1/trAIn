@@ -11,6 +11,7 @@ import com.davidjes.train.data.repository.WorkoutRepository
 import com.davidjes.train.data.prefs.ProfileRepository
 import com.davidjes.train.domain.ai.NarrativeGenerator
 import com.davidjes.train.domain.model.RecoveryMetrics
+import com.davidjes.train.domain.model.Sport
 import com.davidjes.train.domain.training.ReadinessCalculator
 import com.davidjes.train.domain.training.TrainingLoadCalculator
 import com.davidjes.train.domain.training.WorkoutRecommender
@@ -76,6 +77,14 @@ class TodayViewModel @Inject constructor(
     }
 
     fun updateCheckIn(checkIn: CheckIn) = _state.update { it.copy(checkIn = checkIn) }
+
+    /** Log a completed manual workout to Health Connect, then refresh. */
+    fun logWorkout(sport: Sport, durationMin: Int, title: String?) {
+        viewModelScope.launch {
+            workoutRepository.logCompletedWorkout(sport, durationMin, title?.takeIf { it.isNotBlank() })
+            loadData()
+        }
+    }
 
     fun saveCheckIn() {
         viewModelScope.launch {

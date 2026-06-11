@@ -3,6 +3,7 @@ package com.davidjes.train.ui.today
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -24,10 +25,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -42,11 +45,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.davidjes.train.data.health.HealthConnectManager
 import com.davidjes.train.domain.model.Readiness
+import com.davidjes.train.domain.model.Sport
 import com.davidjes.train.ui.components.FilledEmphasisCard
 import com.davidjes.train.ui.components.HabitRow
 import com.davidjes.train.ui.components.KickerText
@@ -74,6 +79,7 @@ fun TodayScreen(
     val vm: TodayViewModel = hiltViewModel()
     val state by vm.state.collectAsStateWithLifecycle()
     var showLog by rememberSaveable { mutableStateOf(false) }
+    var showLogWorkout by rememberSaveable { mutableStateOf(false) }
     val permLauncher = rememberHealthConnectPermissionLauncher { vm.onPermissionsResult(it) }
     val dateLabel = remember { LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMM d")) }
 
@@ -165,6 +171,13 @@ fun TodayScreen(
         QuickLogSheet(
             onDismiss = { showLog = false },
             onMeal = { showLog = false; onOpenNutrition() },
+            onWorkout = { showLog = false; showLogWorkout = true },
+        )
+    }
+    if (showLogWorkout) {
+        LogWorkoutSheet(
+            onDismiss = { showLogWorkout = false },
+            onSave = { sport, minutes, title -> vm.logWorkout(sport, minutes, title); showLogWorkout = false },
         )
     }
 }
@@ -345,34 +358,87 @@ private fun NutritionRow(state: TodayUiState, onOpenNutrition: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QuickLogSheet(onDismiss: () -> Unit, onMeal: () -> Unit) {
+private fun QuickLogSheet(onDismiss: () -> Unit, onMeal: () -> Unit, onWorkout: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.xl, vertical = Spacing.md)) {
             KickerText("Quick log")
             Text("What do you want to log?", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(vertical = Spacing.sm))
             val options = listOf(
+                "Workout" to TrainIcons.barbell,
                 "Meal" to TrainIcons.food,
                 "Weight" to TrainIcons.weight,
                 "Mood" to TrainIcons.heart,
-                "Workout" to TrainIcons.barbell,
                 "Note" to TrainIcons.edit,
             )
             options.forEach { (label, icon) ->
                 Row(
-                    Modifier.fillMaxWidth().padding(vertical = Spacing.md),
+                    Modifier.fillMaxWidth()
+                        .clickableLog {
+                            when (label) {
+                                "Workout" -> onWorkout()
+                                "Meal" -> onMeal()
+                                else -> onDismiss()
+                            }
+                        }
+                        .padding(vertical = Spacing.md),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
                 ) {
                     Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickableLog { if (label == "Meal") onMeal() else onDismiss() },
-                    )
+                    Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                     Icon(TrainIcons.chevRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LogWorkoutSheet(onDismiss: () -> Unit, onSave: (Sport, Int, String?) -> Unit) {
+    val sports = listOf(Sport.RUN, Sport.RIDE, Sport.STRENGTH, Sport.SWIM, Sport.MOBILITY)
+    var sport by rememberSaveable { mutableStateOf(Sport.RUN) }
+    var minutes by rememberSaveable { mutableStateOf("45") }
+    var title by rememberSaveable { mutableStateOf("") }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = Spacing.xl, vertical = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            KickerText("Log workout")
+            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                sports.forEach { s ->
+                    FilterChip(selected = sport == s, onClick = { sport = s }, label = { Text(s.label) })
+                }
+            }
+            OutlinedTextField(
+                value = minutes,
+                onValueChange = { minutes = it.filter(Char::isDigit) },
+                label = { Text("Duration") },
+                suffix = { Text("min") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Title (optional)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                "Saved to Health Connect — feeds load, zones, and readiness.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(Modifier.fillMaxWidth().padding(top = Spacing.xs), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                FilledTonalButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                Button(
+                    onClick = { onSave(sport, minutes.toIntOrNull() ?: 45, title) },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Log") }
             }
         }
     }

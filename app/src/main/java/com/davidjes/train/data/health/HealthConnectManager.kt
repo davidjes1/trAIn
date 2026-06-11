@@ -70,6 +70,19 @@ class HealthConnectManager @Inject constructor(
         return client.permissionController.getGrantedPermissions().containsAll(permissions)
     }
 
+    suspend fun hasWritePermission(permission: String): Boolean {
+        val client = clientOrNull ?: return false
+        return client.permissionController.getGrantedPermissions().contains(permission)
+    }
+
+    // ─── Writes ─────────────────────────────────────────────────────────────
+
+    /** Insert records into Health Connect. Returns true on success. */
+    suspend fun insert(records: List<androidx.health.connect.client.records.Record>): Boolean {
+        val client = clientOrNull ?: return false
+        return runCatching { client.insertRecords(records) }.isSuccess
+    }
+
     // ─── Reads ────────────────────────────────────────────────────────────────
 
     suspend fun readExerciseSessions(start: Instant, end: Instant): List<ExerciseSessionRecord> =

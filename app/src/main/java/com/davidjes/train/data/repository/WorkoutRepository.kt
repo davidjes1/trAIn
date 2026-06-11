@@ -1,8 +1,11 @@
 package com.davidjes.train.data.repository
 
+import androidx.health.connect.client.records.ExerciseSessionRecord
+import androidx.health.connect.client.records.metadata.Metadata
 import com.davidjes.train.data.health.HealthConnectManager
 import com.davidjes.train.data.health.HealthDataMapper
 import com.davidjes.train.data.prefs.ProfileRepository
+import com.davidjes.train.domain.model.Sport
 import com.davidjes.train.domain.model.UserProfile
 import com.davidjes.train.domain.model.Workout
 import com.davidjes.train.domain.model.WorkoutSource
@@ -107,6 +110,38 @@ class WorkoutRepository @Inject constructor(
         val end = Instant.now()
         val start = end.minusSeconds(lookbackDays * 86_400)
         return workoutsBetween(start, end).firstOrNull { it.id == id }
+    }
+
+    /**
+     * Log a completed manual workout by writing an [ExerciseSessionRecord] to Health
+     * Connect (the source of truth). Returns true on success.
+     *
+     * VERIFY on-device (Metadata API moved across connect-client versions): if
+     * `Metadata.manualEntry()` doesn't resolve, use
+     * `Metadata.manualEntry(device = androidx.health.connect.client.records.metadata.Device(type = Device.TYPE_PHONE))`
+     * or the constructor your version exposes.
+     */
+    suspend fun logCompletedWorkout(
+        sport: Sport,
+        durationMin: Int,
+        title: String? = null,
+        notes: String? = null,
+        end: Instant = Instant.now(),
+    ): Boolean {
+        val zone = ZoneId.systemDefault()
+        val start = end.minusSeconds(durationMin.coerceAtLeast(1) * 60L)
+        val offset = zone.rules.getOffset(start)
+        val record = ExerciseSessionRecord(
+            startTime = start,
+            startZoneOffset = offset,
+            endTime = end,
+            endZoneOffset = offset,
+            exerciseType = HealthDataMapper.exerciseTypeFor(sport),
+            title = title ?: HealthDataMapper.defaultTitle(sport),
+            notes = notes,
+            metadata = Metadata.manualEntry(),
+        )
+        return hc.insert(listOf(record))
     }
 
     /** Downsampled HR-over-time series for a workout's activity chart (~[buckets] points). */
