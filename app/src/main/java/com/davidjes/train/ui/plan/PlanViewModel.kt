@@ -40,6 +40,13 @@ class PlanViewModel @Inject constructor(
 
     fun setTab(tab: PlanTab) = _state.update { it.copy(tab = tab) }
 
+    fun addPlanned(type: com.davidjes.train.domain.model.WorkoutType, date: LocalDate, durationMin: Int) {
+        viewModelScope.launch {
+            planRepository.addPlannedWorkout(date, type, durationMin)
+            load()
+        }
+    }
+
     fun load() {
         viewModelScope.launch {
             val today = LocalDate.now()

@@ -14,29 +14,42 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.davidjes.train.domain.model.Sport
+import com.davidjes.train.domain.model.WorkoutType
+import com.davidjes.train.domain.training.WorkoutLibrary
+import java.time.LocalDate
 import com.davidjes.train.ui.components.FormCurve
 import com.davidjes.train.ui.components.KickerText
 import com.davidjes.train.ui.components.OutlinedContentCard
@@ -60,6 +73,7 @@ fun PlanScreen(
 ) {
     val vm: PlanViewModel = hiltViewModel()
     val state by vm.state.collectAsStateWithLifecycle()
+    var showAdd by rememberSaveable { mutableStateOf(false) }
 
     TrainScreenScaffold(
         current = TopDest.PLAN,
@@ -74,7 +88,7 @@ fun PlanScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { /* add workout sheet */ },
+                onClick = { showAdd = true },
                 icon = { Icon(TrainIcons.plus, contentDescription = null) },
                 text = { Text("Add") },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -108,6 +122,74 @@ fun PlanScreen(
                     PlanTab.MONTH -> MonthTab(state)
                     PlanTab.FORM -> FormTab(state)
                 }
+            }
+        }
+    }
+
+    if (showAdd) {
+        AddWorkoutSheet(
+            onDismiss = { showAdd = false },
+            onSave = { type, date, minutes -> vm.addPlanned(type, date, minutes); showAdd = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddWorkoutSheet(
+    onDismiss: () -> Unit,
+    onSave: (WorkoutType, LocalDate, Int) -> Unit,
+) {
+    val choices = listOf(
+        WorkoutType.RUN_EASY, WorkoutType.RUN_THRESHOLD, WorkoutType.RIDE_Z2,
+        WorkoutType.RIDE_THRESHOLD, WorkoutType.BRICK, WorkoutType.STRENGTH,
+        WorkoutType.SWIM, WorkoutType.MOBILITY, WorkoutType.REST,
+    )
+    var type by remember { mutableStateOf(WorkoutType.RUN_EASY) }
+    var minutes by remember { mutableStateOf(WorkoutLibrary.preset(type).durationMin.toString()) }
+    var dayOffset by remember { mutableStateOf(0L) }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = Spacing.xl, vertical = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            KickerText("Add workout")
+
+            // Day selector
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                listOf("Today" to 0L, "Tomorrow" to 1L, "+2 days" to 2L).forEach { (label, off) ->
+                    FilterChip(selected = dayOffset == off, onClick = { dayOffset = off }, label = { Text(label) })
+                }
+            }
+
+            // Type chips (wrap)
+            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                choices.forEach { t ->
+                    FilterChip(
+                        selected = type == t,
+                        onClick = { type = t; minutes = WorkoutLibrary.preset(t).durationMin.toString() },
+                        label = { Text(WorkoutLibrary.preset(t).description.substringBefore(",").substringBefore(" at ")) },
+                    )
+                }
+            }
+
+            OutlinedTextField(
+                value = minutes,
+                onValueChange = { minutes = it.filter(Char::isDigit) },
+                label = { Text("Duration") },
+                suffix = { Text("min") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Row(Modifier.fillMaxWidth().padding(top = Spacing.xs), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                FilledTonalButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                Button(
+                    onClick = { onSave(type, LocalDate.now().plusDays(dayOffset), minutes.toIntOrNull() ?: WorkoutLibrary.preset(type).durationMin) },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Add") }
             }
         }
     }

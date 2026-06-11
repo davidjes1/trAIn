@@ -8,6 +8,7 @@ import com.davidjes.train.domain.model.PlannedWorkout
 import com.davidjes.train.domain.model.Sport
 import com.davidjes.train.domain.model.WorkoutType
 import com.davidjes.train.domain.training.PlanGenerator
+import com.davidjes.train.domain.training.WorkoutLibrary
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
@@ -58,6 +59,36 @@ class PlanRepository @Inject constructor(
 
     suspend fun markCompleted(plannedId: String, completed: Boolean, workoutId: String?) =
         planDao.setCompleted(plannedId, completed, workoutId)
+
+    /**
+     * Add a single planned workout to the calendar. If no plan is active, a
+     * lightweight "My plan" container is created so ad-hoc entries have a home.
+     */
+    suspend fun addPlannedWorkout(date: LocalDate, type: WorkoutType, durationMin: Int) {
+        val planId = planDao.observeActivePlan().first()?.id ?: run {
+            val id = UUID.randomUUID().toString()
+            planDao.upsertPlan(
+                PlanEntity(id = id, name = "My plan", startEpochDay = date.toEpochDay(), eventEpochDay = null, active = true),
+            )
+            id
+        }
+        val preset = WorkoutLibrary.preset(type)
+        planDao.upsertWorkouts(
+            listOf(
+                PlannedWorkoutEntity(
+                    id = UUID.randomUUID().toString(),
+                    planId = planId,
+                    epochDay = date.toEpochDay(),
+                    type = type.name,
+                    description = preset.description,
+                    durationMin = durationMin,
+                    expectedFatigue = preset.expectedFatigue,
+                    completed = false,
+                    completedWorkoutId = null,
+                ),
+            ),
+        )
+    }
 
     private fun PlannedWorkoutEntity.toDomain(): PlannedWorkout {
         val type = runCatching { WorkoutType.valueOf(type) }.getOrDefault(WorkoutType.REST)
