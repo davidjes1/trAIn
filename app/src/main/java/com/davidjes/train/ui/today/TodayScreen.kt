@@ -21,6 +21,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
@@ -81,6 +83,7 @@ fun TodayScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     var showLog by rememberSaveable { mutableStateOf(false) }
     var showLogWorkout by rememberSaveable { mutableStateOf(false) }
+    var showAddHabit by rememberSaveable { mutableStateOf(false) }
     val permLauncher = rememberHealthConnectPermissionLauncher { vm.onPermissionsResult(it) }
     val dateLabel = remember { LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMM d")) }
 
@@ -149,16 +152,33 @@ fun TodayScreen(
 
                 item { RecoverySnapshot(state) }
 
-                if (state.habits.isNotEmpty()) {
-                    item { KickerText("Habits") }
-                    items(state.habits, key = { it.id }) { habit ->
+                item {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        KickerText("Habits")
+                        FilledTonalButton(onClick = { showAddHabit = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp)) {
+                            Icon(TrainIcons.plus, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Text("Add", modifier = Modifier.padding(start = 4.dp))
+                        }
+                    }
+                }
+                items(state.habits, key = { it.id }) { habit ->
+                    Box {
+                        var menuOpen by remember { mutableStateOf(false) }
                         HabitRow(
                             label = habit.label,
                             done = habit.doneToday,
                             icon = TrainIcons.byKey(habit.iconKey),
                             streak = habit.streak,
+                            onLongPress = { menuOpen = true },
                             onToggle = { vm.toggleHabit(habit.id, !habit.doneToday) },
                         )
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Delete habit") },
+                                onClick = { menuOpen = false; vm.deleteHabit(habit.id) },
+                                leadingIcon = { Icon(TrainIcons.close, contentDescription = null) },
+                            )
+                        }
                     }
                 }
 
@@ -189,6 +209,41 @@ fun TodayScreen(
             onKeepBoth = { vm.resolveConflict(conflict.ourId, deleteOurs = false) },
         )
     }
+
+    if (showAddHabit) {
+        AddHabitDialog(
+            onDismiss = { showAddHabit = false },
+            onAdd = { label, icon -> vm.addHabit(label, icon); showAddHabit = false },
+        )
+    }
+}
+
+@Composable
+private fun AddHabitDialog(onDismiss: () -> Unit, onAdd: (String, String) -> Unit) {
+    var label by rememberSaveable { mutableStateOf("") }
+    var icon by rememberSaveable { mutableStateOf("drop") }
+    val iconChoices = listOf("drop", "barbell", "moon", "food", "run", "bike", "heart", "bolt")
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("New habit") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                OutlinedTextField(value = label, onValueChange = { label = it }, label = { Text("Habit") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    iconChoices.forEach { key ->
+                        FilterChip(
+                            selected = icon == key,
+                            onClick = { icon = key },
+                            label = { Icon(TrainIcons.byKey(key), contentDescription = key, modifier = Modifier.size(18.dp)) },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = { Button(onClick = { onAdd(label, icon) }, enabled = label.isNotBlank()) { Text("Add") } },
+        dismissButton = { FilledTonalButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable

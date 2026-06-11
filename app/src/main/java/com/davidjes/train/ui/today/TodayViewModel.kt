@@ -72,10 +72,30 @@ class TodayViewModel @Inject constructor(
     fun toggleHabit(habitId: String, done: Boolean) {
         viewModelScope.launch {
             habitRepository.toggle(habitId, LocalDate.now(), done)
-            val habits = habitRepository.habitsForDay(LocalDate.now()).first()
-            _state.update { it.copy(habits = habits) }
+            _state.update { it.copy(habits = loadHabits(LocalDate.now())) }
         }
     }
+
+    fun addHabit(label: String, iconKey: String) {
+        if (label.isBlank()) return
+        viewModelScope.launch {
+            habitRepository.addHabit(label, iconKey)
+            _state.update { it.copy(habits = loadHabits(LocalDate.now())) }
+        }
+    }
+
+    fun deleteHabit(habitId: String) {
+        viewModelScope.launch {
+            habitRepository.removeHabit(habitId)
+            _state.update { it.copy(habits = loadHabits(LocalDate.now())) }
+        }
+    }
+
+    /** Habits for [date] with their consecutive-day streaks filled in. */
+    private suspend fun loadHabits(date: LocalDate) =
+        habitRepository.habitsForDay(date).first().map { habit ->
+            habit.copy(streak = habitRepository.streakFor(habit.id, date))
+        }
 
     fun updateCheckIn(checkIn: CheckIn) = _state.update { it.copy(checkIn = checkIn) }
 
@@ -151,11 +171,11 @@ class TodayViewModel @Inject constructor(
         // Recovery 2x2 factors.
         val factors = buildRecoveryFactors(series, todayMetrics, baselines)
 
-        // Habits (seed defaults on first run) + nutrition snapshot.
-        var habits = habitRepository.habitsForDay(today).first()
+        // Habits (seed defaults on first run, with streaks) + nutrition snapshot.
+        var habits = loadHabits(today)
         if (habits.isEmpty()) {
             habitRepository.seedDefaultsIfEmpty(habits)
-            habits = habitRepository.habitsForDay(today).first()
+            habits = loadHabits(today)
         }
         val nutrition = nutritionRepository.day(today).first()
 

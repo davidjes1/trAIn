@@ -3,7 +3,7 @@ package com.davidjes.train.ui.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -32,6 +32,7 @@ fun HabitRow(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     streak: Int = 0,
+    onLongPress: (() -> Unit)? = null,
     onToggle: () -> Unit,
 ) {
     val primary = MaterialTheme.colorScheme.primary
@@ -46,7 +47,7 @@ fun HabitRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .background(bg)
-            .clickable(onClick = onToggle)
+            .combinedClickable(onClick = onToggle, onLongClick = onLongPress)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
