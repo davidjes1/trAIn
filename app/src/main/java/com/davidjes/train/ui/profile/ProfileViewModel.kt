@@ -5,11 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.davidjes.train.data.health.HealthConnectManager
 import com.davidjes.train.data.prefs.ProfileRepository
 import com.davidjes.train.data.repository.PlanRepository
+import com.davidjes.train.domain.model.Sex
 import com.davidjes.train.domain.model.UserProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -40,8 +43,12 @@ class ProfileViewModel @Inject constructor(
     val state = _state.asStateFlow()
 
     init {
+        // Profile + zones update reactively whenever saved.
+        profileRepository.profile
+            .onEach { profile -> _state.update { it.copy(profile = profile, zones = buildZones(profile)) } }
+            .launchIn(viewModelScope)
+
         viewModelScope.launch {
-            val profile = profileRepository.profile.first()
             val dyn = profileRepository.dynamicColor.first()
             val plan = planRepository.activePlan().first()
             val today = LocalDate.now()
@@ -50,8 +57,6 @@ class ProfileViewModel @Inject constructor(
             }
             _state.update {
                 it.copy(
-                    profile = profile,
-                    zones = buildZones(profile),
                     nextRace = race,
                     planName = plan?.name,
                     hcAvailable = healthConnect.availability() == HealthConnectManager.Availability.INSTALLED,
@@ -59,6 +64,21 @@ class ProfileViewModel @Inject constructor(
                     dynamicColor = dyn,
                 )
             }
+        }
+    }
+
+    fun saveProfile(name: String, age: Int, sex: Sex, restingHr: Int, maxHr: Int) {
+        viewModelScope.launch {
+            val current = _state.value.profile
+            profileRepository.update(
+                current.copy(
+                    displayName = name.trim(),
+                    age = age.coerceIn(10, 100),
+                    sex = sex,
+                    restingHr = restingHr.coerceIn(30, 120),
+                    maxHr = maxHr.coerceIn(120, 230),
+                ),
+            )
         }
     }
 

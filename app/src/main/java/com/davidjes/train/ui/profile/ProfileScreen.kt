@@ -13,17 +13,31 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -31,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.davidjes.train.domain.model.Sex
 import com.davidjes.train.ui.components.FilledEmphasisCard
 import com.davidjes.train.ui.components.KickerText
 import com.davidjes.train.ui.components.OutlinedContentCard
@@ -51,6 +66,7 @@ fun ProfileScreen(
     val vm: ProfileViewModel = hiltViewModel()
     val state by vm.state.collectAsStateWithLifecycle()
     val profile = state.profile
+    var showEdit by rememberSaveable { mutableStateOf(false) }
 
     TrainScreenScaffold(
         current = TopDest.YOU,
@@ -84,7 +100,7 @@ fun ProfileScreen(
                         Text(profile.displayName.ifBlank { "Athlete" }, style = MaterialTheme.typography.titleLarge)
                         Text("${profile.sex.name.lowercase().replaceFirstChar { it.uppercase() }} · ${profile.age}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    IconButton(onClick = { }) { Icon(TrainIcons.edit, contentDescription = "Edit") }
+                    IconButton(onClick = { showEdit = true }) { Icon(TrainIcons.edit, contentDescription = "Edit") }
                 }
             }
 
@@ -115,6 +131,9 @@ fun ProfileScreen(
                         durations = state.zones.map { it.label },
                     )
                 }
+                TextButton(onClick = { showEdit = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+                    Text("Edit zones")
+                }
             }
 
             // Connections
@@ -128,6 +147,90 @@ fun ProfileScreen(
             }
         }
     }
+
+    if (showEdit) {
+        EditProfileSheet(
+            initial = profile,
+            onDismiss = { showEdit = false },
+            onSave = { name, age, sex, rest, max ->
+                vm.saveProfile(name, age, sex, rest, max)
+                showEdit = false
+            },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditProfileSheet(
+    initial: com.davidjes.train.domain.model.UserProfile,
+    onDismiss: () -> Unit,
+    onSave: (String, Int, Sex, Int, Int) -> Unit,
+) {
+    var name by remember { mutableStateOf(initial.displayName) }
+    var age by remember { mutableStateOf(initial.age.toString()) }
+    var sex by remember { mutableStateOf(initial.sex) }
+    var rest by remember { mutableStateOf(initial.restingHr.toString()) }
+    var max by remember { mutableStateOf(initial.maxHr.toString()) }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = Spacing.xl, vertical = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            KickerText("Edit profile")
+            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                Sex.entries.forEachIndexed { i, option ->
+                    SegmentedButton(
+                        selected = sex == option,
+                        onClick = { sex = option },
+                        shape = SegmentedButtonDefaults.itemShape(i, Sex.entries.size),
+                    ) { Text(option.name.lowercase().replaceFirstChar { it.uppercase() }) }
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                NumField("Age", age, { age = it }, Modifier.weight(1f))
+                NumField("Resting HR", rest, { rest = it }, Modifier.weight(1f))
+                NumField("Max HR", max, { max = it }, Modifier.weight(1f))
+            }
+            Text(
+                "Resting & max HR drive your TRIMP load and zone boundaries.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Row(Modifier.fillMaxWidth().padding(top = Spacing.xs), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                FilledTonalButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                Button(
+                    onClick = {
+                        onSave(
+                            name,
+                            age.toIntOrNull() ?: initial.age,
+                            sex,
+                            rest.toIntOrNull() ?: initial.restingHr,
+                            max.toIntOrNull() ?: initial.maxHr,
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Save") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NumField(label: String, value: String, onChange: (String) -> Unit, modifier: Modifier) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { onChange(it.filter(Char::isDigit)) },
+        label = { Text(label) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = modifier,
+    )
 }
 
 @Composable
