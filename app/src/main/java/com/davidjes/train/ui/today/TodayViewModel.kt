@@ -116,6 +116,13 @@ class TodayViewModel @Inject constructor(
         }
     }
 
+    fun logWeight(kg: Double) {
+        viewModelScope.launch {
+            recoveryRepository.logWeight(kg)
+            loadData()
+        }
+    }
+
     fun resolveConflict(ourWorkoutId: String, deleteOurs: Boolean) {
         viewModelScope.launch {
             if (deleteOurs) workoutRepository.deleteWorkout(ourWorkoutId)

@@ -84,6 +84,7 @@ fun TodayScreen(
     var showLog by rememberSaveable { mutableStateOf(false) }
     var showLogWorkout by rememberSaveable { mutableStateOf(false) }
     var showAddHabit by rememberSaveable { mutableStateOf(false) }
+    var showLogWeight by rememberSaveable { mutableStateOf(false) }
     val permLauncher = rememberHealthConnectPermissionLauncher { vm.onPermissionsResult(it) }
     val dateLabel = remember { LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMM d")) }
 
@@ -193,6 +194,13 @@ fun TodayScreen(
             onDismiss = { showLog = false },
             onMeal = { showLog = false; onOpenNutrition() },
             onWorkout = { showLog = false; showLogWorkout = true },
+            onWeight = { showLog = false; showLogWeight = true },
+        )
+    }
+    if (showLogWeight) {
+        LogWeightDialog(
+            onDismiss = { showLogWeight = false },
+            onSave = { kg -> vm.logWeight(kg); showLogWeight = false },
         )
     }
     if (showLogWorkout) {
@@ -216,6 +224,30 @@ fun TodayScreen(
             onAdd = { label, icon -> vm.addHabit(label, icon); showAddHabit = false },
         )
     }
+}
+
+@Composable
+private fun LogWeightDialog(onDismiss: () -> Unit, onSave: (Double) -> Unit) {
+    var kg by rememberSaveable { mutableStateOf("") }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Log weight") },
+        text = {
+            OutlinedTextField(
+                value = kg,
+                onValueChange = { kg = it.filter { c -> c.isDigit() || c == '.' } },
+                label = { Text("Weight") },
+                suffix = { Text("kg") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            Button(onClick = { kg.toDoubleOrNull()?.let(onSave) }, enabled = kg.toDoubleOrNull() != null) { Text("Save") }
+        },
+        dismissButton = { FilledTonalButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable
@@ -422,7 +454,7 @@ private fun NutritionRow(state: TodayUiState, onOpenNutrition: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QuickLogSheet(onDismiss: () -> Unit, onMeal: () -> Unit, onWorkout: () -> Unit) {
+private fun QuickLogSheet(onDismiss: () -> Unit, onMeal: () -> Unit, onWorkout: () -> Unit, onWeight: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.xl, vertical = Spacing.md)) {
             KickerText("Quick log")
@@ -441,6 +473,7 @@ private fun QuickLogSheet(onDismiss: () -> Unit, onMeal: () -> Unit, onWorkout: 
                             when (label) {
                                 "Workout" -> onWorkout()
                                 "Meal" -> onMeal()
+                                "Weight" -> onWeight()
                                 else -> onDismiss()
                             }
                         }
