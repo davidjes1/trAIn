@@ -69,7 +69,12 @@ fun InsightsScreen(onNavigate: (TopDest) -> Unit) {
             CenterAlignedTopAppBar(title = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Ask Gemini", style = MaterialTheme.typography.titleLarge)
-                    Text(if (state.onDevice) "On-device" else "On-device · rule-based", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    val subtitle = when {
+                        state.preparing -> "Preparing on-device model…"
+                        state.onDevice -> "On-device"
+                        else -> "On-device · rule-based"
+                    }
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             })
         },
@@ -84,7 +89,13 @@ fun InsightsScreen(onNavigate: (TopDest) -> Unit) {
                     item { InsightGroup(state.insights, expanded) { expanded = !expanded } }
                 }
                 items(state.messages, key = { it.id }) { msg -> ChatBubble(msg) }
-                if (state.sending) item { TypingIndicator() }
+                if (state.sending) {
+                    item {
+                        val streaming = state.streamingText
+                        if (streaming.isNullOrEmpty()) TypingIndicator()
+                        else GeminiStreamingBubble(streaming)
+                    }
+                }
                 if (state.messages.isEmpty()) {
                     item { KickerText("Suggested") }
                     items(state.suggestedPrompts) { prompt -> SuggestedPrompt(prompt) { vm.send(prompt) } }
@@ -187,6 +198,25 @@ private fun ChatBubble(msg: ChatMessage) {
             }
             Text(msg.text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(top = Spacing.sm))
         }
+    }
+}
+
+@Composable
+private fun GeminiStreamingBubble(text: String) {
+    Column(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Box(
+                Modifier.size(22.dp).clip(RoundedCornerShape(7.dp)).background(MaterialTheme.colorScheme.tertiaryContainer),
+                contentAlignment = Alignment.Center,
+            ) { Icon(TrainIcons.spark, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer, modifier = Modifier.size(12.dp)) }
+            KickerText("Gemini")
+        }
+        Text(
+            text = "$text▍",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(top = Spacing.sm),
+        )
     }
 }
 

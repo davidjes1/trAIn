@@ -19,6 +19,7 @@ import com.davidjes.train.domain.training.TrainingLoadCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -33,9 +34,12 @@ import javax.inject.Inject
 data class InsightsUiState(
     val loading: Boolean = true,
     val onDevice: Boolean = false,
+    val preparing: Boolean = false,
     val insights: List<Insight> = emptyList(),
     val messages: List<ChatMessage> = emptyList(),
     val sending: Boolean = false,
+    /** Live cumulative text of the in-flight Gemini reply (null when idle). */
+    val streamingText: String? = null,
     val suggestedPrompts: List<String> = listOf(
         "Should I race Saturday?",
         "Why is my HRV down this week?",
@@ -64,7 +68,10 @@ class InsightsViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         viewModelScope.launch {
-            _state.update { it.copy(onDevice = gemini.isOnDevice()) }
+            // First access prepares the on-device model (may download) — show it.
+            _state.update { it.copy(preparing = true) }
+            val onDevice = gemini.isOnDevice()
+            _state.update { it.copy(onDevice = onDevice, preparing = false) }
             refreshInsights()
         }
     }
@@ -85,11 +92,16 @@ class InsightsViewModel @Inject constructor(
         if (prompt.isEmpty() || _state.value.sending) return
         viewModelScope.launch {
             chatDao.insert(ChatMessageEntity(UUID.randomUUID().toString(), ChatRole.USER.name, prompt, Instant.now().toEpochMilli()))
-            _state.update { it.copy(sending = true) }
+            _state.update { it.copy(sending = true, streamingText = "") }
             val context = buildContext()
-            val reply = gemini.reply(prompt, context)
-            chatDao.insert(ChatMessageEntity(UUID.randomUUID().toString(), ChatRole.GEMINI.name, reply, Instant.now().toEpochMilli()))
-            _state.update { it.copy(sending = false) }
+            var finalText = ""
+            gemini.replyStream(prompt, context).collect { cumulative ->
+                finalText = cumulative
+                _state.update { it.copy(streamingText = cumulative) }
+            }
+            if (finalText.isBlank()) finalText = "I couldn't generate a response. Try rephrasing."
+            chatDao.insert(ChatMessageEntity(UUID.randomUUID().toString(), ChatRole.GEMINI.name, finalText, Instant.now().toEpochMilli()))
+            _state.update { it.copy(sending = false, streamingText = null) }
         }
     }
 

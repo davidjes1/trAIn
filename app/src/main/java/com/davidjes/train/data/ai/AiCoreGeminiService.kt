@@ -6,6 +6,9 @@ import com.davidjes.train.domain.ai.GeminiService
 import com.google.ai.edge.aicore.GenerativeModel
 import com.google.ai.edge.aicore.generationConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
@@ -61,6 +64,33 @@ class AiCoreGeminiService @Inject constructor(
             val text = model.generateContent(buildPrompt(question, context)).text
             text?.trim()?.takeIf { it.isNotEmpty() } ?: fallback.reply(question, context)
         }.getOrElse { fallback.reply(question, context) }
+    }
+
+    /**
+     * Streams the cumulative answer. `generateContentStream` emits incremental
+     * chunks (deltas); we accumulate and emit the running text. Falls back to a
+     * single emission on unavailability/error.
+     *
+     * VERIFY on-device: `model.generateContentStream(prompt)` returns a Flow of
+     * GenerateContentResponse whose `.text` is the delta.
+     */
+    override fun replyStream(question: String, context: AiContext): Flow<String> = flow {
+        if (!isOnDevice()) {
+            emit(fallback.reply(question, context))
+            return@flow
+        }
+        val accumulated = StringBuilder()
+        val ok = runCatching {
+            model.generateContentStream(buildPrompt(question, context)).collect { response ->
+                response.text?.let { delta ->
+                    accumulated.append(delta)
+                    emit(accumulated.toString())
+                }
+            }
+        }.isSuccess
+        if (!ok || accumulated.isBlank()) {
+            emit(fallback.reply(question, context))
+        }
     }
 
     /** Grounds the model in the athlete's current numbers and pins the clinical voice. */

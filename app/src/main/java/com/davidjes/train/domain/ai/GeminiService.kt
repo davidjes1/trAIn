@@ -2,6 +2,8 @@ package com.davidjes.train.domain.ai
 
 import com.davidjes.train.domain.model.Readiness
 import com.davidjes.train.domain.model.TrainingLoadState
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 
 /**
  * Grounding context handed to the assistant for every reply. Kept small and
@@ -32,4 +34,11 @@ interface GeminiService {
 
     /** Answer a free-form question, grounded in [context]. */
     suspend fun reply(question: String, context: AiContext): String
+
+    /**
+     * Streaming answer: emits the cumulative text as it is generated. Default
+     * implementation emits the full [reply] once (fine for non-streaming backends).
+     */
+    fun replyStream(question: String, context: AiContext): Flow<String> =
+        flow { emit(reply(question, context)) }
 }
