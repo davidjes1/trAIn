@@ -14,6 +14,8 @@ data class DayItem(
     val done: Boolean,
     val isAi: Boolean,
     val workoutId: String?,
+    val plannedId: String? = null,
+    val date: LocalDate? = null,
 )
 
 data class DayPlan(

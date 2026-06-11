@@ -94,6 +94,7 @@ class PlanRepository @Inject constructor(
     private fun PlannedWorkoutEntity.toDomain(): PlannedWorkout {
         val type = runCatching { WorkoutType.valueOf(type) }.getOrDefault(WorkoutType.REST)
         return PlannedWorkout(
+            id = id,
             date = LocalDate.ofEpochDay(epochDay),
             type = type,
             sport = type.sport.takeIf { it != Sport.OTHER } ?: type.sport,

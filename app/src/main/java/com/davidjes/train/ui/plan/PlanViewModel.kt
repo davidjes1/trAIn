@@ -48,6 +48,23 @@ class PlanViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Mark a planned workout done. Complete-plan-first: link it to a device session
+     * already recorded that day if one matches; otherwise just mark it complete.
+     */
+    fun completePlanned(item: DayItem) {
+        val plannedId = item.plannedId ?: return
+        val date = item.date ?: return
+        viewModelScope.launch {
+            val zone = ZoneId.systemDefault()
+            val dayStart = date.atStartOfDay(zone).toInstant()
+            val dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant()
+            val match = workoutRepository.findDeviceMatch(dayStart, dayEnd, item.sport)
+            planRepository.markCompleted(plannedId, completed = true, workoutId = match?.id)
+            load()
+        }
+    }
+
     fun resolveConflict(ourWorkoutId: String, deleteOurs: Boolean) {
         viewModelScope.launch {
             if (deleteOurs) {
@@ -109,7 +126,7 @@ class PlanViewModel @Inject constructor(
                 minutes = (w.durationSeconds / 60).toInt(),
                 load = w.trainingLoad.roundToInt(),
                 loadFraction = (w.trainingLoad / maxLoad).coerceIn(0.0, 1.0).toFloat(),
-                done = true, isAi = false, workoutId = w.id,
+                done = true, isAi = false, workoutId = w.id, date = date,
             )
         }
         val plan = planned.filter { it.date == date && !it.completed }.map { p ->
@@ -118,7 +135,7 @@ class PlanViewModel @Inject constructor(
                 minutes = p.durationMin.takeIf { it > 0 },
                 load = p.expectedFatigue.roundToInt(),
                 loadFraction = (p.expectedFatigue / 100.0).toFloat(),
-                done = false, isAi = false, workoutId = null,
+                done = false, isAi = false, workoutId = null, plannedId = p.id, date = date,
             )
         }
         return done + plan

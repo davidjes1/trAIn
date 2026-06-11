@@ -1,6 +1,7 @@
 package com.davidjes.train.ui.plan
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -118,8 +120,8 @@ fun PlanScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
             ) {
                 when (state.tab) {
-                    PlanTab.DAY -> DayTab(state, onOpenWorkout)
-                    PlanTab.WEEK -> WeekTab(state, onOpenWorkout)
+                    PlanTab.DAY -> DayTab(state, onOpenWorkout, vm::completePlanned)
+                    PlanTab.WEEK -> WeekTab(state, onOpenWorkout, vm::completePlanned)
                     PlanTab.MONTH -> MonthTab(state)
                     PlanTab.FORM -> FormTab(state)
                 }
@@ -205,7 +207,7 @@ private fun AddWorkoutSheet(
 }
 
 @Composable
-private fun DayTab(state: PlanUiState, onOpenWorkout: (String) -> Unit) {
+private fun DayTab(state: PlanUiState, onOpenWorkout: (String) -> Unit, onComplete: (DayItem) -> Unit) {
     val focus = state.todayFocus
     if (focus != null) {
         FilledEmphasisCard {
@@ -258,13 +260,13 @@ private fun DayTab(state: PlanUiState, onOpenWorkout: (String) -> Unit) {
             Text("Nothing scheduled.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = Spacing.sm))
         }
         Column(Modifier.padding(top = Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            state.todayItems.forEach { item -> DayItemRow(item, onOpenWorkout) }
+            state.todayItems.forEach { item -> DayItemRow(item, onOpenWorkout, onComplete) }
         }
     }
 }
 
 @Composable
-private fun DayItemRow(item: DayItem, onOpenWorkout: (String) -> Unit) {
+private fun DayItemRow(item: DayItem, onOpenWorkout: (String) -> Unit, onComplete: (DayItem) -> Unit = {}) {
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -279,8 +281,16 @@ private fun DayItemRow(item: DayItem, onOpenWorkout: (String) -> Unit) {
             }
             if (meta.isNotEmpty()) Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        if (item.done) {
-            Icon(TrainIcons.check, contentDescription = "Done", tint = MaterialTheme.trainColors.green.base, modifier = Modifier.size(18.dp))
+        when {
+            item.done -> Icon(TrainIcons.check, contentDescription = "Done", tint = MaterialTheme.trainColors.green.base, modifier = Modifier.size(18.dp))
+            // Planned + not done → tap the empty circle to mark complete (links a device session if one matches).
+            item.plannedId != null && item.sport != Sport.REST -> Box(
+                Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                    .clickable { onComplete(item) },
+            )
         }
         if (item.workoutId != null) {
             Icon(
@@ -293,7 +303,7 @@ private fun DayItemRow(item: DayItem, onOpenWorkout: (String) -> Unit) {
 }
 
 @Composable
-private fun WeekTab(state: PlanUiState, onOpenWorkout: (String) -> Unit) {
+private fun WeekTab(state: PlanUiState, onOpenWorkout: (String) -> Unit, onComplete: (DayItem) -> Unit) {
     val week = state.week ?: return
     OutlinedContentCard {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -325,7 +335,7 @@ private fun WeekTab(state: PlanUiState, onOpenWorkout: (String) -> Unit) {
                     if (d.items.isEmpty()) {
                         Text("Rest", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.outline)
                     }
-                    d.items.forEach { DayItemRow(it, onOpenWorkout) }
+                    d.items.forEach { DayItemRow(it, onOpenWorkout, onComplete) }
                 }
             }
         }
