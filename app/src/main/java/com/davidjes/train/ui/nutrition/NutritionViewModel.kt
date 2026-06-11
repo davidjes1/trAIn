@@ -2,12 +2,17 @@ package com.davidjes.train.ui.nutrition
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.davidjes.train.data.prefs.ProfileRepository
 import com.davidjes.train.data.repository.NutritionRepository
 import com.davidjes.train.data.repository.WorkoutRepository
 import com.davidjes.train.domain.model.NutritionDay
+import com.davidjes.train.domain.model.NutritionTargets
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -19,13 +24,16 @@ import kotlin.math.roundToInt
 data class NutritionUiState(
     val loading: Boolean = true,
     val day: NutritionDay? = null,
+    val targets: NutritionTargets = NutritionTargets(),
     val burnedKcal: Int = 0,
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class NutritionViewModel @Inject constructor(
     private val nutritionRepository: NutritionRepository,
     private val workoutRepository: WorkoutRepository,
+    private val profileRepository: ProfileRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(NutritionUiState())
@@ -40,9 +48,10 @@ class NutritionViewModel @Inject constructor(
             _state.update { it.copy(burnedKcal = burned.roundToInt()) }
         }
         viewModelScope.launch {
-            nutritionRepository.day(today).collect { day ->
-                _state.update { it.copy(loading = false, day = day) }
-            }
+            profileRepository.nutritionTargets
+                .onEach { targets -> _state.update { it.copy(targets = targets) } }
+                .flatMapLatest { targets -> nutritionRepository.day(today, targets) }
+                .collect { day -> _state.update { it.copy(loading = false, day = day) } }
         }
     }
 
@@ -50,5 +59,9 @@ class NutritionViewModel @Inject constructor(
         viewModelScope.launch {
             nutritionRepository.addMeal(today, name.ifBlank { "Meal" }, kcal, protein, carbs, fat)
         }
+    }
+
+    fun saveTargets(targets: NutritionTargets) {
+        viewModelScope.launch { profileRepository.setNutritionTargets(targets) }
     }
 }

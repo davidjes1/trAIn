@@ -41,8 +41,15 @@ data class Workout(
     /** TRIMP-based training load. */
     val trainingLoad: Double = 0.0,
     val source: WorkoutSource = WorkoutSource.HEALTH_CONNECT,
+    /** Health Connect writing app (metadata.dataOrigin.packageName). */
+    val dataOrigin: String? = null,
     val notes: String? = null,
 ) {
+    /** True if trAIn itself wrote this record (vs a device app like Garmin). */
+    fun isOwn(ownPackage: String): Boolean = dataOrigin == ownPackage
+
+    /** Device records carry richer streams (HR/zones/distance/power). */
+    val isRich: Boolean get() = avgHr != null || distanceMeters != null || avgPowerWatts != null
     val date: LocalDate get() = start.atZone(java.time.ZoneId.systemDefault()).toLocalDate()
 }
 

@@ -7,6 +7,7 @@ import com.davidjes.train.domain.model.Readiness
 import com.davidjes.train.domain.model.TrainingLoadState
 import com.davidjes.train.domain.model.WorkoutRecommendation
 import com.davidjes.train.ui.components.DeltaTone
+import com.davidjes.train.ui.components.WorkoutConflict
 
 enum class TodayMode { NARRATIVE, METRICS }
 
@@ -34,6 +35,7 @@ data class TodayUiState(
     val habits: List<Habit> = emptyList(),
     val nutrition: NutritionDay? = null,
     val checkIn: CheckIn = CheckIn(),
+    val conflicts: List<WorkoutConflict> = emptyList(),
 ) {
     val needsConnect: Boolean
         get() = hcAvailability != HealthConnectManager.Availability.INSTALLED || !hasPermissions

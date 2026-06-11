@@ -11,6 +11,7 @@ import com.davidjes.train.domain.model.Workout
 import com.davidjes.train.domain.training.ReadinessCalculator
 import com.davidjes.train.domain.training.TrainingLoadCalculator
 import com.davidjes.train.domain.training.WorkoutRecommender
+import com.davidjes.train.ui.components.toUi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,6 +48,34 @@ class PlanViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Mark a planned workout done. Complete-plan-first: link it to a device session
+     * already recorded that day if one matches; otherwise just mark it complete.
+     */
+    fun completePlanned(item: DayItem) {
+        val plannedId = item.plannedId ?: return
+        val date = item.date ?: return
+        viewModelScope.launch {
+            val zone = ZoneId.systemDefault()
+            val dayStart = date.atStartOfDay(zone).toInstant()
+            val dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant()
+            val match = workoutRepository.findDeviceMatch(dayStart, dayEnd, item.sport)
+            planRepository.markCompleted(plannedId, completed = true, workoutId = match?.id)
+            load()
+        }
+    }
+
+    fun resolveConflict(ourWorkoutId: String, deleteOurs: Boolean) {
+        viewModelScope.launch {
+            if (deleteOurs) {
+                workoutRepository.deleteWorkout(ourWorkoutId)
+                load()
+            } else {
+                _state.update { it.copy(conflicts = it.conflicts.filterNot { c -> c.ourId == ourWorkoutId }) }
+            }
+        }
+    }
+
     fun load() {
         viewModelScope.launch {
             val today = LocalDate.now()
@@ -68,11 +97,13 @@ class PlanViewModel @Inject constructor(
             val dailyLoad = completed.groupBy { it.date }.mapValues { (_, l) -> l.sumOf { it.trainingLoad } }
             val loadSeries = TrainingLoadCalculator.series(dailyLoad, from = today.minusDays(41), to = today.plusDays(7))
             val focus = buildTodayFocus(today, planned, completed)
+            val conflicts = workoutRepository.findConflicts().map { it.toUi() }
 
             _state.update {
                 it.copy(
                     loading = false,
                     blockLabel = activePlan?.name ?: "No active plan",
+                    conflicts = conflicts,
                     todayFocus = focus,
                     todayItems = itemsForDay(today, planned, completed, dailyLoad.values.maxOrNull() ?: 1.0),
                     week = buildWeek(weekStart, weekEnd, planned, completed),
@@ -95,7 +126,7 @@ class PlanViewModel @Inject constructor(
                 minutes = (w.durationSeconds / 60).toInt(),
                 load = w.trainingLoad.roundToInt(),
                 loadFraction = (w.trainingLoad / maxLoad).coerceIn(0.0, 1.0).toFloat(),
-                done = true, isAi = false, workoutId = w.id,
+                done = true, isAi = false, workoutId = w.id, date = date,
             )
         }
         val plan = planned.filter { it.date == date && !it.completed }.map { p ->
@@ -104,7 +135,7 @@ class PlanViewModel @Inject constructor(
                 minutes = p.durationMin.takeIf { it > 0 },
                 load = p.expectedFatigue.roundToInt(),
                 loadFraction = (p.expectedFatigue / 100.0).toFloat(),
-                done = false, isAi = false, workoutId = null,
+                done = false, isAi = false, workoutId = null, plannedId = p.id, date = date,
             )
         }
         return done + plan

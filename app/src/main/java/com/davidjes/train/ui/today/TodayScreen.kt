@@ -3,6 +3,7 @@ package com.davidjes.train.ui.today
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -20,14 +21,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -42,11 +47,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.davidjes.train.data.health.HealthConnectManager
 import com.davidjes.train.domain.model.Readiness
+import com.davidjes.train.domain.model.Sport
+import com.davidjes.train.ui.components.DuplicateWorkoutDialog
 import com.davidjes.train.ui.components.FilledEmphasisCard
 import com.davidjes.train.ui.components.HabitRow
 import com.davidjes.train.ui.components.KickerText
@@ -74,6 +82,9 @@ fun TodayScreen(
     val vm: TodayViewModel = hiltViewModel()
     val state by vm.state.collectAsStateWithLifecycle()
     var showLog by rememberSaveable { mutableStateOf(false) }
+    var showLogWorkout by rememberSaveable { mutableStateOf(false) }
+    var showAddHabit by rememberSaveable { mutableStateOf(false) }
+    var showLogWeight by rememberSaveable { mutableStateOf(false) }
     val permLauncher = rememberHealthConnectPermissionLauncher { vm.onPermissionsResult(it) }
     val dateLabel = remember { LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMM d")) }
 
@@ -142,16 +153,33 @@ fun TodayScreen(
 
                 item { RecoverySnapshot(state) }
 
-                if (state.habits.isNotEmpty()) {
-                    item { KickerText("Habits") }
-                    items(state.habits, key = { it.id }) { habit ->
+                item {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        KickerText("Habits")
+                        FilledTonalButton(onClick = { showAddHabit = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp)) {
+                            Icon(TrainIcons.plus, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Text("Add", modifier = Modifier.padding(start = 4.dp))
+                        }
+                    }
+                }
+                items(state.habits, key = { it.id }) { habit ->
+                    Box {
+                        var menuOpen by remember { mutableStateOf(false) }
                         HabitRow(
                             label = habit.label,
                             done = habit.doneToday,
                             icon = TrainIcons.byKey(habit.iconKey),
                             streak = habit.streak,
+                            onLongPress = { menuOpen = true },
                             onToggle = { vm.toggleHabit(habit.id, !habit.doneToday) },
                         )
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Delete habit") },
+                                onClick = { menuOpen = false; vm.deleteHabit(habit.id) },
+                                leadingIcon = { Icon(TrainIcons.close, contentDescription = null) },
+                            )
+                        }
                     }
                 }
 
@@ -165,8 +193,89 @@ fun TodayScreen(
         QuickLogSheet(
             onDismiss = { showLog = false },
             onMeal = { showLog = false; onOpenNutrition() },
+            onWorkout = { showLog = false; showLogWorkout = true },
+            onWeight = { showLog = false; showLogWeight = true },
         )
     }
+    if (showLogWeight) {
+        LogWeightDialog(
+            onDismiss = { showLogWeight = false },
+            onSave = { kg -> vm.logWeight(kg); showLogWeight = false },
+        )
+    }
+    if (showLogWorkout) {
+        LogWorkoutSheet(
+            onDismiss = { showLogWorkout = false },
+            onSave = { sport, minutes, title -> vm.logWorkout(sport, minutes, title); showLogWorkout = false },
+        )
+    }
+
+    state.conflicts.firstOrNull()?.let { conflict ->
+        DuplicateWorkoutDialog(
+            conflict = conflict,
+            onUseDevice = { vm.resolveConflict(conflict.ourId, deleteOurs = true) },
+            onKeepBoth = { vm.resolveConflict(conflict.ourId, deleteOurs = false) },
+        )
+    }
+
+    if (showAddHabit) {
+        AddHabitDialog(
+            onDismiss = { showAddHabit = false },
+            onAdd = { label, icon -> vm.addHabit(label, icon); showAddHabit = false },
+        )
+    }
+}
+
+@Composable
+private fun LogWeightDialog(onDismiss: () -> Unit, onSave: (Double) -> Unit) {
+    var kg by rememberSaveable { mutableStateOf("") }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Log weight") },
+        text = {
+            OutlinedTextField(
+                value = kg,
+                onValueChange = { kg = it.filter { c -> c.isDigit() || c == '.' } },
+                label = { Text("Weight") },
+                suffix = { Text("kg") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            Button(onClick = { kg.toDoubleOrNull()?.let(onSave) }, enabled = kg.toDoubleOrNull() != null) { Text("Save") }
+        },
+        dismissButton = { FilledTonalButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+@Composable
+private fun AddHabitDialog(onDismiss: () -> Unit, onAdd: (String, String) -> Unit) {
+    var label by rememberSaveable { mutableStateOf("") }
+    var icon by rememberSaveable { mutableStateOf("drop") }
+    val iconChoices = listOf("drop", "barbell", "moon", "food", "run", "bike", "heart", "bolt")
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("New habit") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                OutlinedTextField(value = label, onValueChange = { label = it }, label = { Text("Habit") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    iconChoices.forEach { key ->
+                        FilterChip(
+                            selected = icon == key,
+                            onClick = { icon = key },
+                            label = { Icon(TrainIcons.byKey(key), contentDescription = key, modifier = Modifier.size(18.dp)) },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = { Button(onClick = { onAdd(label, icon) }, enabled = label.isNotBlank()) { Text("Add") } },
+        dismissButton = { FilledTonalButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable
@@ -345,34 +454,88 @@ private fun NutritionRow(state: TodayUiState, onOpenNutrition: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QuickLogSheet(onDismiss: () -> Unit, onMeal: () -> Unit) {
+private fun QuickLogSheet(onDismiss: () -> Unit, onMeal: () -> Unit, onWorkout: () -> Unit, onWeight: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.xl, vertical = Spacing.md)) {
             KickerText("Quick log")
             Text("What do you want to log?", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(vertical = Spacing.sm))
             val options = listOf(
+                "Workout" to TrainIcons.barbell,
                 "Meal" to TrainIcons.food,
                 "Weight" to TrainIcons.weight,
                 "Mood" to TrainIcons.heart,
-                "Workout" to TrainIcons.barbell,
                 "Note" to TrainIcons.edit,
             )
             options.forEach { (label, icon) ->
                 Row(
-                    Modifier.fillMaxWidth().padding(vertical = Spacing.md),
+                    Modifier.fillMaxWidth()
+                        .clickableLog {
+                            when (label) {
+                                "Workout" -> onWorkout()
+                                "Meal" -> onMeal()
+                                "Weight" -> onWeight()
+                                else -> onDismiss()
+                            }
+                        }
+                        .padding(vertical = Spacing.md),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
                 ) {
                     Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickableLog { if (label == "Meal") onMeal() else onDismiss() },
-                    )
+                    Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                     Icon(TrainIcons.chevRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LogWorkoutSheet(onDismiss: () -> Unit, onSave: (Sport, Int, String?) -> Unit) {
+    val sports = listOf(Sport.RUN, Sport.RIDE, Sport.STRENGTH, Sport.SWIM, Sport.MOBILITY)
+    var sport by rememberSaveable { mutableStateOf(Sport.RUN) }
+    var minutes by rememberSaveable { mutableStateOf("45") }
+    var title by rememberSaveable { mutableStateOf("") }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = Spacing.xl, vertical = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            KickerText("Log workout")
+            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                sports.forEach { s ->
+                    FilterChip(selected = sport == s, onClick = { sport = s }, label = { Text(s.label) })
+                }
+            }
+            OutlinedTextField(
+                value = minutes,
+                onValueChange = { minutes = it.filter(Char::isDigit) },
+                label = { Text("Duration") },
+                suffix = { Text("min") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Title (optional)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                "Saved to Health Connect — feeds load, zones, and readiness.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(Modifier.fillMaxWidth().padding(top = Spacing.xs), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                FilledTonalButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                Button(
+                    onClick = { onSave(sport, minutes.toIntOrNull() ?: 45, title) },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Log") }
             }
         }
     }

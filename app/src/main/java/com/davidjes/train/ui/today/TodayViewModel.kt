@@ -11,10 +11,12 @@ import com.davidjes.train.data.repository.WorkoutRepository
 import com.davidjes.train.data.prefs.ProfileRepository
 import com.davidjes.train.domain.ai.NarrativeGenerator
 import com.davidjes.train.domain.model.RecoveryMetrics
+import com.davidjes.train.domain.model.Sport
 import com.davidjes.train.domain.training.ReadinessCalculator
 import com.davidjes.train.domain.training.TrainingLoadCalculator
 import com.davidjes.train.domain.training.WorkoutRecommender
 import com.davidjes.train.ui.components.DeltaTone
+import com.davidjes.train.ui.components.toUi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -70,12 +72,64 @@ class TodayViewModel @Inject constructor(
     fun toggleHabit(habitId: String, done: Boolean) {
         viewModelScope.launch {
             habitRepository.toggle(habitId, LocalDate.now(), done)
-            val habits = habitRepository.habitsForDay(LocalDate.now()).first()
-            _state.update { it.copy(habits = habits) }
+            _state.update { it.copy(habits = loadHabits(LocalDate.now())) }
         }
     }
 
+    fun addHabit(label: String, iconKey: String) {
+        if (label.isBlank()) return
+        viewModelScope.launch {
+            habitRepository.addHabit(label, iconKey)
+            _state.update { it.copy(habits = loadHabits(LocalDate.now())) }
+        }
+    }
+
+    fun deleteHabit(habitId: String) {
+        viewModelScope.launch {
+            habitRepository.removeHabit(habitId)
+            _state.update { it.copy(habits = loadHabits(LocalDate.now())) }
+        }
+    }
+
+    /** Habits for [date] with their consecutive-day streaks filled in. */
+    private suspend fun loadHabits(date: LocalDate) =
+        habitRepository.habitsForDay(date).first().map { habit ->
+            habit.copy(streak = habitRepository.streakFor(habit.id, date))
+        }
+
     fun updateCheckIn(checkIn: CheckIn) = _state.update { it.copy(checkIn = checkIn) }
+
+    /**
+     * Complete-plan-first logging: only write a new Health Connect session if a
+     * device hasn't already recorded a matching one in the window.
+     */
+    fun logWorkout(sport: Sport, durationMin: Int, title: String?) {
+        viewModelScope.launch {
+            val end = java.time.Instant.now()
+            val start = end.minusSeconds(durationMin.coerceAtLeast(1) * 60L)
+            val deviceMatch = workoutRepository.findDeviceMatch(start, end, sport)
+            if (deviceMatch == null) {
+                workoutRepository.logCompletedWorkout(sport, durationMin, title?.takeIf { it.isNotBlank() })
+            }
+            // else: device already has it — skip the write to avoid a duplicate.
+            loadData()
+        }
+    }
+
+    fun logWeight(kg: Double) {
+        viewModelScope.launch {
+            recoveryRepository.logWeight(kg)
+            loadData()
+        }
+    }
+
+    fun resolveConflict(ourWorkoutId: String, deleteOurs: Boolean) {
+        viewModelScope.launch {
+            if (deleteOurs) workoutRepository.deleteWorkout(ourWorkoutId)
+            _state.update { it.copy(conflicts = it.conflicts.filterNot { c -> c.ourId == ourWorkoutId }) }
+            if (deleteOurs) loadData()
+        }
+    }
 
     fun saveCheckIn() {
         viewModelScope.launch {
@@ -124,20 +178,22 @@ class TodayViewModel @Inject constructor(
         // Recovery 2x2 factors.
         val factors = buildRecoveryFactors(series, todayMetrics, baselines)
 
-        // Habits (seed defaults on first run) + nutrition snapshot.
-        var habits = habitRepository.habitsForDay(today).first()
+        // Habits (seed defaults on first run, with streaks) + nutrition snapshot.
+        var habits = loadHabits(today)
         if (habits.isEmpty()) {
             habitRepository.seedDefaultsIfEmpty(habits)
-            habits = habitRepository.habitsForDay(today).first()
+            habits = loadHabits(today)
         }
-        val nutrition = nutritionRepository.day(today).first()
+        val nutrition = nutritionRepository.day(today, profileRepository.nutritionTargets.first()).first()
+
+        val conflicts = workoutRepository.findConflicts().map { it.toUi() }
 
         _state.update {
             it.copy(
                 loading = false, syncing = false,
                 readiness = readiness, load = load, recommendation = recommendation,
                 narrative = narrative, recoveryFactors = factors,
-                habits = habits, nutrition = nutrition,
+                habits = habits, nutrition = nutrition, conflicts = conflicts,
             )
         }
     }

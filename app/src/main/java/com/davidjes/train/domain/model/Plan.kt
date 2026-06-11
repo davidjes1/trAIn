@@ -28,6 +28,7 @@ data class WorkoutPreset(
 )
 
 data class PlannedWorkout(
+    val id: String = "",
     val date: LocalDate,
     val type: WorkoutType,
     val sport: Sport,

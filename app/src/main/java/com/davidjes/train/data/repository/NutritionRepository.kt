@@ -4,6 +4,7 @@ import com.davidjes.train.data.local.MealDao
 import com.davidjes.train.data.local.MealEntity
 import com.davidjes.train.domain.model.Meal
 import com.davidjes.train.domain.model.NutritionDay
+import com.davidjes.train.domain.model.NutritionTargets
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
@@ -16,10 +17,7 @@ import javax.inject.Singleton
 class NutritionRepository @Inject constructor(
     private val mealDao: MealDao,
 ) {
-    // TODO: make targets user-configurable (Profile / Goals). Defaults for now.
-    data class Targets(val kcal: Int = 2400, val proteinG: Int = 160, val carbsG: Int = 260, val fatG: Int = 75)
-
-    fun day(date: LocalDate, targets: Targets = Targets()): Flow<NutritionDay> =
+    fun day(date: LocalDate, targets: NutritionTargets = NutritionTargets()): Flow<NutritionDay> =
         mealDao.observeDay(date.toEpochDay()).map { meals ->
             NutritionDay(
                 date = date,

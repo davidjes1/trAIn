@@ -1,13 +1,17 @@
 package com.davidjes.train.data.repository
 
+import androidx.health.connect.client.records.ExerciseSessionRecord
+import androidx.health.connect.client.records.metadata.Metadata
 import com.davidjes.train.data.health.HealthConnectManager
 import com.davidjes.train.data.health.HealthDataMapper
 import com.davidjes.train.data.prefs.ProfileRepository
+import com.davidjes.train.domain.model.Sport
 import com.davidjes.train.domain.model.UserProfile
 import com.davidjes.train.domain.model.Workout
 import com.davidjes.train.domain.model.WorkoutSource
 import com.davidjes.train.domain.model.WorkoutSummary
 import com.davidjes.train.domain.training.TrimpCalculator
+import com.davidjes.train.domain.training.WorkoutMatcher
 import com.davidjes.train.domain.training.ZoneCalculator
 import kotlinx.coroutines.flow.first
 import java.time.Instant
@@ -91,9 +95,13 @@ class WorkoutRepository @Inject constructor(
             zones = zones,
             trainingLoad = trimp,
             source = WorkoutSource.HEALTH_CONNECT,
+            dataOrigin = s.metadata.dataOrigin.packageName,
             notes = s.notes,
         )
     }
+
+    /** This app's package name — distinguishes our manual records from device ones. */
+    val ownPackage: String get() = hc.ownPackage
 
     /** Sum of TRIMP per calendar day — feeds [com.davidjes.train.domain.training.TrainingLoadCalculator]. */
     suspend fun dailyLoad(start: Instant, end: Instant): Map<LocalDate, Double> {
@@ -107,6 +115,57 @@ class WorkoutRepository @Inject constructor(
         val end = Instant.now()
         val start = end.minusSeconds(lookbackDays * 86_400)
         return workoutsBetween(start, end).firstOrNull { it.id == id }
+    }
+
+    /**
+     * Log a completed manual workout by writing an [ExerciseSessionRecord] to Health
+     * Connect (the source of truth). Returns true on success.
+     *
+     * Note: Metadata construction varies by connect-client version. On 1.1.0-alpha10
+     * the `Metadata()` constructor is used; newer versions replace it with factories
+     * like `Metadata.manualEntry()`. Adjust here if the dependency is bumped.
+     */
+    suspend fun logCompletedWorkout(
+        sport: Sport,
+        durationMin: Int,
+        title: String? = null,
+        notes: String? = null,
+        end: Instant = Instant.now(),
+    ): Boolean {
+        val zone = ZoneId.systemDefault()
+        val start = end.minusSeconds(durationMin.coerceAtLeast(1) * 60L)
+        val offset = zone.rules.getOffset(start)
+        val record = ExerciseSessionRecord(
+            startTime = start,
+            startZoneOffset = offset,
+            endTime = end,
+            endZoneOffset = offset,
+            exerciseType = HealthDataMapper.exerciseTypeFor(sport),
+            title = title ?: HealthDataMapper.defaultTitle(sport),
+            notes = notes,
+            metadata = Metadata(),
+        )
+        return hc.insert(listOf(record))
+    }
+
+    /** Delete a trAIn-written workout from Health Connect (no-op for device records). */
+    suspend fun deleteWorkout(id: String): Boolean = hc.deleteExerciseSession(id)
+
+    /**
+     * Complete-plan-first logging: if a device already recorded a matching session
+     * in the window, return it (caller links the plan, no write). Otherwise null.
+     */
+    suspend fun findDeviceMatch(start: Instant, end: Instant, sport: Sport, lookbackDays: Long = 2): Workout? {
+        val from = start.minusSeconds(lookbackDays * 86_400)
+        val to = end.plusSeconds(lookbackDays * 86_400)
+        return WorkoutMatcher.findDeviceMatch(start, end, sport, workoutsBetween(from, to), hc.ownPackage)
+    }
+
+    /** Manual (trAIn-written) records that overlap a device recording, over [days]. */
+    suspend fun findConflicts(days: Long = 30): List<WorkoutMatcher.Conflict> {
+        val end = Instant.now()
+        val start = end.minusSeconds(days * 86_400)
+        return WorkoutMatcher.findConflicts(workoutsBetween(start, end), hc.ownPackage)
     }
 
     /** Downsampled HR-over-time series for a workout's activity chart (~[buckets] points). */

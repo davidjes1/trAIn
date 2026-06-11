@@ -14,6 +14,8 @@ data class DayItem(
     val done: Boolean,
     val isAi: Boolean,
     val workoutId: String?,
+    val plannedId: String? = null,
+    val date: LocalDate? = null,
 )
 
 data class DayPlan(
@@ -71,4 +73,5 @@ data class PlanUiState(
     val week: WeekData? = null,
     val month: MonthData? = null,
     val form: FormData? = null,
+    val conflicts: List<com.davidjes.train.ui.components.WorkoutConflict> = emptyList(),
 )

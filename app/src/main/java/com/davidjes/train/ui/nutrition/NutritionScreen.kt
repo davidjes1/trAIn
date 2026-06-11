@@ -57,6 +57,7 @@ fun NutritionScreen(onBack: () -> Unit) {
     val vm: NutritionViewModel = hiltViewModel()
     val state by vm.state.collectAsStateWithLifecycle()
     var showSheet by rememberSaveable { mutableStateOf(false) }
+    var showTargets by rememberSaveable { mutableStateOf(false) }
 
     TrainScreenScaffold(
         current = null,
@@ -64,6 +65,7 @@ fun NutritionScreen(onBack: () -> Unit) {
             TopAppBar(
                 title = { Text("Nutrition") },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(TrainIcons.chevLeft, contentDescription = "Back") } },
+                actions = { IconButton(onClick = { showTargets = true }) { Icon(TrainIcons.edit, contentDescription = "Edit targets") } },
             )
         },
         floatingActionButton = {
@@ -137,6 +139,57 @@ fun NutritionScreen(onBack: () -> Unit) {
             onSave = { name, kcal, p, c, f -> vm.addMeal(name, kcal, p, c, f); showSheet = false },
         )
     }
+    if (showTargets) {
+        EditTargetsDialog(
+            initial = state.targets,
+            onDismiss = { showTargets = false },
+            onSave = { t -> vm.saveTargets(t); showTargets = false },
+        )
+    }
+}
+
+@Composable
+private fun EditTargetsDialog(
+    initial: com.davidjes.train.domain.model.NutritionTargets,
+    onDismiss: () -> Unit,
+    onSave: (com.davidjes.train.domain.model.NutritionTargets) -> Unit,
+) {
+    var kcal by remember { mutableStateOf(initial.kcal.toString()) }
+    var protein by remember { mutableStateOf(initial.proteinG.toString()) }
+    var carbs by remember { mutableStateOf(initial.carbsG.toString()) }
+    var fat by remember { mutableStateOf(initial.fatG.toString()) }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Daily targets") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                OutlinedTextField(
+                    value = kcal, onValueChange = { kcal = it.filter(Char::isDigit) },
+                    label = { Text("Calories") }, suffix = { Text("kcal") }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth(),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    NumField("Protein", protein, { protein = it }, Modifier.weight(1f))
+                    NumField("Carbs", carbs, { carbs = it }, Modifier.weight(1f))
+                    NumField("Fat", fat, { fat = it }, Modifier.weight(1f))
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                onSave(
+                    com.davidjes.train.domain.model.NutritionTargets(
+                        kcal = kcal.toIntOrNull() ?: initial.kcal,
+                        proteinG = protein.toIntOrNull() ?: initial.proteinG,
+                        carbsG = carbs.toIntOrNull() ?: initial.carbsG,
+                        fatG = fat.toIntOrNull() ?: initial.fatG,
+                    ),
+                )
+            }) { Text("Save") }
+        },
+        dismissButton = { FilledTonalButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable

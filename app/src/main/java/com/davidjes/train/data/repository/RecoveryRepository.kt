@@ -1,5 +1,8 @@
 package com.davidjes.train.data.repository
 
+import androidx.health.connect.client.records.WeightRecord
+import androidx.health.connect.client.records.metadata.Metadata
+import androidx.health.connect.client.units.Mass
 import com.davidjes.train.data.health.HealthConnectManager
 import com.davidjes.train.data.local.SubjectiveDao
 import com.davidjes.train.data.local.SubjectiveEntity
@@ -78,6 +81,18 @@ class RecoveryRepository @Inject constructor(
         val hrv = series.mapNotNull { it.hrvMs }.takeIf { it.isNotEmpty() }?.average()
         val rhr = series.mapNotNull { it.restingHr }.takeIf { it.isNotEmpty() }?.map { it.toDouble() }?.average()
         return Baselines(hrv, rhr)
+    }
+
+    /** Write a body-weight measurement to Health Connect (source of truth). */
+    suspend fun logWeight(kg: Double): Boolean {
+        val now = Instant.now()
+        val record = WeightRecord(
+            time = now,
+            zoneOffset = zone.rules.getOffset(now),
+            weight = Mass.kilograms(kg),
+            metadata = Metadata(),
+        )
+        return hc.insert(listOf(record))
     }
 
     suspend fun saveCheckIn(
