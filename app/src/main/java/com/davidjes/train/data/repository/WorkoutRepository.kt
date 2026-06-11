@@ -121,10 +121,9 @@ class WorkoutRepository @Inject constructor(
      * Log a completed manual workout by writing an [ExerciseSessionRecord] to Health
      * Connect (the source of truth). Returns true on success.
      *
-     * VERIFY on-device (Metadata API moved across connect-client versions): if
-     * `Metadata.manualEntry()` doesn't resolve, use
-     * `Metadata.manualEntry(device = androidx.health.connect.client.records.metadata.Device(type = Device.TYPE_PHONE))`
-     * or the constructor your version exposes.
+     * Note: Metadata construction varies by connect-client version. On 1.1.0-alpha10
+     * the `Metadata()` constructor is used; newer versions replace it with factories
+     * like `Metadata.manualEntry()`. Adjust here if the dependency is bumped.
      */
     suspend fun logCompletedWorkout(
         sport: Sport,
@@ -144,7 +143,7 @@ class WorkoutRepository @Inject constructor(
             exerciseType = HealthDataMapper.exerciseTypeFor(sport),
             title = title ?: HealthDataMapper.defaultTitle(sport),
             notes = notes,
-            metadata = Metadata.manualEntry(),
+            metadata = Metadata(),
         )
         return hc.insert(listOf(record))
     }

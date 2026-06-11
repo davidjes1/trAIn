@@ -90,7 +90,7 @@ class RecoveryRepository @Inject constructor(
             time = now,
             zoneOffset = zone.rules.getOffset(now),
             weight = Mass.kilograms(kg),
-            metadata = Metadata.manualEntry(),
+            metadata = Metadata(),
         )
         return hc.insert(listOf(record))
     }
