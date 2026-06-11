@@ -16,6 +16,7 @@ import com.davidjes.train.domain.training.ReadinessCalculator
 import com.davidjes.train.domain.training.TrainingLoadCalculator
 import com.davidjes.train.domain.training.WorkoutRecommender
 import com.davidjes.train.ui.components.DeltaTone
+import com.davidjes.train.ui.components.toUi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -158,16 +159,7 @@ class TodayViewModel @Inject constructor(
         }
         val nutrition = nutritionRepository.day(today).first()
 
-        val conflicts = workoutRepository.findConflicts().map { c ->
-            WorkoutConflict(
-                ourId = c.ours.id,
-                ourTitle = c.ours.title,
-                deviceTitle = c.device.title,
-                deviceSource = c.device.dataOrigin?.substringAfterLast('.')?.replaceFirstChar { it.uppercase() } ?: "Device",
-                dateLabel = c.device.start.atZone(java.time.ZoneId.systemDefault())
-                    .format(java.time.format.DateTimeFormatter.ofPattern("MMM d")),
-            )
-        }
+        val conflicts = workoutRepository.findConflicts().map { it.toUi() }
 
         _state.update {
             it.copy(

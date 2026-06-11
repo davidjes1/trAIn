@@ -71,4 +71,5 @@ data class PlanUiState(
     val week: WeekData? = null,
     val month: MonthData? = null,
     val form: FormData? = null,
+    val conflicts: List<com.davidjes.train.ui.components.WorkoutConflict> = emptyList(),
 )

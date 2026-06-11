@@ -50,6 +50,7 @@ import com.davidjes.train.domain.model.Sport
 import com.davidjes.train.domain.model.WorkoutType
 import com.davidjes.train.domain.training.WorkoutLibrary
 import java.time.LocalDate
+import com.davidjes.train.ui.components.DuplicateWorkoutDialog
 import com.davidjes.train.ui.components.FormCurve
 import com.davidjes.train.ui.components.KickerText
 import com.davidjes.train.ui.components.OutlinedContentCard
@@ -130,6 +131,14 @@ fun PlanScreen(
         AddWorkoutSheet(
             onDismiss = { showAdd = false },
             onSave = { type, date, minutes -> vm.addPlanned(type, date, minutes); showAdd = false },
+        )
+    }
+
+    state.conflicts.firstOrNull()?.let { conflict ->
+        DuplicateWorkoutDialog(
+            conflict = conflict,
+            onUseDevice = { vm.resolveConflict(conflict.ourId, deleteOurs = true) },
+            onKeepBoth = { vm.resolveConflict(conflict.ourId, deleteOurs = false) },
         )
     }
 }

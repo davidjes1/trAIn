@@ -11,6 +11,7 @@ import com.davidjes.train.domain.model.Workout
 import com.davidjes.train.domain.training.ReadinessCalculator
 import com.davidjes.train.domain.training.TrainingLoadCalculator
 import com.davidjes.train.domain.training.WorkoutRecommender
+import com.davidjes.train.ui.components.toUi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,6 +48,17 @@ class PlanViewModel @Inject constructor(
         }
     }
 
+    fun resolveConflict(ourWorkoutId: String, deleteOurs: Boolean) {
+        viewModelScope.launch {
+            if (deleteOurs) {
+                workoutRepository.deleteWorkout(ourWorkoutId)
+                load()
+            } else {
+                _state.update { it.copy(conflicts = it.conflicts.filterNot { c -> c.ourId == ourWorkoutId }) }
+            }
+        }
+    }
+
     fun load() {
         viewModelScope.launch {
             val today = LocalDate.now()
@@ -68,11 +80,13 @@ class PlanViewModel @Inject constructor(
             val dailyLoad = completed.groupBy { it.date }.mapValues { (_, l) -> l.sumOf { it.trainingLoad } }
             val loadSeries = TrainingLoadCalculator.series(dailyLoad, from = today.minusDays(41), to = today.plusDays(7))
             val focus = buildTodayFocus(today, planned, completed)
+            val conflicts = workoutRepository.findConflicts().map { it.toUi() }
 
             _state.update {
                 it.copy(
                     loading = false,
                     blockLabel = activePlan?.name ?: "No active plan",
+                    conflicts = conflicts,
                     todayFocus = focus,
                     todayItems = itemsForDay(today, planned, completed, dailyLoad.values.maxOrNull() ?: 1.0),
                     week = buildWeek(weekStart, weekEnd, planned, completed),

@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,6 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.davidjes.train.data.health.HealthConnectManager
 import com.davidjes.train.domain.model.Readiness
 import com.davidjes.train.domain.model.Sport
+import com.davidjes.train.ui.components.DuplicateWorkoutDialog
 import com.davidjes.train.ui.components.FilledEmphasisCard
 import com.davidjes.train.ui.components.HabitRow
 import com.davidjes.train.ui.components.KickerText
@@ -189,28 +189,6 @@ fun TodayScreen(
             onKeepBoth = { vm.resolveConflict(conflict.ourId, deleteOurs = false) },
         )
     }
-}
-
-@Composable
-private fun DuplicateWorkoutDialog(
-    conflict: WorkoutConflict,
-    onUseDevice: () -> Unit,
-    onKeepBoth: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onKeepBoth,
-        icon = { Icon(TrainIcons.refresh, contentDescription = null) },
-        title = { Text("Duplicate workout") },
-        text = {
-            Text(
-                "On ${conflict.dateLabel} you logged “${conflict.ourTitle}”, " +
-                    "and ${conflict.deviceSource} recorded “${conflict.deviceTitle}” for the same session.\n\n" +
-                    "Replace your manual entry with the ${conflict.deviceSource} recording (richer data), or keep both?",
-            )
-        },
-        confirmButton = { Button(onClick = onUseDevice) { Text("Use ${conflict.deviceSource}") } },
-        dismissButton = { FilledTonalButton(onClick = onKeepBoth) { Text("Keep both") } },
-    )
 }
 
 @Composable

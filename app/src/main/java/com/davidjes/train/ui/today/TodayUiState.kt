@@ -7,6 +7,7 @@ import com.davidjes.train.domain.model.Readiness
 import com.davidjes.train.domain.model.TrainingLoadState
 import com.davidjes.train.domain.model.WorkoutRecommendation
 import com.davidjes.train.ui.components.DeltaTone
+import com.davidjes.train.ui.components.WorkoutConflict
 
 enum class TodayMode { NARRATIVE, METRICS }
 
@@ -41,12 +42,3 @@ data class TodayUiState(
 }
 
 data class CheckIn(val mood: Int = 5, val energy: Int = 5, val stress: Int = 3)
-
-/** A trAIn-logged workout that overlaps a device recording — surfaced to the user to resolve. */
-data class WorkoutConflict(
-    val ourId: String,
-    val ourTitle: String,
-    val deviceTitle: String,
-    val deviceSource: String,
-    val dateLabel: String,
-)
