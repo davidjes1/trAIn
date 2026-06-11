@@ -41,7 +41,7 @@ playServicesMaps = "19.0.0"
 mlkitGenaiSummarization = "1.0.0-beta1"
 
 # Google AI Edge — on-device Gemini Nano via AICore (experimental)
-aicore = "0.0.1-exp01"
+aicore = "0.0.1-exp02"
 
 # Testing
 junit = "4.13.2"
