@@ -40,6 +40,9 @@ playServicesMaps = "19.0.0"
 # ML Kit GenAI (Gemini Nano on-device)
 mlkitGenaiSummarization = "1.0.0-beta1"
 
+# Google AI Edge — on-device Gemini Nano via AICore (experimental)
+aicore = "0.0.1-exp01"
+
 # Testing
 junit = "4.13.2"
 androidxJunit = "1.2.1"
@@ -94,6 +97,9 @@ play-services-maps = { group = "com.google.android.gms", name = "play-services-m
 
 # ML Kit GenAI (on-device Gemini Nano)
 mlkit-genai-summarization = { group = "com.google.mlkit", name = "genai-summarization", version.ref = "mlkitGenaiSummarization" }
+
+# Google AI Edge AICore (on-device Gemini Nano, experimental)
+google-ai-edge-aicore = { group = "com.google.ai.edge.aicore", name = "aicore", version.ref = "aicore" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

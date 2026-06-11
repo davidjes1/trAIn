@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- AICore (on-device Gemini Nano) targets API 31+. Allow install on older
+         devices, where the app falls back to the deterministic assistant. -->
+    <uses-sdk tools:overrideLibrary="com.google.ai.edge.aicore" />
+
     <!-- ─── Health Connect read permissions ─────────────────────────── -->
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
     <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE" />

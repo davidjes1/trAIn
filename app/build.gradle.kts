@@ -101,10 +101,12 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 
-    // NOTE: Vico (charts), Maps Compose (route map), and ML Kit GenAI (Gemini Nano)
+    // On-device Gemini Nano (Google AI Edge / AICore, experimental)
+    implementation(libs.google.ai.edge.aicore)
+
+    // NOTE: Vico (charts), Maps Compose (route map), and ML Kit GenAI (summarization)
     // are declared in gradle/libs.versions.toml but not wired yet — re-add the
-    // implementation(...) lines here when those features land (FormCurve is Canvas,
-    // route map is a TODO, AI is rule-based). Keeps dependency resolution lean.
+    // implementation(...) lines here when those features land.
 
     // Testing
     testImplementation(libs.junit)

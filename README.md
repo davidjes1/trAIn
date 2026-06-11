@@ -88,6 +88,19 @@ periodized macro→meso→micro plan generator. See `domain/training/`.
 | **Profile** (identity, race, HR zones, connections) · **Onboarding** (HC permission flow) | ✅ wired |
 | **Insights** (collapsible insight cards, Gemini chat, suggested prompts, composer) | ✅ wired |
 | AI: deterministic `InsightsEngine` + grounded rule-based `GeminiService` | ✅ |
-| On-device **Gemini Nano** model binding (Google AI Edge / AICore) | 🟡 documented extension point (`AiModule` / `GeminiService`) — needs a supported device |
+| On-device **Gemini Nano** (Google AI Edge / AICore, `AiCoreGeminiService`) | 🟢 wired, bound by default — validate on a supported device (auto-falls back) |
+
+### On-device AI (Gemini Nano)
+`AiCoreGeminiService` (bound in `di/AiModule`) calls the Google AI Edge **AICore**
+`GenerativeModel` and **always falls back** to the deterministic rule-based assistant
+when the model is unavailable or a call fails — so the app behaves on every device.
+
+- **Requirements:** a Gemini-Nano-capable device (Pixel 8/9, some Galaxy S24+) with the
+  **AICore** system app present; API 31+ (older devices use the fallback).
+- **First run** triggers a model download via `prepareInferenceEngine()` — may take a moment.
+- **Verify on device** (experimental API, moves between `aicore` versions): the
+  `generationConfig {…}` builder fields, `prepareInferenceEngine()`, and
+  `generateContent(prompt).text` in `data/ai/AiCoreGeminiService.kt`. If a symbol differs,
+  fix it there only — the rest of the app is decoupled via the `GeminiService` interface.
 
 The old web/TypeScript app is archived under [`legacy/`](legacy/).
