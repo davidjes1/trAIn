@@ -10,6 +10,7 @@ import com.davidjes.train.domain.model.WorkoutType
 import com.davidjes.train.domain.training.PlanGenerator
 import com.davidjes.train.domain.training.WorkoutLibrary
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import java.util.UUID
