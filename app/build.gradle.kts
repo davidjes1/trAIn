@@ -42,6 +42,10 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs += listOf(
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+            "-opt-in=androidx.compose.foundation.layout.ExperimentalLayoutApi",
+        )
     }
 
     buildFeatures {
@@ -97,16 +101,10 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 
-    // Charts (Vico) — optional; primitives use Canvas, Form curve uses Vico
-    implementation(libs.vico.compose.m3)
-    implementation(libs.vico.compose)
-
-    // Maps (route map card)
-    implementation(libs.maps.compose)
-    implementation(libs.play.services.maps)
-
-    // ML Kit GenAI — on-device Gemini Nano
-    implementation(libs.mlkit.genai.summarization)
+    // NOTE: Vico (charts), Maps Compose (route map), and ML Kit GenAI (Gemini Nano)
+    // are declared in gradle/libs.versions.toml but not wired yet — re-add the
+    // implementation(...) lines here when those features land (FormCurve is Canvas,
+    // route map is a TODO, AI is rule-based). Keeps dependency resolution lean.
 
     // Testing
     testImplementation(libs.junit)
